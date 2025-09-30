@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glamora Admin - Frequent Data</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/analytics.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Admin</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="user-management.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>User Account Management</span>
+                </a>
+                <a href="content-moderation.html" class="nav-item">
+                    <i class="fas fa-flag"></i>
+                    <span>Content Moderation</span>
+                </a>
+                <a href="analytics.html" class="nav-item active">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Frequent Data</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Log out</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dashboard Metrics -->
+            <div class="metrics-container">
+                <div class="metric-card">
+                    <i class="fas fa-users"></i>
+                    <div class="metric-info">
+                        <h3>Total Users</h3>
+                        <span class="metric-value" id="totalUsers">100</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <i class="fas fa-flag"></i>
+                    <div class="metric-info">
+                        <h3>Reports Today</h3>
+                        <span class="metric-value" id="reportsToday">16</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <i class="fas fa-clipboard-list"></i>
+                    <div class="metric-info">
+                        <h3>Active Listing</h3>
+                        <span class="metric-value" id="activeListing">57</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Content -->
+            <div class="page-content">
+                <div class="page-header">
+                    <h2>Frequent Data</h2>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #3498db;"></div>
+                            <span>User login</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #2ecc71;"></div>
+                            <span>no. of times they generate</span>
+                        </div>
+                    </div>
+                    <canvas id="analyticsChart"></canvas>
+                    <button class="generate-report-btn">Generate report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/common.js"></script>
+    <script src="js/analytics.js"></script>
+</body>
+</html>

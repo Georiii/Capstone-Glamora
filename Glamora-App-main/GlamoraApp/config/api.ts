@@ -1,0 +1,125 @@
+/**
+ * API Configuration
+ * This file centralizes all API endpoints and automatically adapts to different environments
+ */
+
+// Environment detection
+const isDevelopment = __DEV__;
+const isProduction = !isDevelopment;
+
+// Server configuration for different environments
+const SERVER_CONFIG = {
+  development: {
+    local: 'http://localhost:3000',  // Fixed: Using correct port 3000
+    production: 'https://your-domain.com' // Your future production domain
+  },
+  production: {
+    local: 'http://localhost:3000',  // Fixed: Using correct port 3000
+    production: 'https://your-domain.com' // Your production domain
+  }
+};
+
+// Get the appropriate server URL based on environment
+export const getApiBaseUrl = (environment: 'local' | 'production' = 'local'): string => {
+  const env = isDevelopment ? 'development' : 'production';
+  return SERVER_CONFIG[env][environment];
+};
+
+// Default API base URL (uses local for development, production for production builds)
+export const API_BASE_URL = getApiBaseUrl(isDevelopment ? 'local' : 'production');
+
+// Individual API endpoints for easy access
+export const API_ENDPOINTS = {
+  // Authentication
+  login: `${API_BASE_URL}/api/auth/login`,
+  register: `${API_BASE_URL}/api/auth/register`,
+  getUser: (email: string) => `${API_BASE_URL}/api/auth/user/${email}`,
+  forgotPassword: `${API_BASE_URL}/api/auth/forgot-password`,
+  verifyResetToken: `${API_BASE_URL}/api/auth/verify-reset-token`,
+  resetPassword: `${API_BASE_URL}/api/auth/reset-password`,
+  
+  // Profile & Measurements
+  baseUrl: API_BASE_URL,
+  updateProfile: `${API_BASE_URL}/api/auth/profile/measurements`,
+  getProfile: (email: string) => `${API_BASE_URL}/api/auth/profile/${email}`,
+  uploadProfilePicture: `${API_BASE_URL}/api/auth/profile/picture`,
+  updateUser: (id: string) => `${API_BASE_URL}/api/auth/users/${id}`,
+  
+  // Wardrobe
+  wardrobe: `${API_BASE_URL}/api/wardrobe/`,
+  addWardrobeItem: `${API_BASE_URL}/api/wardrobe/add`,
+  deleteWardrobeItem: (id: string) => `${API_BASE_URL}/api/wardrobe/${id}`,
+  uploadImage: `${API_BASE_URL}/api/wardrobe/upload-image`,
+  
+  // Marketplace
+  marketplace: `${API_BASE_URL}/api/wardrobe/marketplace`,
+  marketplaceSearch: (query: string) => `${API_BASE_URL}/api/wardrobe/marketplace?search=${encodeURIComponent(query)}`,
+  addMarketplaceItem: `${API_BASE_URL}/api/wardrobe/marketplace`,
+  getMarketplaceItems: `${API_BASE_URL}/api/wardrobe/marketplace`,
+  getUserMarketplaceItems: `${API_BASE_URL}/api/wardrobe/marketplace/user`,
+  deleteMarketplaceItem: (id: string) => `${API_BASE_URL}/api/wardrobe/marketplace/${id}`,
+  updateMarketplaceItem: (id: string) => `${API_BASE_URL}/api/wardrobe/marketplace/${id}`,
+  
+  // Chat
+  chatConversations: `${API_BASE_URL}/api/chat/conversations/list`,
+  chatMessages: (userId: string) => `${API_BASE_URL}/api/chat/${userId}`,
+  chatSend: `${API_BASE_URL}/api/chat/send`,
+  chatMarkRead: (userId: string) => `${API_BASE_URL}/api/chat/mark-read/${userId}`,
+  chatDeleteConversation: (userId: string) => `${API_BASE_URL}/api/chat/conversations/${userId}`,
+  
+  // Reports
+  report: `${API_BASE_URL}/api/report`,
+  
+  // Outfits
+  outfits: `${API_BASE_URL}/api/outfits`,
+  outfitById: (id: string) => `${API_BASE_URL}/api/outfits/${id}`,
+  outfitFavorites: `${API_BASE_URL}/api/outfits/favorites/list`,
+  outfitToggleFavorite: (id: string) => `${API_BASE_URL}/api/outfits/${id}/favorite`,
+
+  // Clothing Usage
+  clothingUsage: {
+    track: `${API_BASE_URL}/api/clothing-usage/track`,
+    frequentData: (timeRange: string) => `${API_BASE_URL}/api/clothing-usage/frequent-data?timeRange=${timeRange}`,
+  },
+
+  // AI Recommendations
+  recommendations: {
+    outfits: `${API_BASE_URL}/api/recommendations/outfits`,
+    weather: (weather: string) => `${API_BASE_URL}/api/recommendations/weather/${weather}`,
+    complementary: (itemId: string) => `${API_BASE_URL}/api/recommendations/complementary/${itemId}`,
+  },
+
+  // Weather
+  weather: {
+    current: (location: string) => `${API_BASE_URL}/api/weather/current?location=${encodeURIComponent(location)}`,
+    forecast: (location: string, days: number = 1) => `${API_BASE_URL}/api/weather/forecast?location=${encodeURIComponent(location)}&days=${days}`,
+  },
+};
+
+// Helper function to get full URL for any endpoint
+export const getApiUrl = (endpoint: string, ...params: any[]): string => {
+  const endpointPath = endpoint.split('.');
+  let baseEndpoint: any = API_ENDPOINTS;
+  
+  // Navigate through nested endpoint structure
+  for (const path of endpointPath) {
+    baseEndpoint = baseEndpoint[path];
+    if (!baseEndpoint) {
+      throw new Error(`Endpoint not found: ${endpoint}`);
+    }
+  }
+  
+  if (typeof baseEndpoint === 'function') {
+    return baseEndpoint(...params);
+  }
+  
+  return baseEndpoint;
+};
+
+// Export current environment info for debugging
+export const ENV_INFO = {
+  isDevelopment,
+  isProduction,
+  currentApiUrl: API_BASE_URL,
+  serverConfig: SERVER_CONFIG
+}; 

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glamora Admin - Content Moderation</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/content-moderation.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Admin</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="user-management.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>User Account Management</span>
+                </a>
+                <a href="content-moderation.html" class="nav-item active">
+                    <i class="fas fa-flag"></i>
+                    <span>Content Moderation</span>
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Frequent Data</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Log out</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dashboard Metrics -->
+            <div class="metrics-container">
+                <div class="metric-card">
+                    <i class="fas fa-users"></i>
+                    <div class="metric-info">
+                        <h3>Total Users</h3>
+                        <span class="metric-value" id="totalUsers">100</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <i class="fas fa-flag"></i>
+                    <div class="metric-info">
+                        <h3>Reports Today</h3>
+                        <span class="metric-value" id="reportsToday">16</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <i class="fas fa-clipboard-list"></i>
+                    <div class="metric-info">
+                        <h3>Active Listing</h3>
+                        <span class="metric-value" id="activeListing">57</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Moderation Content -->
+            <div class="page-content">
+                <!-- View 1: Pending Moderation & Community Guidelines (Default) -->
+                <div id="pendingView" class="content-view">
+                    <div class="page-header">
+                        <h2>Content Moderation</h2>
+                        <button class="reports-btn" onclick="contentModeration.switchToReports()">Reports</button>
+                    </div>
+                    
+                    <!-- Community Guidelines Section -->
+                    <div class="guidelines-card">
+                        <div class="guidelines-header">
+                            <i class="fas fa-users"></i>
+                            <h3>Community Guidelines</h3>
+                            <button class="edit-btn">Edit</button>
+                        </div>
+                        <p>Our community guidelines ensure a safe and respectful environment for all users...</p>
+                    </div>
+
+                    <!-- User Posts Section -->
+                    <div class="posts-section">
+                        <h3>Pending Moderation</h3>
+                        <div id="pendingPosts" class="posts-list">
+                            <!-- Posts will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View 2: Reports Detail -->
+                <div id="reportsView" class="content-view" style="display: none;">
+                    <div class="page-header">
+                        <h2>Reports</h2>
+                        <button class="back-btn" onclick="contentModeration.switchToPending()">
+                            <i class="fas fa-arrow-left"></i>
+                            Back to Content Moderation
+                        </button>
+                    </div>
+                    
+                    <div class="reports-description">
+                        <p>The following content did not follow the community guidelines</p>
+                        <p><strong>Integration Status:</strong> <span id="integrationStatus" style="color: #4CAF50;">Connected to Mobile App</span></p>
+                    </div>
+
+                    <div class="reports-table-container">
+                        <table class="reports-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Reason</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportsTableBody">
+                                <!-- Reports will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- View 3: Report Detail View -->
+                <div id="reportDetailView" class="content-view" style="display: none;">
+                    <div class="page-header">
+                        <h2>Report Detail</h2>
+                        <button class="back-btn" onclick="contentModeration.backToReports()">
+                            <i class="fas fa-arrow-left"></i>
+                            Back to Reports
+                        </button>
+                    </div>
+                    
+                    <div class="report-detail-container">
+                        <div class="report-user-section">
+                            <img src="https://via.placeholder.com/80" alt="User Avatar" class="report-avatar" id="reportDetailAvatar">
+                            <div class="report-user-info">
+                                <p><strong>Name:</strong> <span id="reportDetailUserName">Name</span></p>
+                                <p><strong>Email:</strong> <span id="reportDetailUserEmail">Email</span></p>
+                            </div>
+                        </div>
+
+                        <div class="report-content-section">
+                            <div class="report-reason">
+                                <p><strong>Reason:</strong> <span id="reportDetailReason">Scam</span></p>
+                            </div>
+                            <div class="report-description">
+                                <p><strong>Elaborated situation:</strong></p>
+                                <p id="reportDetailDescription">Explain</p>
+                            </div>
+                        </div>
+
+                        <div class="evidence-photos-section">
+                            <h4>Evidence Photos</h4>
+                            <div id="reportDetailEvidencePhotos" class="evidence-photos-container">
+                                <!-- Photos will be populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <div class="admin-actions-section">
+                            <div class="action-buttons">
+                                <button class="restrict-btn" id="reportDetailRestrictBtn">
+                                    <i class="fas fa-ban"></i>
+                                    Restrict Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Report Details</h3>
+                <div class="modal-actions">
+                    <button class="back-to-reports-btn" onclick="contentModeration.backToReports()">← Back to Reports</button>
+                    <span class="close">&times;</span>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="report-details">
+                    <div class="report-user">
+                        <img src="https://via.placeholder.com/80" alt="User Avatar" class="report-avatar">
+                        <div class="report-user-info">
+                            <p><strong>Name:</strong> <span id="reportUserName">Name</span></p>
+                            <p><strong>Email:</strong> <span id="reportUserEmail">Email</span></p>
+                        </div>
+                    </div>
+                    <div class="report-content">
+                        <p><strong>Reason:</strong> <span id="reportReason">Scam</span></p>
+                        <p><strong>Elaborated situation:</strong></p>
+                        <p id="reportDescription">Explain</p>
+                    </div>
+                    <div class="evidence-photos-section">
+                        <h4>Evidence Photos</h4>
+                        <div id="evidencePhotos" class="evidence-photos-container">
+                            <!-- Photos will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button id="restrictBtn" class="restrict-btn">
+                        <i class="fas fa-ban"></i>
+                        Restrict Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/common.js"></script>
+    <script src="js/content-moderation.js"></script>
+</body>
+</html>

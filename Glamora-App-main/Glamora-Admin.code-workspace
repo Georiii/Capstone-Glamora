@@ -1,0 +1,36 @@
+{
+    "folders": [
+        {
+            "name": "Admin Dashboard",
+            "path": "./admin-side"
+        },
+        {
+            "name": "Main Project",
+            "path": "."
+        }
+    ],
+    "settings": {
+        "liveServer.settings.port": 5500,
+        "liveServer.settings.file": "login.html",
+        "liveServer.settings.CustomBrowser": "chrome",
+        "liveServer.settings.ignoreFiles": [
+            ".vscode/**",
+            "**/*.scss",
+            "**/*.sass",
+            "**/*.ts"
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Launch Admin Dashboard",
+                "type": "node",
+                "request": "launch",
+                "program": "${workspaceFolder}/admin-side/start-server.bat",
+                "cwd": "${workspaceFolder}/admin-side"
+            }
+        ]
+    }
+}
+

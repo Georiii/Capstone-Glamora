@@ -1,0 +1,15 @@
+{
+    "folders": [
+        {
+            "name": "Admin Dashboard",
+            "path": "./admin-side"
+        }
+    ],
+    "settings": {
+        "liveServer.settings.port": 5500,
+        "liveServer.settings.file": "login.html",
+        "liveServer.settings.CustomBrowser": "chrome",
+        "liveServer.settings.donotShowInfoMsg": true,
+        "liveServer.settings.donotVerifyTags": true
+    }
+}
