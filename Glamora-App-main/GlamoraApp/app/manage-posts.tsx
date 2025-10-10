@@ -154,8 +154,8 @@ export default function ManagePosts() {
   };
 
   const handleSaveEdit = async () => {
-    if (!editingPost || !editName.trim() || !editDescription.trim() || !editPrice.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!editingPost || !editName.trim() || !editPrice.trim()) {
+      Alert.alert('Error', 'Please fill in name and price');
       return;
     }
 

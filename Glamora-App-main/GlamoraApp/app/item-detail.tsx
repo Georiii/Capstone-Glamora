@@ -50,7 +50,14 @@ export default function ItemDetail() {
       Alert.alert('Success', 'Item deleted successfully!', [
         {
           text: 'OK',
-          onPress: () => router.back()
+          onPress: () => {
+            // Navigate to category page if we have category info, otherwise go to wardrobe
+            if (categoryStr) {
+              router.push({ pathname: '/category', params: { type: categoryStr } });
+            } else {
+              router.push('/wardrobe');
+            }
+          }
         }
       ]);
     } catch (error: any) {
@@ -68,9 +75,9 @@ export default function ItemDetail() {
   const handlePostToMarketplace = async () => {
     console.log('🎯 handlePostToMarketplace function called!');
     
-    if (!marketName.trim() || !marketDesc.trim() || !marketPrice.trim()) {
+    if (!marketName.trim() || !marketPrice.trim()) {
       console.log('❌ Validation failed - missing fields');
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Error', 'Please fill in name and price');
       return;
     }
 

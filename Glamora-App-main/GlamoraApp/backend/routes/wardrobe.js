@@ -129,12 +129,18 @@ router.get('/', auth, async (req, res) => {
 // DELETE /api/wardrobe/:id
 router.delete('/:id', auth, async (req, res) => {
   try {
+    console.log(`🗑️ Delete request for item: ${req.params.id} by user: ${req.userId}`);
     const item = await WardrobeItem.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-    if (!item) return res.status(404).json({ message: 'Item not found' });
+    if (!item) {
+      console.log(`❌ Item not found: ${req.params.id}`);
+      return res.status(404).json({ message: 'Item not found' });
+    }
+    console.log(`✅ Item deleted successfully: ${req.params.id}`);
     // Optionally: delete image from storage if needed
-    res.json({ message: 'Item deleted' });
+    res.json({ message: 'Item deleted successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error deleting item:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
@@ -142,9 +148,9 @@ router.delete('/:id', auth, async (req, res) => {
 router.post('/marketplace', auth, async (req, res) => {
   try {
     const { imageUrl, name, description, price } = req.body;
-    if (!imageUrl || !name || !price) return res.status(400).json({ message: 'Missing required fields' });
+    if (!imageUrl || !name || !price) return res.status(400).json({ message: 'Missing required fields: imageUrl, name, and price' });
     
-    // Get user information from database
+    // Get user information from database including profile picture
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
     
@@ -156,6 +162,7 @@ router.post('/marketplace', auth, async (req, res) => {
       userId: req.userId,
       userName: user.name || '',
       userEmail: user.email || '',
+      userProfilePicture: user.profilePicture?.url || '', // Include seller's profile picture
     });
     await item.save();
     res.status(201).json({ message: 'Marketplace item posted', item });
@@ -169,8 +176,20 @@ router.get('/marketplace', async (req, res) => {
   try {
     const search = req.query.search || '';
     const query = search ? { name: { $regex: search, $options: 'i' } } : {};
-    const items = await MarketplaceItem.find(query).sort({ createdAt: -1 });
-    res.json({ items });
+    const items = await MarketplaceItem.find(query).sort({ createdAt: -1 }).populate('userId', 'profilePicture');
+    
+    // Update each item with the latest profile picture from the user
+    const itemsWithUpdatedPictures = items.map(item => {
+      const itemObj = item.toObject();
+      if (item.userId && item.userId.profilePicture && item.userId.profilePicture.url) {
+        itemObj.userProfilePicture = item.userId.profilePicture.url;
+      }
+      // Remove populated userId to avoid exposing unnecessary data
+      delete itemObj.userId;
+      return itemObj;
+    });
+    
+    res.json({ items: itemsWithUpdatedPictures });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -183,6 +202,51 @@ router.get('/marketplace/user', auth, async (req, res) => {
     res.json({ items });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PUT /api/wardrobe/marketplace/:id - update marketplace item
+router.put('/marketplace/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, price } = req.body;
+    
+    if (!name || !price) {
+      return res.status(400).json({ message: 'Missing required fields: name and price' });
+    }
+
+    const item = await MarketplaceItem.findOneAndUpdate(
+      { _id: id, userId: req.userId },
+      { name, description, price },
+      { new: true }
+    );
+
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found or not authorized' });
+    }
+
+    res.json({ message: 'Item updated successfully', item });
+  } catch (err) {
+    console.error('Error updating marketplace item:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// DELETE /api/wardrobe/marketplace/:id - delete marketplace item
+router.delete('/marketplace/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const item = await MarketplaceItem.findOneAndDelete({ _id: id, userId: req.userId });
+    
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found or not authorized' });
+    }
+
+    res.json({ message: 'Item deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting marketplace item:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 

@@ -8,6 +8,7 @@ const marketplaceItemSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   userName: { type: String },
   userEmail: { type: String },
+  userProfilePicture: { type: String }, // Add seller's profile picture
   createdAt: { type: Date, default: Date.now },
 });
 

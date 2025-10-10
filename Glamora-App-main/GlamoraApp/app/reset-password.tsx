@@ -139,10 +139,32 @@ export default function ResetPassword() {
   if (!tokenValid) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Invalid or expired reset link.</Text>
-        <TouchableOpacity style={styles.button} onPress={() => router.push('/forgotpass')}>
-          <Text style={styles.buttonText}>Request New Reset Link</Text>
-        </TouchableOpacity>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+            <Text style={styles.errorTitle}>Link Expired</Text>
+            <Text style={styles.errorMessage}>
+              This password reset link has expired or is invalid. 
+              Please request a new one to reset your password.
+            </Text>
+          </View>
+
+          <TouchableOpacity 
+            style={styles.button} 
+            onPress={() => router.push('/forgotpass')}
+          >
+            <Text style={styles.buttonText}>Request New Reset Link</Text>
+          </TouchableOpacity>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Remember your password? </Text>
+            <TouchableOpacity onPress={() => router.push('/login')}>
+              <Text style={styles.loginText}>Login</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -346,6 +368,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
+  },
+  errorContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+    padding: 30,
+    marginVertical: 20,
+    alignItems: 'center',
+    width: '90%',
+    maxWidth: 400,
+  },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: 20,
+  },
+  errorTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#4B2E2B',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
   },
   errorText: {
     fontSize: 18,

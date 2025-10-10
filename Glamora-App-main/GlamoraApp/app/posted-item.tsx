@@ -5,8 +5,10 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function PostedItem() {
   const params = useLocalSearchParams();
-  const { imageUrl, name, description, price, userName, userEmail } = params;
+  const { imageUrl, name, description, price, userName, userEmail, userProfilePicture } = params;
   const imageSrc = Array.isArray(imageUrl) ? imageUrl[0] : imageUrl;
+  const sellerProfilePic = Array.isArray(userProfilePicture) ? userProfilePicture[0] : userProfilePicture;
+  const defaultAvatar = 'https://randomuser.me/api/portraits/men/32.jpg';
 
   return (
     <View style={styles.container}>
@@ -30,7 +32,10 @@ export default function PostedItem() {
       {/* User Info and Message Button */}
       <View style={styles.userRow}>
         <View style={styles.userInfo}>
-          <Image source={{ uri: 'https://randomuser.me/api/portraits/men/32.jpg' }} style={styles.userAvatar} />
+          <Image 
+            source={{ uri: sellerProfilePic || defaultAvatar }} 
+            style={styles.userAvatar} 
+          />
           <View>
             <Text style={styles.userName}>{userName || 'Name'}</Text>
             <Text style={styles.userEmail}>{userEmail || 'Email'}</Text>
@@ -41,6 +46,7 @@ export default function PostedItem() {
           params: {
             sellerId: userName,
             sellerEmail: userEmail,
+            sellerProfilePicture: sellerProfilePic || defaultAvatar,
             productName: name,
             productImage: imageSrc
           }

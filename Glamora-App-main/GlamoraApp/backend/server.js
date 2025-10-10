@@ -16,7 +16,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
 
 // Configure Socket.IO
 const io = socketIo(server, {
@@ -280,7 +284,7 @@ app.get('/reset-password-redirect', (req, res) => {
         // Automatically try to open the app
         setTimeout(() => {
           window.location.href = 'http://localhost:8081/reset-password?token=${token}';
-        }, 1000);
+        }, 500);
       </script>
     </body>
     </html>

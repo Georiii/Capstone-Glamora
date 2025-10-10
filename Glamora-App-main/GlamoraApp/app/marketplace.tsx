@@ -12,6 +12,7 @@ interface MarketplaceItem {
   price: number;
   userName: string;
   userEmail: string;
+  userProfilePicture?: string; // Add seller's profile picture
   createdAt: string;
 }
 
@@ -107,6 +108,7 @@ export default function Marketplace() {
                       price: item.price,
                       userName: item.userName,
                       userEmail: item.userEmail,
+                      userProfilePicture: item.userProfilePicture || '', // Pass seller's profile picture
                     }
                   })}
                 >

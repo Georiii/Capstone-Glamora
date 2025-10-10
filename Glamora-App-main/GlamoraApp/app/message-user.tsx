@@ -31,7 +31,7 @@ interface Message {
 
 export default function MessageUser() {
   const router = useRouter();
-  const { sellerId, sellerEmail, productName, productImage } = useLocalSearchParams();
+  const { sellerId, sellerEmail, sellerProfilePicture, productName, productImage } = useLocalSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -656,7 +656,9 @@ export default function MessageUser() {
         <View style={styles.headerCenter}>
           <Image
             source={{ 
-              uri: otherUser?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg' 
+              uri: (sellerProfilePicture && (Array.isArray(sellerProfilePicture) ? sellerProfilePicture[0] : sellerProfilePicture)) || 
+                   otherUser?.profilePicture?.url || 
+                   'https://randomuser.me/api/portraits/men/32.jpg' 
             }}
             style={styles.headerAvatar}
           />

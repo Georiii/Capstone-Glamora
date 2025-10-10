@@ -1,11 +1,12 @@
 // Admin API Backend Routes
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../backend/models/User');
-const Report = require('../backend/models/Report');
-const MarketplaceItem = require('../backend/models/MarketplaceItem');
-const WardrobeItem = require('../backend/models/WardrobeItem');
-const ChatMessage = require('../backend/models/Chat');
+const User = require('../GlamoraApp/backend/models/User');
+const Report = require('../GlamoraApp/backend/models/Report');
+const MarketplaceItem = require('../GlamoraApp/backend/models/MarketplaceItem');
+const WardrobeItem = require('../GlamoraApp/backend/models/WardrobeItem');
+const ChatMessage = require('../GlamoraApp/backend/models/Chat');
+const { JWT_SECRET } = require('../GlamoraApp/backend/config/database');
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ const adminAuth = async (req, res, next) => {
             return res.status(401).json({ message: 'No token provided' });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        const decoded = jwt.verify(token, JWT_SECRET);
         
         // Check if user is admin
         const user = await User.findById(decoded.userId);
@@ -56,7 +57,7 @@ router.post('/login', async (req, res) => {
 
             const token = jwt.sign(
                 { userId: adminUser._id, role: 'admin' },
-                process.env.JWT_SECRET || 'your-secret-key',
+                JWT_SECRET,
                 { expiresIn: '24h' }
             );
 

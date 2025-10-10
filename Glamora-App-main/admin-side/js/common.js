@@ -12,7 +12,7 @@ const api = {
         // If no token or token is placeholder, login as admin
         if (!token || token === 'admin_token_placeholder') {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/auth/admin/login`, {
+                const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -45,10 +45,13 @@ const api = {
     request: async (endpoint, options = {}) => {
         const url = `${API_BASE_URL}${endpoint}`;
         
-        // For now, skip authentication for testing
+        // Get authentication token
+        const token = await api.getAuthToken();
+        
         const defaultOptions = {
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             }
         };
 
@@ -62,6 +65,19 @@ const api = {
             const data = await response.json();
             
             if (!response.ok) {
+                // If token is invalid, clear it and retry
+                if (response.status === 401 && localStorage.getItem('adminToken')) {
+                    console.log('Token expired or invalid, refreshing...');
+                    localStorage.removeItem('adminToken');
+                    const newToken = await api.getAuthToken();
+                    config.headers['Authorization'] = `Bearer ${newToken}`;
+                    const retryResponse = await fetch(url, config);
+                    const retryData = await retryResponse.json();
+                    if (!retryResponse.ok) {
+                        throw new Error(retryData.message || 'API request failed');
+                    }
+                    return retryData;
+                }
                 throw new Error(data.message || 'API request failed');
             }
             
@@ -77,8 +93,8 @@ const api = {
         try {
             const data = await api.request('/api/report/list');
             console.log('Fetched reports from API:', data);
-            // API returns reports array directly, not wrapped in a 'reports' property
-            return Array.isArray(data) ? data : [];
+            // API returns { reports: [...] }, so extract the reports array
+            return Array.isArray(data.reports) ? data.reports : [];
         } catch (error) {
             console.error('Failed to fetch reports from API, using mock data:', error);
             // Fallback to mock data if API fails

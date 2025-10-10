@@ -1,9 +1,37 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
 const { JWT_SECRET } = require('../config/database');
 const User = require('../models/User');
 const { sendPasswordResetEmail } = require('../services/emailService');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = /jpeg|jpg|png|gif/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
 
 const router = express.Router();
 
@@ -151,17 +179,29 @@ router.get('/profile/:email', async (req, res) => {
 });
 
 // Upload profile picture
-router.post('/profile/picture', async (req, res) => {
+router.post('/profile/picture', upload.single('image'), async (req, res) => {
   try {
-    const { email, imageUrl } = req.body;
+    const { email } = req.body;
     
-    if (!email || !imageUrl) {
-      return res.status(400).json({ message: 'Email and image URL are required.' });
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required.' });
     }
     
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
+    }
+    
+    let imageUrl = '';
+    
+    if (req.file) {
+      // If file was uploaded, use the file path
+      imageUrl = req.file.path;
+    } else if (req.body.imageUrl) {
+      // If imageUrl was provided directly (for base64 or external URLs)
+      imageUrl = req.body.imageUrl;
+    } else {
+      return res.status(400).json({ message: 'Image file or imageUrl is required.' });
     }
     
     // Update profile picture

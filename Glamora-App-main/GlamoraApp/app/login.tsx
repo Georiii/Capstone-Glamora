@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS } from '../config/api';
 
 // Remove Firebase imports and usage. Refactor login to use your backend API.
@@ -13,6 +14,7 @@ export default function Login() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   React.useEffect(() => {
     // Remove Firebase onAuthStateChanged usage.
@@ -114,15 +116,36 @@ export default function Login() {
         editable={!loading}
       />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="white"
-        secureTextEntry={true}
-        value={password}
-        onChangeText={setPassword}
-        editable={!loading}
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Password"
+          placeholderTextColor="white"
+          secureTextEntry={!isPasswordVisible}
+          value={password}
+          onChangeText={setPassword}
+          editable={!loading}
+          autoComplete="off"
+          autoCorrect={false}
+          spellCheck={false}
+        />
+        
+        {/* Password Visibility Toggle Icon */}
+        {password.length > 0 && (
+          <TouchableOpacity
+            style={styles.passwordToggleIcon}
+            onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+            activeOpacity={0.6}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons
+              name={isPasswordVisible ? "eye-off" : "eye"}
+              size={22}
+              color="#000000"
+            />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Error Message */}
       {errorMessage ? (
@@ -158,6 +181,7 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: '100%',
   },
 
   logo: {
@@ -181,7 +205,8 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    width: 320,
+    width: '100%',
+    maxWidth: 320,
     height: 60,
     borderColor: 'rgba(255, 255, 255, 0.4)',
     borderWidth: 2,
@@ -191,6 +216,37 @@ const styles = StyleSheet.create({
     marginTop: 20,
     color: 'black',
     fontSize: 18,
+    alignSelf: 'center',
+  },
+
+  passwordContainer: {
+    position: 'relative',
+    width: '100%',
+    maxWidth: 320,
+    marginTop: 20,
+    alignSelf: 'center',
+  },
+
+  passwordInput: {
+    width: '100%',
+    height: 60,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderWidth: 2,
+    borderRadius: 25,
+    paddingHorizontal: 25,
+    paddingRight: 55,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    color: 'black',
+    fontSize: 18,
+  },
+
+  passwordToggleIcon: {
+    position: 'absolute',
+    right: 18,
+    top: '50%',
+    marginTop: -11,
+    padding: 6,
+    zIndex: 1,
   },
 
   loginButton: {
