@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon server.js",
-    "dev-backend": "cd backend && nodemon server.js",
-    "dev-admin": "cd admin-side && npx http-server . -p 8080 -o",
+    "dev-backend": "cd ../backend && nodemon server.js",
+    "dev-admin": "cd ../admin-side && npx http-server . -p 8080 -o",
     "dev-expo": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
@@ -16,12 +16,12 @@
     "test": "echo 'No tests specified'",
     "lint": "expo lint",
     "reset-project": "node ./scripts/reset-project.js",
-    "install-deps": "cd backend && npm install",
-    "admin-start": "npx http-server admin-side -p 8080 -o",
-    "admin-login": "npx http-server admin-side -p 8080 -o login.html",
-    "admin-analytics": "npx http-server admin-side -p 8080 -o analytics.html",
-    "admin-users": "npx http-server admin-side -p 8080 -o user-management.html",
-    "admin-moderation": "npx http-server admin-side -p 8080 -o content-moderation.html"
+    "install-deps": "cd ../backend && npm install",
+    "admin-start": "npx http-server ../admin-side -p 8080 -o",
+    "admin-login": "npx http-server ../admin-side -p 8080 -o login.html",
+    "admin-analytics": "npx http-server ../admin-side -p 8080 -o analytics.html",
+    "admin-users": "npx http-server ../admin-side -p 8080 -o user-management.html",
+    "admin-moderation": "npx http-server ../admin-side -p 8080 -o content-moderation.html"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
