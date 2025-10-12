@@ -2,9 +2,9 @@
   "name": "glamora-fullstack-app",
   "version": "1.0.0",
   "description": "Glamora Fashion App - Full Stack Application with React Native Frontend and Node.js Backend",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node src/server.js",
     "dev": "nodemon server.js",
     "dev-backend": "cd backend && nodemon server.js",
     "dev-admin": "cd admin-side && npx http-server . -p 8080 -o",
