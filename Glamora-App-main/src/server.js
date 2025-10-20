@@ -1,3 +1,4 @@
+/* eslint-env node */
 // Production deployment server
 // This file serves both the backend API and admin dashboard
 require('dotenv').config();
@@ -88,7 +89,7 @@ const io = socketIo(server, {
 
 // Socket.IO authentication middleware (optional)
 io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
+  // const token = socket.handshake.auth.token;
   // Allow connections without token for now
   next();
 });
