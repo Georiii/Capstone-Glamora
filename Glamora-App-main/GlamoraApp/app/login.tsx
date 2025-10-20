@@ -40,8 +40,27 @@ export default function Login() {
     
     setLoading(true);
     try {
-      console.log('Starting login process...');
-      console.log('API endpoint:', API_ENDPOINTS.login);
+      console.log('🚀 Starting login process...');
+      console.log('📡 API endpoint:', API_ENDPOINTS.login);
+      console.log('📍 Connecting to server at:', API_ENDPOINTS.login);
+      
+      // Test server connectivity first
+      try {
+        const testResponse = await fetch(`http://192.168.1.5:5000/health`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+        });
+        console.log('✅ Server health check:', await testResponse.json());
+      } catch (healthError: any) {
+        console.error('❌ Server health check failed:', healthError.message);
+        throw new Error(`Cannot reach server at 192.168.1.5:5000. Make sure: 
+1) Backend server is running
+2) Both devices are on the same Wi-Fi
+3) Firewall allows port 5000
+4) You're using the correct IP address
+
+Technical details: ${healthError.message}`);
+      }
       
       const response = await fetch(API_ENDPOINTS.login, {
         method: 'POST',
