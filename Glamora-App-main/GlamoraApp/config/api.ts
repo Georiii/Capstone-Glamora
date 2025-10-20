@@ -10,7 +10,7 @@ const isProduction = !isDevelopment;
 // Server configuration for different environments
 const SERVER_CONFIG = {
   development: {
-    local: 'http://192.168.18.213:5000',
+    local: 'http://192.168.1.5:5000',
     production: 'https://your-domain.com'
   },
   production: {

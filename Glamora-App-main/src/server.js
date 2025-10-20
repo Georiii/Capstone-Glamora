@@ -159,7 +159,7 @@ const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 server.listen(PORT, HOST, () => {
-  const visibleHost = HOST === '0.0.0.0' ? '192.168.18.213' : HOST;
+  const visibleHost = HOST === '0.0.0.0' ? '192.168.1.5' : HOST;
   console.log(`🚀 Server running on http://${visibleHost}:${PORT}`);
   console.log(`📊 Admin dashboard: http://${visibleHost}:${PORT}/admin`);
   console.log(`🔗 API base URL: http://${visibleHost}:${PORT}/api`);

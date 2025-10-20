@@ -46,7 +46,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       console.log('🔌 Initializing Socket.IO connection...');
       console.log('👤 Current user data:', { user, userId });
-      const newSocket = io('http://192.168.18.213:5000', {
+      const newSocket = io('http://192.168.1.5:5000', {
         auth: { token },
         transports: ['websocket', 'polling'],
         forceNew: true
@@ -187,3 +187,4 @@ export const useSocket = () => {
 
 // Add default export to fix the routing error
 export default SocketProvider;
+

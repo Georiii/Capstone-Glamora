@@ -14,7 +14,7 @@ apiKey.apiKey = process.env.BREVO_API_KEY || 'your-brevo-api-key-here';
 async function sendPasswordResetEmail(toEmail, resetToken, userName = 'User') {
   try {
     // Create reset link (web page that redirects to app)
-    const resetLink = `http://192.168.18.213:5000/reset-password-redirect?token=${resetToken}`;
+    const resetLink = `http://192.168.1.5:5000/reset-password-redirect?token=${resetToken}`;
     
     const sendSmtpEmail = new brevo.SendSmtpEmail();
     
