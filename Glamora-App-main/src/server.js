@@ -154,14 +154,16 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || '0.0.0.0';
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Admin dashboard: http://localhost:${PORT}/admin`);
-  console.log(`🔗 API base URL: http://localhost:${PORT}/api`);
-  console.log(`❤️  Health check: http://localhost:${PORT}/health`);
-  console.log(`🧪 Test endpoint: http://localhost:${PORT}/test`);
+server.listen(PORT, HOST, () => {
+  const visibleHost = HOST === '0.0.0.0' ? '192.168.18.213' : HOST;
+  console.log(`🚀 Server running on http://${visibleHost}:${PORT}`);
+  console.log(`📊 Admin dashboard: http://${visibleHost}:${PORT}/admin`);
+  console.log(`🔗 API base URL: http://${visibleHost}:${PORT}/api`);
+  console.log(`❤️  Health check: http://${visibleHost}:${PORT}/health`);
+  console.log(`🧪 Test endpoint: http://${visibleHost}:${PORT}/test`);
 });
 
 module.exports = { app, server, io };

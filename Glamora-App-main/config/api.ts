@@ -10,12 +10,12 @@ const isProduction = !isDevelopment;
 // Server configuration for different environments
 const SERVER_CONFIG = {
   development: {
-    local: 'http://localhost:3000',  // Fixed: Using correct port 3000
-    production: 'https://your-domain.com' // Your future production domain
+    local: 'http://192.168.18.213:5000',
+    production: 'https://your-domain.com'
   },
   production: {
-    local: 'http://localhost:3000',  // Fixed: Using correct port 3000
-    production: 'https://your-domain.com' // Your production domain
+    local: 'http://localhost:3000',
+    production: 'https://your-domain.com'
   }
 };
 

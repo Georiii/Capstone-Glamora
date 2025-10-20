@@ -148,7 +148,7 @@ export default function Category() {
           return { itemId, success: true };
         } catch (error) {
           console.error(`Failed to delete item ${itemId}:`, error);
-          return { itemId, success: false, error: error.message };
+          return { itemId, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
       });
 

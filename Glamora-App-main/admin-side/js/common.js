@@ -12,7 +12,7 @@ const api = {
         // If no token or token is placeholder, login as admin
         if (!token || token === 'admin_token_placeholder') {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+                const response = await fetch(`${API_BASE_URL}/api/auth/admin/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
