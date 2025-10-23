@@ -14,11 +14,11 @@ const TUNNEL_URL = process.env.EXPO_PUBLIC_API_URL;
 const SERVER_CONFIG = {
   development: {
     local: TUNNEL_URL || 'http://192.168.1.5:5000',
-    production: 'https://your-domain.com'
+    production: 'https://glamora-g5my.onrender.com'
   },
   production: {
     local: 'http://localhost:3000',
-    production: 'https://your-domain.com'
+    production: 'https://glamora-g5my.onrender.com'
   }
 };
 
