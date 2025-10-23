@@ -1,5 +1,7 @@
 module.exports = {
   expo: {
+    name: "GlamoraApp",
+    slug: "glamoraapp",
     android: {
       usesCleartextTraffic: true,  // Allow HTTP traffic for development
       package: "com.glamora.app",
