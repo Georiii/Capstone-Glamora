@@ -46,7 +46,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       console.log('🔌 Initializing Socket.IO connection...');
       console.log('👤 Current user data:', { user, userId });
-      const newSocket = io('http://192.168.1.5:5000', {
+      const SOCKET_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.5:5000';
+      const newSocket = io(SOCKET_URL, {
         auth: { token },
         transports: ['websocket', 'polling'],
         forceNew: true

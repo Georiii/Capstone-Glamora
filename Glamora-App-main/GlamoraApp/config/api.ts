@@ -8,9 +8,12 @@ const isDevelopment = __DEV__;
 const isProduction = !isDevelopment;
 
 // Server configuration for different environments
+// For tunnel testing, set EXPO_PUBLIC_API_URL in your environment
+const TUNNEL_URL = process.env.EXPO_PUBLIC_API_URL;
+
 const SERVER_CONFIG = {
   development: {
-    local: 'http://192.168.1.5:5000',
+    local: TUNNEL_URL || 'http://192.168.1.5:5000',
     production: 'https://your-domain.com'
   },
   production: {

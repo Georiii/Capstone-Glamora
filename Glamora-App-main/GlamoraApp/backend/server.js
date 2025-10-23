@@ -122,7 +122,15 @@ const outfitRoutes = require('./routes/outfits');
 const recommendationRoutes = require('./routes/recommendations');
 const weatherRoutes = require('./routes/weather');
 const clothingUsageRoutes = require('./routes/clothing-usage');
-const adminRoutes = require('../../admin-side/admin-api');
+
+// Admin routes - conditionally load if file exists (for deployment compatibility)
+let adminRoutes;
+try {
+  adminRoutes = require('../../admin-side/admin-api');
+} catch (err) {
+  console.log('ℹ️  Admin routes not available (admin-api.js not found). Admin dashboard will not be accessible.');
+  adminRoutes = null;
+}
 
 app.use('/api/auth', authRoutes);
 app.use('/api/wardrobe', wardrobeRoutes);
@@ -132,7 +140,9 @@ app.use('/api/outfits', outfitRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/clothing-usage', clothingUsageRoutes);
-app.use('/api/admin', adminRoutes);
+if (adminRoutes) {
+  app.use('/api/admin', adminRoutes);
+}
 
 // Password reset redirect page
 app.get('/reset-password-redirect', (req, res) => {
