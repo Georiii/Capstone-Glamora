@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, getApiBaseUrl } from '../config/api';
 
 // Remove Firebase imports and usage. Refactor login to use your backend API.
 
@@ -46,18 +46,20 @@ export default function Login() {
       
       // Test server connectivity first
       try {
-        const testResponse = await fetch(`http://192.168.1.5:5000/health`, {
+        const apiBaseUrl = getApiBaseUrl('production');
+        const healthUrl = `${apiBaseUrl}/health`;
+        const testResponse = await fetch(healthUrl, {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
         });
         console.log('✅ Server health check:', await testResponse.json());
       } catch (healthError: any) {
         console.error('❌ Server health check failed:', healthError.message);
-        throw new Error(`Cannot reach server at 192.168.1.5:5000. Make sure: 
+        const apiBaseUrl = getApiBaseUrl('production');
+        throw new Error(`Cannot reach server at ${apiBaseUrl}. Make sure: 
 1) Backend server is running
-2) Both devices are on the same Wi-Fi
-3) Firewall allows port 5000
-4) You're using the correct IP address
+2) You have internet connection
+3) Server is accessible
 
 Technical details: ${healthError.message}`);
       }
