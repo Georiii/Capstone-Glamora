@@ -1,14 +1,14 @@
 module.exports = {
   expo: {
     name: "GlamoraApp",
-    slug: "glamoraapp",
+    slug: "GlamoraApp",
     android: {
       usesCleartextTraffic: true,  // Allow HTTP traffic for development
       package: "com.glamora.app",
     },
     extra: {
       eas: {
-        projectId: "e939fc72-a48a-4a32-bd3b-017e22cdb406"
+        projectId: "c50f9159-c5f3-4e50-a191-518ab1dc07ce"
       }
     }
     // ... rest of your expo config
