@@ -127,32 +127,25 @@ export default function MessageBox() {
       console.log('🔑 Token:', token.substring(0, 20) + '...');
       console.log('🌐 API Endpoint:', API_ENDPOINTS.chatConversations);
       
-      // Add timeout to prevent hanging requests
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         console.log('⏰ Request timeout after 10 seconds');
         controller.abort();
-      }, 10000); // 10 second timeout
+      }, 10000);
       
-      try {
-        const response = await fetch(API_ENDPOINTS.chatConversations, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-        });
-      
-        clearTimeout(timeoutId);
-
-        console.log('📡 Response status:', response.status);
-      console.log('📡 Response headers:', response.headers);
+      const response = await fetch(API_ENDPOINTS.chatConversations, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+    
+      clearTimeout(timeoutId);
+      console.log('📡 Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Raw API response:', JSON.stringify(data, null, 2));
-        
-        // Transform conversations to include proper user info
         const transformedConversations = (data.conversations || []).map((conv: any) => ({
           _id: conv._id,
           user: conv.user || { name: 'Unknown User', email: 'unknown@example.com' },
@@ -165,12 +158,9 @@ export default function MessageBox() {
           unreadCount: conv.unreadCount || 0
         }));
         
-        console.log('✅ Transformed conversations:', JSON.stringify(transformedConversations, null, 2));
         setConversations(transformedConversations);
       } else {
         console.error('❌ Failed to load conversations:', response.status);
-        const errorText = await response.text();
-        console.error('❌ Error response text:', errorText);
         Alert.alert('Error', 'Failed to load conversations. Please try again.');
         setConversations([]);
       }
