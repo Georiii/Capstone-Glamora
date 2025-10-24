@@ -98,8 +98,10 @@ export default function MessageBox() {
   // Refresh conversations when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      loadConversations();
-    }, [])
+      if (currentUser) {
+        loadConversations();
+      }
+    }, [currentUser])
   );
 
   const loadCurrentUser = async () => {
@@ -129,27 +131,35 @@ export default function MessageBox() {
       
       if (!token) {
         console.log('❌ No token found in AsyncStorage');
-        Alert.alert('Error', 'Please login to view messages');
+        Alert.alert('Authentication Required', 'Please login to view messages', [
+          { text: 'OK', onPress: () => router.push('/login') }
+        ]);
         return;
       }
 
       console.log('🔍 Loading conversations...');
       console.log('🔑 Token:', token.substring(0, 20) + '...');
+      console.log('🌐 API Endpoint:', API_ENDPOINTS.chatConversations);
       
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => {
+        console.log('⏰ Request timeout after 10 seconds');
+        controller.abort();
+      }, 10000); // 10 second timeout
       
-      const response = await fetch(API_ENDPOINTS.chatConversations, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        signal: controller.signal,
-      });
+      try {
+        const response = await fetch(API_ENDPOINTS.chatConversations, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
       
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      console.log('📡 Response status:', response.status);
+        console.log('📡 Response status:', response.status);
       console.log('📡 Response headers:', response.headers);
 
       if (response.ok) {
