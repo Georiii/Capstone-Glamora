@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, TextInput, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -82,86 +82,97 @@ export default function Register() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Logo and Brand */}
-      <View style={styles.logoContainer}>
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
-        <Text style={styles.brandText}>GLAMORA</Text>
-      </View>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Logo and Brand */}
+        <View style={styles.logoContainer}>
+          <Image source={require('../assets/logo.png')} style={styles.logo} />
+        </View>
 
-      <Text style={styles.header}>Create an account</Text>
+        <Text style={styles.header}>Create an account</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Name"
-        placeholderTextColor="rgba(255, 255, 255, 0.8)"
-        value={name}
-        onChangeText={setName}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        placeholderTextColor="rgba(255, 255, 255, 0.8)"
-        value={username}
-        onChangeText={setUsername}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="rgba(255, 255, 255, 0.8)"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      <View style={styles.passwordContainer}>
         <TextInput
-          style={[styles.input, styles.passwordInput]}
-          placeholder="Password"
+          style={styles.input}
+          placeholder="Name"
           placeholderTextColor="rgba(255, 255, 255, 0.8)"
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
+          value={name}
+          onChangeText={setName}
+          autoCapitalize="words"
         />
-        <TouchableOpacity 
-          onPress={() => setShowPassword((prev) => !prev)} 
-          style={styles.eyeIcon}
-        >
-          <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="rgba(255, 255, 255, 0.8)" />
-        </TouchableOpacity>
-      </View>
 
-      <View style={styles.passwordContainer}>
         <TextInput
-          style={[styles.input, styles.passwordInput]}
-          placeholder="Confirm Password"
+          style={styles.input}
+          placeholder="Username"
           placeholderTextColor="rgba(255, 255, 255, 0.8)"
-          secureTextEntry={!showConfirmPassword}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
         />
-        <TouchableOpacity 
-          onPress={() => setShowConfirmPassword((prev) => !prev)} 
-          style={styles.eyeIcon}
-        >
-          <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={22} color="rgba(255, 255, 255, 0.8)" />
-        </TouchableOpacity>
-      </View>
 
-      <TouchableOpacity style={styles.signUpButton} onPress={handleRegister} disabled={loading}>
-        <Text style={styles.signUpButtonText}>{loading ? 'Signing up...' : 'Sign up'}</Text>
-      </TouchableOpacity>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="rgba(255, 255, 255, 0.8)"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Already have an account? </Text>
-        <TouchableOpacity onPress={() => router.push('/login')}>
-          <Text style={styles.loginText}>Login</Text>
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={[styles.input, styles.passwordInput]}
+            placeholder="Password"
+            placeholderTextColor="rgba(255, 255, 255, 0.8)"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity 
+            onPress={() => setShowPassword((prev) => !prev)} 
+            style={styles.eyeIcon}
+          >
+            <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="rgba(255, 255, 255, 0.8)" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={[styles.input, styles.passwordInput]}
+            placeholder="Confirm Password"
+            placeholderTextColor="rgba(255, 255, 255, 0.8)"
+            secureTextEntry={!showConfirmPassword}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
+          <TouchableOpacity 
+            onPress={() => setShowConfirmPassword((prev) => !prev)} 
+            style={styles.eyeIcon}
+          >
+            <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={22} color="rgba(255, 255, 255, 0.8)" />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity style={styles.signUpButton} onPress={handleRegister} disabled={loading}>
+          <Text style={styles.signUpButtonText}>{loading ? 'Signing up...' : 'Sign up'}</Text>
         </TouchableOpacity>
-      </View>
-    </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => router.push('/login')}>
+            <Text style={styles.loginText}>Login</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -169,9 +180,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4C2C2',
+  },
+
+  scrollContent: {
+    flexGrow: 1,
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingBottom: 40,
   },
 
   logoContainer: {
@@ -187,12 +203,6 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
 
-  brandText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 5,
-  },
 
   header: {
     fontSize: 28,

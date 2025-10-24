@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS, getApiBaseUrl } from '../config/api';
 
@@ -123,75 +123,87 @@ Technical details: ${healthError.message}`);
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={require('../assets/logo.png')} style={styles.logo} />
-
-      <Text style={styles.text}>Login to your{"\n"}Account</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="white"
-        value={email}
-        onChangeText={setEmail}
-        editable={!loading}
-      />
-
-      <View style={styles.passwordContainer}>
-        <TextInput
-          style={styles.passwordInput}
-          placeholder="Password"
-          placeholderTextColor="white"
-          secureTextEntry={!isPasswordVisible}
-          value={password}
-          onChangeText={setPassword}
-          editable={!loading}
-          autoComplete="off"
-          autoCorrect={false}
-          spellCheck={false}
-        />
-        
-        {/* Password Visibility Toggle Icon */}
-        {password.length > 0 && (
-          <TouchableOpacity
-            style={styles.passwordToggleIcon}
-            onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-            activeOpacity={0.6}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Ionicons
-              name={isPasswordVisible ? "eye-off" : "eye"}
-              size={22}
-              color="#000000"
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Error Message */}
-      {errorMessage ? (
-        <Text style={styles.errorText}>{errorMessage}</Text>
-      ) : null}
-
-      <TouchableOpacity 
-        style={styles.loginButton} 
-        onPress={handleLogin}
-        disabled={loading}
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.loginButtonText}>{loading ? 'Logging In...' : 'Login'}</Text>
-      </TouchableOpacity>
+        <Image source={require('../assets/logo.png')} style={styles.logo} />
 
-      <TouchableOpacity onPress={() => router.push('/forgotpass')}>
-        <Text style={styles.forgotPassword}>Forgot Password?</Text>
-      </TouchableOpacity>
+        <Text style={styles.text}>Login to your{"\n"}Account</Text>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Don&apos;t have an account? </Text>
-        <TouchableOpacity onPress={() => router.push('/register')}>
-          <Text style={styles.signUpText}>Sign up.</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="white"
+          value={email}
+          onChangeText={setEmail}
+          editable={!loading}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Password"
+            placeholderTextColor="white"
+            secureTextEntry={!isPasswordVisible}
+            value={password}
+            onChangeText={setPassword}
+            editable={!loading}
+            autoComplete="off"
+            autoCorrect={false}
+            spellCheck={false}
+          />
+          
+          {/* Password Visibility Toggle Icon */}
+          {password.length > 0 && (
+            <TouchableOpacity
+              style={styles.passwordToggleIcon}
+              onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+              activeOpacity={0.6}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons
+                name={isPasswordVisible ? "eye-off" : "eye"}
+                size={22}
+                color="#000000"
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Error Message */}
+        {errorMessage ? (
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        ) : null}
+
+        <TouchableOpacity 
+          style={styles.loginButton} 
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={styles.loginButtonText}>{loading ? 'Logging In...' : 'Login'}</Text>
         </TouchableOpacity>
-      </View>
-    </View>
+
+        <TouchableOpacity onPress={() => router.push('/forgotpass')}>
+          <Text style={styles.forgotPassword}>Forgot Password?</Text>
+        </TouchableOpacity>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+          <TouchableOpacity onPress={() => router.push('/register')}>
+            <Text style={styles.signUpText}>Sign up.</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -199,6 +211,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4C2C2',
+  },
+
+  scrollContent: {
+    flexGrow: 1,
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',

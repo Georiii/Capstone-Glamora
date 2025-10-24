@@ -269,7 +269,7 @@ app.get('/reset-password-redirect', (req, res) => {
         <h1>Glamora Password Reset</h1>
         <p>Click the button below to open the Glamora app and reset your password.</p>
         
-        <a href="http://localhost:8081/reset-password?token=${token}" class="button" id="openAppBtn">
+        <a href="glamora://reset-password?token=${token}" class="button" id="openAppBtn">
           Open Glamora App
         </a>
         
