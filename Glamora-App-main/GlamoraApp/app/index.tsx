@@ -1,38 +1,55 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { useAuth } from './contexts/AuthContext';
 
 export default function Home() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
   const [isChecking, setIsChecking] = React.useState(true);
 
   React.useEffect(() => {
     const decideInitialRoute = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
-        if (token) {
+        if (isAuthenticated) {
+          // User is authenticated, go to main app
+          console.log('✅ User is authenticated, redirecting to wardrobe');
           router.replace('/wardrobe');
           return;
         }
 
         const hasLaunched = await AsyncStorage.getItem('hasLaunched');
         if (hasLaunched === 'true') {
+          // User has launched before but not authenticated, go to login
+          console.log('🔄 User has launched before, redirecting to login');
           router.replace('/login');
           return;
         }
+        
+        // First time user, show onboarding
+        console.log('👋 First time user, showing onboarding');
       } catch (e) {
+        console.error('Error checking auth status:', e);
         // If anything fails, just show onboarding
       } finally {
         setIsChecking(false);
       }
     };
 
-    decideInitialRoute();
-  }, [router]);
+    // Only decide route when auth loading is complete
+    if (!isLoading) {
+      decideInitialRoute();
+    }
+  }, [router, isAuthenticated, isLoading]);
 
-  if (isChecking) {
-    return null;
+  if (isChecking || isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#FFE8C8" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
   }
 
   const handleGetStarted = async () => {
@@ -105,5 +122,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 1,
+  },
+  loadingText: {
+    color: '#4B2E2B',
+    fontSize: 16,
+    marginTop: 20,
   },
 });

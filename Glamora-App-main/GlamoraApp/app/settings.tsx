@@ -5,11 +5,13 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import RateUsModal from './components/RateUsModal';
 import { useSocket } from './contexts/SocketContext';
+import { useAuth } from './contexts/AuthContext';
 
 export default function Settings() {
   const router = useRouter();
   const [showRateUsModal, setShowRateUsModal] = useState(false);
   const { disconnectSocket } = useSocket();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     console.log('🔌 Logout button clicked');
@@ -25,10 +27,9 @@ export default function Settings() {
         console.log('🔌 Socket disconnect failed (continuing anyway):', socketError);
       }
       
-      // Clear authentication data
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      console.log('🔌 AsyncStorage cleared');
+      // Use AuthContext logout method for consistent session management
+      await logout();
+      console.log('🔌 AuthContext logout completed');
       
       // Force navigation to login page
       console.log('🔌 Navigating to login page...');

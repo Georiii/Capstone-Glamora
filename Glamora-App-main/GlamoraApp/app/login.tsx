@@ -1,14 +1,15 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS, getApiBaseUrl } from '../config/api';
+import { useAuth } from './contexts/AuthContext';
 
 // Remove Firebase imports and usage. Refactor login to use your backend API.
 
 export default function Login() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -101,13 +102,15 @@ Technical details: ${healthError.message}`);
       }
       
       console.log('Login successful, data:', data);
-      await AsyncStorage.setItem('token', data.token);
-      await AsyncStorage.setItem('user', JSON.stringify({ 
+      
+      // Use AuthContext login method for consistent session management
+      await login(data.token, { 
         _id: data.user.id,
         name: data.user.name, 
         email: data.user.email 
-      }));
-      router.push('/wardrobe');
+      });
+      
+      router.replace('/wardrobe');
     } catch (error: any) {
       console.error('Login error details:', error);
       console.error('Error message:', error.message);

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, TextInput, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../config/api';
+import { validatePassword, getPasswordStrengthColor, getPasswordStrengthText, PasswordValidationResult } from '../utils/passwordValidation';
 
 export default function Register() {
   const router = useRouter();
@@ -15,6 +15,17 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [passwordValidation, setPasswordValidation] = useState<PasswordValidationResult | null>(null);
+
+  const handlePasswordChange = (newPassword: string) => {
+    setPassword(newPassword);
+    if (newPassword.length > 0) {
+      const validation = validatePassword(newPassword);
+      setPasswordValidation(validation);
+    } else {
+      setPasswordValidation(null);
+    }
+  };
 
   const handleRegister = async () => {
     if (!name.trim() || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -27,8 +38,14 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+    // Validate password strength
+    const validation = validatePassword(password);
+    if (!validation.isValid) {
+      Alert.alert(
+        'Password Requirements Not Met',
+        'Your password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -55,21 +72,21 @@ export default function Register() {
         throw new Error(errorMessage);
       }
 
-      let data;
       try {
-        data = await response.json();
+        await response.json();
       } catch {
         console.error('JSON parse error');
         throw new Error('Invalid server response. Please try again.');
       }
       
-      Alert.alert('Account created successfully!');
-      await AsyncStorage.setItem('user', JSON.stringify({ 
-        _id: data.user?._id,
-        name, 
-        email 
-      }));
-      router.push({ pathname: '/login', params: { fromRegister: 'true' } });
+      Alert.alert('Account created successfully!', 'Please login with your new credentials.', [
+        {
+          text: 'OK',
+          onPress: () => {
+            router.replace('/login');
+          }
+        }
+      ]);
     } catch (error: any) {
       setLoading(false);
       console.error('Registration error:', error);
@@ -132,7 +149,7 @@ export default function Register() {
           placeholderTextColor="rgba(255, 255, 255, 0.8)"
           secureTextEntry={!showPassword}
           value={password}
-          onChangeText={setPassword}
+          onChangeText={handlePasswordChange}
         />
         <TouchableOpacity 
           onPress={() => setShowPassword((prev) => !prev)} 
@@ -141,6 +158,39 @@ export default function Register() {
           <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="rgba(255, 255, 255, 0.8)" />
         </TouchableOpacity>
       </View>
+
+      {/* Password Strength Indicator */}
+      {passwordValidation && (
+        <View style={styles.passwordStrengthContainer}>
+          <View style={styles.passwordStrengthBar}>
+            <View 
+              style={[
+                styles.passwordStrengthFill, 
+                { 
+                  width: passwordValidation.strength === 'weak' ? '33%' : 
+                         passwordValidation.strength === 'medium' ? '66%' : '100%',
+                  backgroundColor: getPasswordStrengthColor(passwordValidation.strength)
+                }
+              ]} 
+            />
+          </View>
+          <Text style={[
+            styles.passwordStrengthText,
+            { color: getPasswordStrengthColor(passwordValidation.strength) }
+          ]}>
+            Password Strength: {getPasswordStrengthText(passwordValidation.strength)}
+          </Text>
+          {passwordValidation.errors.length > 0 && (
+            <View style={styles.passwordErrorsContainer}>
+              {passwordValidation.errors.map((error, index) => (
+                <Text key={index} style={styles.passwordErrorText}>
+                  • {error}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
       <View style={styles.passwordContainer}>
         <TextInput
@@ -238,6 +288,33 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 15,
     top: 14,
+  },
+  passwordStrengthContainer: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  passwordStrengthBar: {
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+    marginBottom: 4,
+  },
+  passwordStrengthFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  passwordStrengthText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  passwordErrorsContainer: {
+    marginTop: 4,
+  },
+  passwordErrorText: {
+    fontSize: 11,
+    color: '#FF6B6B',
+    marginBottom: 2,
   },
 
   signUpButton: {
