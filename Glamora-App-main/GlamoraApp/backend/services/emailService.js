@@ -14,10 +14,8 @@ apiKey.apiKey = process.env.BREVO_API_KEY || 'your-brevo-api-key-here';
 async function sendPasswordResetEmail(toEmail, resetToken, userName = 'User') {
   try {
     // Create reset link (web page that redirects to app)
-    // Use production URL in production, fallback to local for development
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? (process.env.BASE_URL || 'https://glamora-g5my.onrender.com')
-      : (process.env.BASE_URL || 'http://192.168.1.5:5000');
+    // Always use Render URL for consistency
+    const baseUrl = process.env.BASE_URL || 'https://glamora-g5my.onrender.com';
     const resetLink = `${baseUrl}/reset-password-redirect?token=${resetToken}`;
     
     const sendSmtpEmail = new brevo.SendSmtpEmail();

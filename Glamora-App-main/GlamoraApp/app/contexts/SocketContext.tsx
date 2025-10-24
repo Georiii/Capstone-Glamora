@@ -46,7 +46,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       console.log('🔌 Initializing Socket.IO connection...');
       console.log('👤 Current user data:', { user, userId });
-      const SOCKET_URL = process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? 'http://192.168.1.5:5000' : 'https://glamora-g5my.onrender.com');
+      const SOCKET_URL = process.env.EXPO_PUBLIC_API_URL || 'https://glamora-g5my.onrender.com';
       const newSocket = io(SOCKET_URL, {
         auth: { token },
         transports: ['websocket', 'polling'],

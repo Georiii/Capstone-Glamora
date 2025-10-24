@@ -327,8 +327,8 @@ const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 server.listen(PORT, HOST, () => {
-  console.log(`🚀 Server running on http://${HOST === '0.0.0.0' ? '192.168.1.5' : HOST}:${PORT}`);
-  console.log(`🌐 Health check: http://${HOST === '0.0.0.0' ? '192.168.1.5' : HOST}:${PORT}/health`);
+  console.log(`🚀 Server running on http://${HOST === '0.0.0.0' ? 'glamora-g5my.onrender.com' : HOST}:${PORT}`);
+  console.log(`🌐 Health check: http://${HOST === '0.0.0.0' ? 'glamora-g5my.onrender.com' : HOST}:${PORT}/health`);
   console.log(`💬 Socket.IO chat ready!`);
 });
 
