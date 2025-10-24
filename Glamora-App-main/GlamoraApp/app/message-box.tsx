@@ -90,20 +90,6 @@ export default function MessageBox() {
     }
   }, [socket, currentUser]);
 
-  useEffect(() => {
-    loadCurrentUser();
-    loadConversations();
-  }, []);
-
-  // Refresh conversations when screen comes into focus
-  useFocusEffect(
-    React.useCallback(() => {
-      if (currentUser) {
-        loadConversations();
-      }
-    }, [currentUser])
-  );
-
   const loadCurrentUser = async () => {
     try {
       const userData = await AsyncStorage.getItem('user');
@@ -205,6 +191,20 @@ export default function MessageBox() {
       }
     }
   };
+
+  useEffect(() => {
+    loadCurrentUser();
+    loadConversations();
+  }, []);
+
+  // Refresh conversations when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (currentUser) {
+        loadConversations();
+      }
+    }, [currentUser])
+  );
 
   const onRefresh = () => {
     loadConversations(true);
