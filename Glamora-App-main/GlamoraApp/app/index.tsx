@@ -1,9 +1,48 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function Home() {
   const router = useRouter();
+  const [isChecking, setIsChecking] = React.useState(true);
+
+  React.useEffect(() => {
+    const decideInitialRoute = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          router.replace('/wardrobe');
+          return;
+        }
+
+        const hasLaunched = await AsyncStorage.getItem('hasLaunched');
+        if (hasLaunched === 'true') {
+          router.replace('/login');
+          return;
+        }
+      } catch (e) {
+        // If anything fails, just show onboarding
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    decideInitialRoute();
+  }, [router]);
+
+  if (isChecking) {
+    return null;
+  }
+
+  const handleGetStarted = async () => {
+    try {
+      await AsyncStorage.setItem('hasLaunched', 'true');
+    } catch (e) {
+      // ignore
+    }
+    router.push('/login');
+  };
 
   return (
     <View style={styles.container}>
@@ -11,7 +50,7 @@ export default function Home() {
       <Text style={styles.text}>WELCOME TO GLAMORA</Text>
       <Text style={styles.subtext}>Choose your outfit</Text>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/login')}>
+      <TouchableOpacity style={styles.button} onPress={handleGetStarted}>
         <Text style={styles.buttonText}>GET STARTED</Text>
       </TouchableOpacity>
     </View>

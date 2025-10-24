@@ -222,12 +222,12 @@ const styles = StyleSheet.create({
   },
 
   logo: {
-    width: 60,
-    height: 60,
+    width: 100,
+    height: 100,
     resizeMode: 'contain',
     position: 'absolute',
-    top: 40,
-    right: 10,
+    top: 10,
+    right: 5,
   },
 
   text: {

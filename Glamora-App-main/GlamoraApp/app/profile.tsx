@@ -216,20 +216,20 @@ export default function Profile() {
       </View>
       {/* Footer Navigation */}
       <View style={styles.navigation}>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/wardrobe')}>
-          <Ionicons name="shirt" size={24} color="#333" />
+        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/wardrobe')}>
+          <Ionicons name="shirt" size={24} color="#666" />
           <Text style={styles.navText}>Wardrobe</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/scan')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/scan')}>
           <Ionicons name="camera" size={24} color="#666" />
           <Text style={styles.navText}>Scan</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/marketplace')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/marketplace')}>
           <Ionicons name="cart" size={24} color="#666" />
           <Text style={styles.navText}>Market</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
-          <Ionicons name="person" size={24} color="#333" />
+        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/profile')}>
+          <Ionicons name="person" size={24} color="#000" />
           <Text style={[styles.navText, styles.activeText]}>Profile</Text>
         </TouchableOpacity>
       </View>

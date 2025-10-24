@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { API_BASE_URL } from '../config/api';
 
 export default function Security() {
   const router = useRouter();
@@ -12,6 +13,9 @@ export default function Security() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadUserInfo();
@@ -30,7 +34,7 @@ export default function Security() {
     }
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!newPassword || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all password fields');
       return;
@@ -46,15 +50,45 @@ export default function Security() {
       return;
     }
 
-    Alert.alert(
-      'Success',
-      'Password changed successfully!',
-      [{ text: 'OK', onPress: () => {
-        setShowPasswordChange(false);
-        setNewPassword('');
-        setConfirmPassword('');
-      }}]
-    );
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Please login again');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          newPassword: newPassword,
+        }),
+      });
+
+      if (response.ok) {
+        Alert.alert(
+          'Success',
+          'Password changed successfully!',
+          [{ text: 'OK', onPress: () => {
+            setShowPasswordChange(false);
+            setNewPassword('');
+            setConfirmPassword('');
+          }}]
+        );
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.message || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      Alert.alert('Error', 'Failed to change password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -89,20 +123,44 @@ export default function Security() {
           
           {showPasswordChange && (
             <View style={styles.passwordChangeForm}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="New password"
-                secureTextEntry
-                value={newPassword}
-                onChangeText={setNewPassword}
-              />
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Confirm new password"
-                secureTextEntry
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="New password"
+                  secureTextEntry={!showNewPassword}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeIcon}
+                  onPress={() => setShowNewPassword(!showNewPassword)}
+                >
+                  <Ionicons 
+                    name={showNewPassword ? "eye-off" : "eye"} 
+                    size={22} 
+                    color="#666" 
+                  />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Confirm new password"
+                  secureTextEntry={!showConfirmPassword}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeIcon}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <Ionicons 
+                    name={showConfirmPassword ? "eye-off" : "eye"} 
+                    size={22} 
+                    color="#666" 
+                  />
+                </TouchableOpacity>
+              </View>
               <View style={styles.passwordButtons}>
                 <TouchableOpacity 
                   style={styles.cancelButton} 
@@ -115,10 +173,13 @@ export default function Security() {
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={styles.saveButton} 
+                  style={[styles.saveButton, loading && styles.saveButtonDisabled]} 
                   onPress={handleChangePassword}
+                  disabled={loading}
                 >
-                  <Text style={styles.saveButtonText}>Save</Text>
+                  <Text style={styles.saveButtonText}>
+                    {loading ? 'Changing...' : 'Save'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -185,14 +246,24 @@ const styles = StyleSheet.create({
   passwordChangeForm: {
     marginTop: 15,
   },
+  passwordInputContainer: {
+    position: 'relative',
+    marginBottom: 10,
+  },
   passwordInput: {
     borderWidth: 1,
     borderColor: '#E0E0E0',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 10,
+    paddingRight: 50,
     fontSize: 16,
     backgroundColor: '#fff',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    padding: 4,
   },
   passwordButtons: {
     flexDirection: 'row',
@@ -221,6 +292,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#ccc',
   },
   changePasswordButton: {
     alignSelf: 'flex-start',

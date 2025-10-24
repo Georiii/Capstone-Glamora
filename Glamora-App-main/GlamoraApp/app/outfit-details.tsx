@@ -311,7 +311,7 @@ export default function OutfitDetails() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/wardrobe')}>
             <Ionicons name="arrow-back" size={24} color="#4B2E2B" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Outfit Details</Text>
@@ -319,7 +319,7 @@ export default function OutfitDetails() {
         </View>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No outfit data available</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/wardrobe')}>
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>

@@ -80,19 +80,19 @@ export default function Wardrobe() {
       </View>
       {/* Bottom Navigation */}
       <View style={styles.navigation}>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="shirt" size={24} color="#333" />
+        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/wardrobe')}>
+          <Ionicons name="shirt" size={24} color="#000" />
           <Text style={[styles.navText, styles.activeText]}>Wardrobe</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/scan')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/scan')}>
           <Ionicons name="camera" size={24} color="#666" />
           <Text style={styles.navText}>Scan</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/marketplace')}>
-          <Ionicons name="cart" size={24} color="#333" />
-          <Text style={[styles.navText, styles.activeText]}>Market</Text>
+        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/marketplace')}>
+          <Ionicons name="cart" size={24} color="#666" />
+          <Text style={styles.navText}>Market</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/profile')}>
           <Ionicons name="person" size={24} color="#666" />
           <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>

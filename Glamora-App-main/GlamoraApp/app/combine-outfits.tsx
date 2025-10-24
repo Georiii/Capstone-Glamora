@@ -35,8 +35,8 @@ export default function CombineOutfits() {
   // Enhanced filter states for multi-select categories
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedWeather, setSelectedWeather] = useState<string>('');
-  const [selectedOccasion, setSelectedOccasion] = useState<string>('');
-  const [selectedStyle, setSelectedStyle] = useState<string>('');
+  const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
+  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   // AI removed per requirements – always use manual generation with weather logic
   const [useWeatherAPI, setUseWeatherAPI] = useState<boolean>(false);
   const [lastWeather, setLastWeather] = useState<any>(null); // retained for potential UI use
@@ -131,11 +131,19 @@ export default function CombineOutfits() {
   };
 
   const selectOccasion = (occasion: string) => {
-    setSelectedOccasion(selectedOccasion === occasion ? '' : occasion);
+    setSelectedOccasions(prev => 
+      prev.includes(occasion) 
+        ? prev.filter(o => o !== occasion)
+        : [...prev, occasion]
+    );
   };
 
   const selectStyle = (style: string) => {
-    setSelectedStyle(selectedStyle === style ? '' : style);
+    setSelectedStyles(prev => 
+      prev.includes(style) 
+        ? prev.filter(s => s !== style)
+        : [...prev, style]
+    );
   };
 
   // Category normalization to ensure tags match across features
@@ -275,8 +283,8 @@ export default function CombineOutfits() {
     console.log('🔍 Current selections:', { 
       selectedCategories, 
       selectedWeather, 
-      selectedOccasion, 
-      selectedStyle
+      selectedOccasions, 
+      selectedStyles
     });
     
     setLoading(true);
@@ -403,7 +411,7 @@ export default function CombineOutfits() {
             top: availableTops[i],
             bottom: availableBottoms[j],
             weather: weatherToUse || 'Moderate',
-            occasion: selectedOccasion || determineOccasion(availableTops[i], availableBottoms[j]),
+            occasion: selectedOccasions.length > 0 ? selectedOccasions.join(', ') : determineOccasion(availableTops[i], availableBottoms[j]),
             aiGenerated: false,
             confidence: 75 // Fixed confidence for manual combinations
           };
@@ -543,7 +551,7 @@ export default function CombineOutfits() {
                 {occasionOptions.slice(0, 4).map((occasion) => 
                   renderCheckboxItem(
                     occasion, 
-                    selectedOccasion === occasion, 
+                    selectedOccasions.includes(occasion), 
                     () => selectOccasion(occasion)
                   )
                 )}
@@ -555,7 +563,7 @@ export default function CombineOutfits() {
                 {styleOptions.slice(0, 4).map((style) => 
                   renderCheckboxItem(
                     style, 
-                    selectedStyle === style, 
+                    selectedStyles.includes(style), 
                     () => selectStyle(style)
                   )
                 )}

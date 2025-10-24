@@ -81,7 +81,9 @@ export default function ScannedClothes() {
   const handleCategorySelect = (category: string): void => {
     setSelectedCategory(category);
     setSelectedSubcategories([]);
-    setShowSubcategoryModal(true);
+    // Close category modal and open subcategory modal in the next frame to avoid flicker
+    setShowCategoryModal(false);
+    setTimeout(() => setShowSubcategoryModal(true), 0);
   };
 
   const handleSubcategorySelect = (subcategory: { name: string, type: string }): void => {
@@ -277,15 +279,16 @@ export default function ScannedClothes() {
       
       setLoading(false);
       console.log('✅ Item saved successfully!');
-      console.log('🧭 Navigating to wardrobe page...');
       
-      // Navigate immediately without Alert
-      setTimeout(() => {
-        console.log('🧭 Navigating to wardrobe now...');
-        router.push('/wardrobe');
-      }, 500);
-      
-      Alert.alert('Success', 'Clothing item saved successfully!');
+      Alert.alert('Success', 'Clothing item saved successfully!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            console.log('🧭 Navigating to wardrobe page...');
+            router.replace('/wardrobe');
+          }
+        }
+      ]);
     } catch (error: any) {
       setLoading(false);
       if (error.message.includes('Network request failed')) {

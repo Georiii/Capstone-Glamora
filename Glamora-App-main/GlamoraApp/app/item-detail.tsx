@@ -13,8 +13,10 @@ export default function ItemDetail() {
   const imageSrc = Array.isArray(imageUrl) ? imageUrl[0] : imageUrl;
   const clothNameStr = Array.isArray(clothName) ? clothName[0] : clothName;
   const descriptionStr = Array.isArray(description) ? description[0] : description;
-  const occasionStr = Array.isArray(occasion) ? occasion[0] : occasion;
-  const weatherStr = Array.isArray(weather) ? weather[0] : weather;
+  // Occasion may be an array (multi-select). Weather is a single string.
+  const occasionRaw = Array.isArray(occasion) ? occasion : (occasion ? [occasion] : []);
+  const occasionList = occasionRaw.filter(Boolean) as string[];
+  const weatherStr = Array.isArray(weather) ? weather[0] : (weather as string | undefined);
   const categoryStr = Array.isArray(category) ? category[0] : category;
   const [loading, setLoading] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
@@ -181,15 +183,16 @@ export default function ItemDetail() {
       setShowMarketModal(false);
       setMarketPrice('');
       console.log('✅ Item posted to marketplace successfully!');
-      console.log('🧭 Navigating to marketplace...');
       
-      // Navigate immediately without Alert
-      setTimeout(() => {
-        console.log('🧭 Navigating to marketplace now...');
-        router.push('/marketplace');
-      }, 500);
-      
-      Alert.alert('Success', 'Item posted to marketplace successfully!');
+      Alert.alert('Success', 'Item posted to marketplace successfully!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            console.log('🧭 Navigating to marketplace...');
+            router.replace('/marketplace');
+          }
+        }
+      ]);
     } catch (error: any) {
       console.error('Error posting to marketplace:', error);
       console.error('Error message:', error.message);
@@ -225,7 +228,7 @@ export default function ItemDetail() {
       <ScrollView style={styles.scrollView}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.replace('/wardrobe')} style={styles.backButton}>
             <Ionicons name="arrow-back" size={28} color="#000" />
           </TouchableOpacity>
           <Text style={styles.title}>{categoryStr || 'Item'}</Text>
@@ -243,14 +246,20 @@ export default function ItemDetail() {
         <View style={styles.tagRow}>
           <View style={styles.tagBlock}>
             <Text style={styles.tagLabel}>Occasion</Text>
-            <View style={styles.tagPill}>
-              <Text style={styles.tagText}>{occasionStr || 'N/A'}</Text>
+            <View style={[styles.tagPill, {flexDirection: 'row', flexWrap: 'wrap', gap: 8}] }>
+              {occasionList.length > 0 ? (
+                occasionList.map((oc, idx) => (
+                  <Text key={idx} style={styles.tagText}>{oc}</Text>
+                ))
+              ) : (
+                <Text style={styles.tagText}>N/A</Text>
+              )}
             </View>
           </View>
           <View style={styles.tagBlock}>
             <Text style={styles.tagLabel}>Weather</Text>
             <View style={styles.tagPill}>
-              <Text style={styles.tagText}>{weatherStr || 'N/A'}</Text>
+              <Text style={styles.tagText}>{(weatherStr && String(weatherStr).trim()) || 'N/A'}</Text>
             </View>
           </View>
         </View>

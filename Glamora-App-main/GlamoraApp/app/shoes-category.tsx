@@ -110,19 +110,19 @@ export default function ShoesCategory() {
         </View>
         {/* Bottom Navigation (reuse from wardrobe) */}
         <View style={styles.navigation}>
-          <TouchableOpacity style={styles.navItem} onPress={() => router.push('/wardrobe')}>
-            <Ionicons name="shirt" size={24} color="#333" />
+          <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/wardrobe')}>
+            <Ionicons name="shirt" size={24} color="#000" />
             <Text style={[styles.navText, styles.activeText]}>Wardrobe</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => router.push('/scan')}>
+          <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/scan')}>
             <Ionicons name="camera" size={24} color="#666" />
             <Text style={styles.navText}>Scan</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => router.push('/marketplace')}>
+          <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/marketplace')}>
             <Ionicons name="cart" size={24} color="#666" />
             <Text style={styles.navText}>Market</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
+          <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/profile')}>
             <Ionicons name="person" size={24} color="#666" />
             <Text style={styles.navText}>Profile</Text>
           </TouchableOpacity>
@@ -134,7 +134,7 @@ export default function ShoesCategory() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={{ position: 'absolute', left: 20, top: 55, zIndex: 2 }}>
+        <TouchableOpacity onPress={() => router.replace('/wardrobe')} style={{ position: 'absolute', left: 20, top: 55, zIndex: 2 }}>
           <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
         <Text style={styles.categoryTitle}>{categoryType}</Text>
