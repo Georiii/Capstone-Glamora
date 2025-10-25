@@ -3,6 +3,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
+import { useUser } from './UserContext';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -30,6 +31,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { setUser } = useUser();
   
   // Background timer refs
   const backgroundTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -44,12 +46,22 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const token = await AsyncStorage.getItem('token');
       const user = await AsyncStorage.getItem('user');
+      const appWasTerminated = await AsyncStorage.getItem('appWasTerminated');
       
-      if (token && user) {
+      // If app was terminated (closed, not just minimized), logout for security
+      if (appWasTerminated === 'true') {
+        console.log('🚪 App was terminated, logging out for security');
+        await AsyncStorage.removeItem('token');
+        await AsyncStorage.removeItem('user');
+        await AsyncStorage.removeItem('appWasTerminated');
+        setIsAuthenticated(false);
+      } else if (token && user) {
         setIsAuthenticated(true);
+        setUser(JSON.parse(user)); // Set user in UserContext
         console.log('✅ User is authenticated');
       } else {
         setIsAuthenticated(false);
+        setUser(null); // Clear user in UserContext
         console.log('❌ User is not authenticated');
       }
     } catch (error) {
@@ -66,6 +78,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AsyncStorage.setItem('token', token);
       await AsyncStorage.setItem('user', JSON.stringify(user));
       setIsAuthenticated(true);
+      setUser(user); // Set user in UserContext
       console.log('✅ User logged in successfully');
     } catch (error) {
       console.error('Error during login:', error);
@@ -76,9 +89,20 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
+      // Clear all user-related data from AsyncStorage
+      const keysToRemove = [
+        'token',
+        'user',
+        'userProfile',
+        'cachedWardrobe',
+        'cachedMarketplace',
+        'lastSyncTime',
+        'appWasTerminated'
+      ];
+      
+      await AsyncStorage.multiRemove(keysToRemove);
       setIsAuthenticated(false);
+      setUser(null); // Clear user in UserContext
       
       // Clear any background timers
       if (backgroundTimerRef.current) {
@@ -86,7 +110,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         backgroundTimerRef.current = null;
       }
       
-      console.log('✅ User logged out successfully');
+      console.log('✅ User logged out successfully - all data cleared');
     } catch (error) {
       console.error('Error during logout:', error);
     }
@@ -99,6 +123,9 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
       // App is coming to foreground
       console.log('📱 App coming to foreground');
+      
+      // Clear termination flag since app returned to foreground (wasn't terminated)
+      AsyncStorage.removeItem('appWasTerminated').catch(console.error);
       
       if (backgroundTimerRef.current) {
         clearTimeout(backgroundTimerRef.current);
@@ -121,6 +148,9 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // App is going to background
       console.log('📱 App going to background');
       backgroundTimeRef.current = Date.now();
+      
+      // Mark that app went to background (for termination detection)
+      AsyncStorage.setItem('appWasTerminated', 'true').catch(console.error);
       
       // Set timer for auto-logout
       backgroundTimerRef.current = setTimeout(() => {

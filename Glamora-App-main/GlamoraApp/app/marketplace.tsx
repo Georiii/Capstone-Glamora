@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import { ActivityIndicator, Alert, Image, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View, Dimensions } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+
+const { width } = Dimensions.get('window');
 
 interface MarketplaceItem {
   _id: string;
@@ -49,20 +51,59 @@ export default function Marketplace() {
       }
       
       setItems(data.items || []);
-      setLoading(false);
     } catch (error: any) {
-      setLoading(false);
       if (error.message.includes('Network request failed')) {
         Alert.alert('Connection Error', 'Unable to connect to server. Please check your internet connection.');
       } else {
         Alert.alert('Error', error.message || 'Failed to fetch marketplace items');
       }
+    } finally {
+      setLoading(false);
     }
   }, [searchQuery]);
 
   useEffect(() => {
     fetchMarketplaceItems();
   }, [fetchMarketplaceItems]);
+
+  const renderItem = useCallback(({ item }: { item: MarketplaceItem }) => (
+    <TouchableOpacity
+      style={styles.itemCard}
+      onPress={() => router.push({
+        pathname: '/posted-item',
+        params: {
+          itemId: item._id,
+          imageUrl: item.imageUrl,
+          name: item.name,
+          description: item.description,
+          price: item.price,
+          userName: item.userName,
+          userEmail: item.userEmail,
+          userProfilePicture: item.userProfilePicture || '',
+        }
+      })}
+    >
+      <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+      <View style={styles.itemInfoRow}>
+        <Text style={styles.itemLabel} numberOfLines={2}>{item.name}</Text>
+        <Text style={styles.itemPrice}>₱{item.price}</Text>
+      </View>
+    </TouchableOpacity>
+  ), [router]);
+
+  const renderEmptyComponent = useCallback(() => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No items found.</Text>
+    </View>
+  ), []);
+
+  const keyExtractor = useCallback((item: MarketplaceItem) => item._id, []);
+
+  const getItemLayout = useCallback((data: any, index: number) => ({
+    length: (width - 48) / 2 + 16, // item height + margin
+    offset: ((width - 48) / 2 + 16) * Math.floor(index / 2),
+    index,
+  }), []);
 
   return (
     <View style={styles.container}>
@@ -86,43 +127,27 @@ export default function Marketplace() {
         </TouchableOpacity>
       </View>
       <Text style={styles.marketplaceTitle}>MARKETPLACE</Text>
-      {loading ? (
-        <ActivityIndicator size="large" color="#8B4513" style={{ marginTop: 30 }} />
-      ) : (
-        <ScrollView contentContainerStyle={styles.gridContainer}>
-          {items.length === 0 ? (
-            <Text style={{ textAlign: 'center', color: '#888', marginTop: 30 }}>No items found.</Text>
-          ) : (
-            <View style={styles.gridRow}>
-              {items.map((item, idx) => (
-                <TouchableOpacity
-                  key={item._id || idx}
-                  style={styles.itemCard}
-                  onPress={() => router.push({
-                    pathname: '/posted-item',
-                    params: {
-                      itemId: item._id,
-                      imageUrl: item.imageUrl,
-                      name: item.name,
-                      description: item.description,
-                      price: item.price,
-                      userName: item.userName,
-                      userEmail: item.userEmail,
-                      userProfilePicture: item.userProfilePicture || '', // Pass seller's profile picture
-                    }
-                  })}
-                >
-                  <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
-                  <View style={styles.itemInfoRow}>
-                    <Text style={styles.itemLabel}>{item.name}</Text>
-                    <Text style={styles.itemPrice}>₱{item.price}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </ScrollView>
-      )}
+      
+      <FlatList
+        data={items}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        numColumns={2}
+        contentContainerStyle={styles.gridContainer}
+        columnWrapperStyle={styles.row}
+        ListEmptyComponent={loading ? (
+          <ActivityIndicator size="large" color="#8B4513" style={{ marginTop: 30 }} />
+        ) : renderEmptyComponent}
+        showsVerticalScrollIndicator={false}
+        refreshing={loading}
+        onRefresh={fetchMarketplaceItems}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={6}
+        updateCellsBatchingPeriod={50}
+        getItemLayout={getItemLayout}
+      />
       {/* Footer Navigation */}
       <View style={styles.navigation}>
         <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/wardrobe')}>
@@ -173,26 +198,66 @@ const styles = StyleSheet.create({
     fontSize: 22, fontWeight: 'bold', color: '#222', marginLeft: 24, marginTop: 10, marginBottom: 18,
   },
   gridContainer: {
-    flexDirection: 'column', alignItems: 'center', paddingBottom: 120,
+    paddingHorizontal: 16,
+    paddingBottom: 120,
   },
-  gridRow: {
-    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', width: '100%',
-  },
-  itemCard: {
-    width: 170, height: 220, backgroundColor: '#fff', borderRadius: 18, margin: 10, alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 3,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
-  },
-  itemImage: {
-    width: 150, height: 130, borderRadius: 12, marginTop: 10, marginBottom: 8, backgroundColor: '#eee',
-  },
-  itemInfoRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '90%', marginTop: 6,
+  row: {
+    justifyContent: 'space-between',
     paddingHorizontal: 8,
   },
-  itemLabel: { fontSize: 15, fontWeight: 'bold', color: '#222', flex: 1 },
-  itemPrice: { fontSize: 15, color: '#222', fontWeight: 'bold', marginLeft: 8 },
+  itemCard: {
+    width: (width - 48) / 2, // Responsive width: (screen width - padding) / 2 columns
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    margin: 8,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    paddingBottom: 12,
+  },
+  itemImage: {
+    width: (width - 48) / 2 - 20, // Responsive image width
+    height: Math.min((width - 48) / 2 - 20, 130), // Responsive height with max
+    borderRadius: 12,
+    marginTop: 10,
+    marginBottom: 8,
+    backgroundColor: '#eee',
+  },
+  itemInfoRow: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '90%',
+    marginTop: 6,
+    paddingHorizontal: 8,
+  },
+  itemLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#222',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  itemPrice: {
+    fontSize: 15,
+    color: '#E74C3C',
+    fontWeight: 'bold',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 50,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 16,
+  },
   navigation: {
     flexDirection: 'row', backgroundColor: '#F5F2EF', paddingVertical: 15, paddingHorizontal: 20,
     justifyContent: 'space-around', borderTopLeftRadius: 18, borderTopRightRadius: 18, shadowColor: '#000',

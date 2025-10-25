@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Dimensions, SafeAreaView } from 'react-native';
 import { useAuth } from './contexts/AuthContext';
+
+const { width, height } = Dimensions.get('window');
 
 export default function Home() {
   const router = useRouter();
@@ -58,19 +60,21 @@ export default function Home() {
     } catch (e) {
       // ignore
     }
-    router.push('/login');
+    router.replace('/login');
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={require('../assets/logo.png')} style={styles.logo} />
-      <Text style={styles.text}>WELCOME TO GLAMORA</Text>
-      <Text style={styles.subtext}>Choose your outfit</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Image source={require('../assets/logo.png')} style={styles.logo} />
+        <Text style={styles.text}>WELCOME TO GLAMORA</Text>
+        <Text style={styles.subtext}>Choose your outfit</Text>
 
-      <TouchableOpacity style={styles.button} onPress={handleGetStarted}>
-        <Text style={styles.buttonText}>GET STARTED</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity style={styles.button} onPress={handleGetStarted}>
+          <Text style={styles.buttonText}>GET STARTED</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -78,47 +82,53 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4C2C2',
+  },
+  content: {
+    flex: 1,
     alignItems: 'center',
-    paddingTop: 30,
+    justifyContent: 'center',
+    paddingHorizontal: width * 0.05,
+    paddingVertical: height * 0.05,
   },
   logo: {
-    width: 280,
-    height: 280,
+    width: Math.min(width * 0.7, 280),
+    height: Math.min(width * 0.7, 280),
     resizeMode: 'contain',
-    marginBottom: 30,
-    marginTop: 50,
+    marginBottom: height * 0.03,
   },
   text: {
-    fontSize: 48,
+    fontSize: Math.min(width * 0.12, 48),
     fontFamily: 'PlayfairDisplay-Medium',
-    marginBottom: 10,
+    marginBottom: height * 0.01,
     textAlign: 'center',
     color: 'white',
     letterSpacing: 2,
+    paddingHorizontal: width * 0.05,
   },
   subtext: {
-    fontSize: 28,
+    fontSize: Math.min(width * 0.07, 28),
     fontFamily: 'PlayfairDisplay-Medium',
-    marginBottom: 40,
+    marginBottom: height * 0.05,
     color: 'white',
     opacity: 0.9,
+    textAlign: 'center',
   },
   button: {
     backgroundColor: '#FDD6A5',
-    paddingVertical: 18,
-    paddingHorizontal: 40,
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.1,
     borderRadius: 15,
-    marginTop: 80,
-    width: 280,
+    width: Math.min(width * 0.7, 280),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    alignSelf: 'center',
   },
   buttonText: {
     color: 'black',
-    fontSize: 28,
+    fontSize: Math.min(width * 0.07, 28),
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 1,
@@ -127,5 +137,6 @@ const styles = StyleSheet.create({
     color: '#4B2E2B',
     fontSize: 16,
     marginTop: 20,
+    textAlign: 'center',
   },
 });

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, TextInput, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, TextInput, KeyboardAvoidingView, ScrollView, Platform, Dimensions, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS } from '../config/api';
 import { validatePassword, getPasswordStrengthColor, getPasswordStrengthText, PasswordValidationResult } from '../utils/passwordValidation';
+
+const { width, height } = Dimensions.get('window');
 
 export default function Register() {
   const router = useRouter();
@@ -99,16 +101,18 @@ export default function Register() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
         {/* Logo and Brand */}
         <View style={styles.logoContainer}>
           <Image source={require('../assets/logo.png')} style={styles.logo} />
@@ -219,34 +223,39 @@ export default function Register() {
             <Text style={styles.loginText}>Login</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F4C2C2',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F4C2C2',
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
+    paddingHorizontal: width * 0.05,
+    paddingVertical: height * 0.02,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 40,
+    paddingBottom: height * 0.05,
+    minHeight: height * 0.9,
   },
-
   logoContainer: {
     position: 'absolute',
-    top: 10,
-    right: 45,
+    top: height * 0.02,
+    right: width * 0.1,
     alignItems: 'center',
   },
-
   logo: {
-    width: 100,
-    height: 100,
+    width: Math.min(width * 0.25, 100),
+    height: Math.min(width * 0.25, 100),
     resizeMode: 'contain',
     position: 'absolute',
   },
