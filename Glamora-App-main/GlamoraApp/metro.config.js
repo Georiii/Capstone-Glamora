@@ -1,23 +1,24 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const exclusionList = require('metro-config/src/defaults/exclusionList');
+const path = require('path');
 
 const config = getDefaultConfig(__dirname);
 
-// Exclude backend/server files from the mobile bundle (do NOT block node_modules)
+// Compute absolute repo root (parent of GlamoraApp)
+const repoRoot = path.resolve(__dirname, '..');
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const R = (rel) => new RegExp(`^${escapeRegExp(repoRoot.replace(/\\/g, '/'))}/${rel}`);
+
+// Exclude ONLY our repo's backend/server paths. Do not block node_modules.
 config.resolver.blockList = exclusionList([
-  // Parent repo backend entry
-  /.*\/Glamora-App-main\/src\/server\.js$/,
-  // Backend folders that may exist in repo
-  /.*\/backend\/.*/,
-  /.*\/backup-files\/.*/,
-  /.*\/routes\/.*/,
-  /.*\/models\/.*/,
-  // Backend server files that might exist at project root
-  /.*\/server\.js$/,
-  /.*\/src\/server\.js$/,
-  // Misc leftover test files
-  /.*\/hell$/,
-  /.*\/tatus$/
+  R('src/server\\.js$'),
+  R('server\\.js$'),
+  R('backend/.*'),
+  R('backup-files/.*'),
+  R('routes/.*'),
+  R('models/.*'),
+  R('hell$'),
+  R('tatus$')
 ]);
 
 // Ensure only mobile app files are included
