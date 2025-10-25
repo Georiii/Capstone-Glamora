@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { ActivityIndicator, Alert, Image, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View, Dimensions } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { apiCache } from '../utils/apiCache';
 
 const { width } = Dimensions.get('window');
 
@@ -24,31 +25,47 @@ export default function Marketplace() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchMarketplaceItems = useCallback(async () => {
+  const fetchMarketplaceItems = useCallback(async (forceRefresh = false) => {
     setLoading(true);
     try {
-      const response = await fetch(API_ENDPOINTS.marketplaceSearch(searchQuery));
+      const cacheKey = API_ENDPOINTS.marketplaceSearch(searchQuery);
       
-      if (!response.ok) {
-        let errorMessage = 'Failed to fetch marketplace items.';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          const textResponse = await response.text();
-          console.error('Non-JSON response:', textResponse);
-          errorMessage = `Server error: ${response.status}`;
-        }
-        throw new Error(errorMessage);
+      // If force refresh, clear cache first
+      if (forceRefresh) {
+        await apiCache.clear(cacheKey);
       }
+      
+      const data = await apiCache.getOrFetch(
+        cacheKey,
+        async () => {
+          const response = await fetch(API_ENDPOINTS.marketplaceSearch(searchQuery));
+          
+          if (!response.ok) {
+            let errorMessage = 'Failed to fetch marketplace items.';
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorMessage;
+            } catch {
+              const textResponse = await response.text();
+              console.error('Non-JSON response:', textResponse);
+              errorMessage = `Server error: ${response.status}`;
+            }
+            throw new Error(errorMessage);
+          }
 
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        console.error('JSON parse error');
-        throw new Error('Invalid server response. Please try again.');
-      }
+          let responseData;
+          try {
+            responseData = await response.json();
+          } catch {
+            console.error('JSON parse error');
+            throw new Error('Invalid server response. Please try again.');
+          }
+          
+          return responseData;
+        },
+        { searchQuery }, // params for cache key
+        2 * 60 * 1000 // 2 minutes cache for marketplace
+      );
       
       setItems(data.items || []);
     } catch (error: any) {
@@ -140,7 +157,7 @@ export default function Marketplace() {
         ) : renderEmptyComponent}
         showsVerticalScrollIndicator={false}
         refreshing={loading}
-        onRefresh={fetchMarketplaceItems}
+        onRefresh={() => fetchMarketplaceItems(true)}
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         windowSize={10}

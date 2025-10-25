@@ -40,6 +40,7 @@ export default function MessageUser() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedReportReason, setSelectedReportReason] = useState('');
   const [evidencePhotos, setEvidencePhotos] = useState<string[]>([]);
+  const [reportNotes, setReportNotes] = useState('');
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -526,6 +527,7 @@ export default function MessageUser() {
           body: JSON.stringify({
             reportedUserId: sellerUserId,
             reason: selectedReportReason,
+            notes: reportNotes,
             evidencePhotos: uploadedPhotos,
           }),
         });
@@ -538,6 +540,7 @@ export default function MessageUser() {
           Alert.alert('Success', 'Report submitted successfully');
           setShowReportModal(false);
           setSelectedReportReason('');
+          setReportNotes('');
           setEvidencePhotos([]);
         } else {
           const errorData = await response.json();
@@ -756,7 +759,10 @@ export default function MessageUser() {
         onRequestClose={() => setShowReportModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.reportModal}>
+          <KeyboardAvoidingView 
+            style={styles.reportModal}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
             <View style={styles.reportHeader}>
               <TouchableOpacity onPress={() => setShowReportModal(false)}>
                 <Ionicons name="close" size={24} color="#333" />
@@ -764,58 +770,83 @@ export default function MessageUser() {
               <Text style={styles.reportTitle}>Report user</Text>
             </View>
 
-            <View style={styles.reportOptionsContainer}>
-              {reportReasons.map((reason, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.reportOption}
-                  onPress={() => setSelectedReportReason(reason.description)}
-                >
-                  <View style={[
-                    styles.checkbox,
-                    selectedReportReason === reason.description && styles.checkboxSelected
-                  ]}>
-                    {selectedReportReason === reason.description && (
-                      <Ionicons name="checkmark" size={16} color="#FFF" />
-                    )}
-                  </View>
-                  <View style={styles.reportTextContainer}>
-                    <Text style={styles.reportTitleText}>{reason.title}</Text>
-                    <Text style={styles.reportDescription}>{reason.description}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Photo Evidence Section */}
-            <View style={styles.photoEvidenceSection}>
-              <Text style={styles.photoEvidenceTitle}>Add Evidence Photos (Optional)</Text>
-              <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
-                <Ionicons name="camera" size={20} color="#007AFF" />
-                <Text style={styles.addPhotoText}>Add Photo</Text>
-              </TouchableOpacity>
-              
-              {evidencePhotos.length > 0 && (
-                <View style={styles.photosContainer}>
-                  {evidencePhotos.map((photo, index) => (
-                    <View key={index} style={styles.photoItem}>
-                      <Image source={{ uri: photo }} style={styles.photoPreview} />
-                      <TouchableOpacity 
-                        style={styles.removePhotoButton} 
-                        onPress={() => removePhoto(index)}
-                      >
-                        <Ionicons name="close-circle" size={20} color="#FF3B30" />
-                      </TouchableOpacity>
+            <ScrollView 
+              style={styles.reportScrollView}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.reportOptionsContainer}>
+                {reportReasons.map((reason, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.reportOption}
+                    onPress={() => setSelectedReportReason(reason.description)}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      selectedReportReason === reason.description && styles.checkboxSelected
+                    ]}>
+                      {selectedReportReason === reason.description && (
+                        <Ionicons name="checkmark" size={16} color="#FFF" />
+                      )}
                     </View>
-                  ))}
-                </View>
-              )}
-            </View>
+                    <View style={styles.reportTextContainer}>
+                      <Text style={styles.reportTitleText}>{reason.title}</Text>
+                      <Text style={styles.reportDescription}>{reason.description}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Additional Notes Section */}
+              <View style={styles.notesSection}>
+                <Text style={styles.notesSectionTitle}>Additional Notes (Optional)</Text>
+                <TextInput
+                  style={styles.notesInput}
+                  placeholder="Provide additional details about this report..."
+                  placeholderTextColor="#999"
+                  multiline
+                  numberOfLines={4}
+                  value={reportNotes}
+                  onChangeText={setReportNotes}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              {/* Photo Evidence Section */}
+              <View style={styles.photoEvidenceSection}>
+                <Text style={styles.photoEvidenceTitle}>Add Evidence Photos (Optional)</Text>
+                <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
+                  <Ionicons name="camera" size={20} color="#007AFF" />
+                  <Text style={styles.addPhotoText}>Add Photo</Text>
+                </TouchableOpacity>
+                
+                {evidencePhotos.length > 0 && (
+                  <ScrollView 
+                    horizontal 
+                    style={styles.photosContainer}
+                    showsHorizontalScrollIndicator={false}
+                  >
+                    {evidencePhotos.map((photo, index) => (
+                      <View key={index} style={styles.photoItem}>
+                        <Image source={{ uri: photo }} style={styles.photoPreview} />
+                        <TouchableOpacity 
+                          style={styles.removePhotoButton} 
+                          onPress={() => removePhoto(index)}
+                        >
+                          <Ionicons name="close-circle" size={20} color="#FF3B30" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            </ScrollView>
 
             <TouchableOpacity style={styles.submitButton} onPress={submitReport}>
-              <Text style={styles.submitButtonText}>Submit</Text>
+              <Text style={styles.submitButtonText}>Submit Report</Text>
             </TouchableOpacity>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -1017,9 +1048,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 0,
     margin: 20,
-    maxHeight: '80%',
+    maxHeight: '85%',
     width: '90%',
     alignSelf: 'center',
+    flex: 1,
+  },
+  reportScrollView: {
+    flex: 1,
   },
   reportContent: {
     backgroundColor: 'white',
@@ -1160,9 +1195,30 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 8,
   },
+  notesSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  notesSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  notesInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#333',
+    backgroundColor: '#f9f9f9',
+    minHeight: 80,
+  },
   photosContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
   photoItem: {
