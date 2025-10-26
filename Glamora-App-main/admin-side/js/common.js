@@ -92,15 +92,16 @@ const api = {
     _cacheTimestamps: new Map(),
     
     // Get cached data or fetch fresh
-    getFromCache: (key, maxAge = 15000) => { // 15 second cache for sub-1s performance
+    getFromCache: (key, maxAge = 10000) => { // 10 second cache for instant loading
         const cached = api._cache.get(key);
         const timestamp = api._cacheTimestamps.get(key);
         
         if (cached && timestamp && (Date.now() - timestamp) < maxAge) {
-            console.log(`📦 Using cached data for ${key}`);
+            console.log(`⚡ Cache hit for ${key} (age: ${Date.now() - timestamp}ms)`);
             return cached;
         }
         
+        console.log(`❌ Cache miss for ${key}`);
         return null;
     },
     

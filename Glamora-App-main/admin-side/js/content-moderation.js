@@ -1,291 +1,159 @@
-// Content Moderation - v5.0 - FINAL FIX
-// All syntax errors resolved - Netlify fresh deployment
+/**
+ * Content Moderation Manager v6.0
+ * Optimized for sub-1s performance
+ * Created: 2025-10-27
+ */
 
 class ContentModerationManager {
     constructor() {
-        this.currentView = 'pending'; // 'pending', 'reports', or 'reportDetail'
+        this.currentView = 'pending';
         this.currentReportId = null;
-        this.pendingItems = [];
-        this.reports = [];
+        this.selectedRestrictionDuration = null;
         this.init();
     }
 
     init() {
+        console.log('🚀 Initializing Content Moderation Manager v6.0');
         this.setupEventListeners();
-        this.loadContentModeration();
-        this.setupRealtimeUpdates();
+        this.renderPendingModeration();
+        this.setupSocketListeners();
     }
 
     setupEventListeners() {
-        // Edit guidelines button
-        const editBtn = document.querySelector('.edit-btn');
-        if (editBtn) {
-            editBtn.addEventListener('click', () => this.editGuidelines());
+        const showReportsBtn = document.getElementById('showReportsBtn');
+        const showPendingBtn = document.getElementById('showPendingBtn');
+        const backToReportsBtn = document.getElementById('backToReportsBtn');
+
+        if (showReportsBtn) {
+            showReportsBtn.addEventListener('click', () => this.showReportsView());
+        }
+        if (showPendingBtn) {
+            showPendingBtn.addEventListener('click', () => this.showPendingView());
+        }
+        if (backToReportsBtn) {
+            backToReportsBtn.addEventListener('click', () => this.showReportsView());
         }
     }
 
-    setupRealtimeUpdates() {
-        // Listen for real-time updates via Socket.IO
-        if (window.adminSocket) {
-            window.adminSocket.on('marketplace:item:created', (data) => {
-                console.log('🛍️ New marketplace item pending moderation:', data);
-                this.loadPendingPosts();
-            });
-
-            window.adminSocket.on('report:created', (data) => {
-                console.log('🚨 New report submitted:', data);
-                this.renderReportsTable();
-            });
-
-            window.adminSocket.on('marketplace:item:updated', (data) => {
-                console.log('✅ Marketplace item status updated:', data);
-                this.loadPendingPosts();
-            });
-        }
-    }
-
-    async loadContentModeration() {
-        await this.loadPendingPosts();
-        await this.renderReportsTable();
-        this.checkIntegrationStatus();
-    }
-
-    async checkIntegrationStatus() {
-        const statusElement = document.getElementById('integrationStatus');
-        if (!statusElement) return;
-
-        try {
-            // Test API connection
-            const isConnected = await api.testConnection();
-            if (isConnected) {
-                statusElement.textContent = 'Connected to Mobile App';
-                statusElement.style.color = '#4CAF50';
-            } else {
-                statusElement.textContent = 'Disconnected - Using Mock Data';
-                statusElement.style.color = '#FF6B6B';
-            }
-        } catch (error) {
-            statusElement.textContent = 'Disconnected - Using Mock Data';
-            statusElement.style.color = '#FF6B6B';
-        }
-    }
-
-    async loadPendingPosts() {
-        try {
-            const response = await api.request('/api/admin/marketplace/pending');
-            this.pendingItems = response.items || [];
-            console.log('✅ Loaded pending items:', this.pendingItems.length);
-            this.renderPendingPosts();
-        } catch (error) {
-            console.error('❌ Failed to load pending items:', error);
-            // Fallback to mock data
-            this.pendingItems = mockData.posts || [];
-            this.renderPendingPosts();
-            AdminUtils.showMessage('Failed to load pending items. Using cached data.', 'warning');
-        }
-    }
-
-    renderPendingPosts() {
-        const container = document.getElementById('pendingPosts');
-        if (!container) return;
-        
-        container.innerHTML = '';
-
-        if (this.pendingItems.length === 0) {
-            container.innerHTML = '<p style="text-align: center; padding: 20px; color: #888;">No pending items for moderation</p>';
+    setupSocketListeners() {
+        if (!window.adminSocket) {
+            console.warn('⚠️ Socket not available, real-time updates disabled');
             return;
         }
 
-        this.pendingItems.forEach(item => {
-            const postElement = document.createElement('div');
-            postElement.className = 'post-item';
-            const userName = item.userId?.name || 'Unknown User';
-            const userEmail = item.userId?.email || 'No email';
-            
-            postElement.innerHTML = `
-                <div class="post-info">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" alt="${item.name}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
-                        <div>
-                            <strong>${item.name}</strong>
-                            <p style="margin: 0; font-size: 12px; color: #666;">Posted by: ${userName} (${userEmail})</p>
-                            <p style="margin: 0; font-size: 12px; color: #888;">Price: ₱${item.price || 0}</p>
-                        </div>
-                    </div>
-                    <a href="#" onclick="contentModeration.viewPost('${item._id}')">View details</a>
-                </div>
-                <div class="post-actions">
-                    <button class="approve-btn" onclick="contentModeration.approvePost('${item._id}')" title="Approve">
-                        <i class="fas fa-check"></i> Approve
-                    </button>
-                    <button class="disapprove-btn" onclick="contentModeration.disapprovePost('${item._id}')" title="Reject">
-                        <i class="fas fa-times"></i> Reject
-                    </button>
-                </div>
-            `;
-            container.appendChild(postElement);
+        adminSocket.on('report:created', (data) => {
+            console.log('📢 New report received:', data);
+            if (this.currentView === 'reports') {
+                this.renderReportsTable();
+            }
+        });
+
+        adminSocket.on('marketplace:item:created', (data) => {
+            console.log('📢 New marketplace item:', data);
+            if (this.currentView === 'pending') {
+                this.renderPendingModeration();
+            }
+        });
+
+        adminSocket.on('marketplace:item:approved', (data) => {
+            console.log('✅ Item approved:', data);
+            if (this.currentView === 'pending') {
+                this.renderPendingModeration();
+            }
+        });
+
+        adminSocket.on('marketplace:item:rejected', (data) => {
+            console.log('❌ Item rejected:', data);
+            if (this.currentView === 'pending') {
+                this.renderPendingModeration();
+            }
         });
     }
 
-    viewPost(itemId) {
-        const item = this.pendingItems.find(p => p._id === itemId);
-        if (!item) {
-            AdminUtils.showMessage('Item not found', 'error');
-            return;
-        }
-
-        const userName = item.userId?.name || 'Unknown User';
-        const userEmail = item.userId?.email || 'No email';
+    showReportsView() {
+        this.currentView = 'reports';
+        document.getElementById('reportsSection').style.display = 'block';
+        document.getElementById('pendingSection').style.display = 'none';
+        document.getElementById('reportDetailSection').style.display = 'none';
         
-        alert(`Item: ${item.name}\n\nDescription: ${item.description || 'No description'}\n\nPrice: ₱${item.price || 0}\n\nPosted by: ${userName} (${userEmail})\n\nCategory: ${item.category || 'N/A'}`);
+        document.getElementById('showReportsBtn').classList.add('active');
+        document.getElementById('showPendingBtn').classList.remove('active');
+        
+        this.renderReportsTable();
     }
 
-    async approvePost(itemId) {
-        try {
-            if (!confirm('Are you sure you want to approve this item?')) {
-                return;
-            }
-
-            const response = await api.request(`/api/admin/marketplace/${itemId}/approve`, {
-                method: 'PUT'
-            });
-
-            AdminUtils.showMessage('Item approved successfully', 'success');
-            
-            // Emit real-time update
-            if (window.adminSocket) {
-                window.adminSocket.emit('marketplace:item:approved', { itemId });
-            }
-
-            // Refresh data
-            AdminUtils.updateMetrics();
-            await this.loadPendingPosts();
-        } catch (error) {
-            console.error('❌ Failed to approve item:', error);
-            AdminUtils.showMessage('Failed to approve item', 'error');
-        }
-    }
-
-    async disapprovePost(itemId) {
-        try {
-            const reason = prompt('Enter reason for rejection (optional):');
-            
-            if (reason === null) {
-                return; // User cancelled
-            }
-
-            const response = await api.request(`/api/admin/marketplace/${itemId}/reject`, {
-                method: 'PUT',
-                body: { reason: reason || 'No reason provided' }
-            });
-
-            AdminUtils.showMessage('Item rejected successfully', 'success');
-            
-            // Emit real-time update
-            if (window.adminSocket) {
-                window.adminSocket.emit('marketplace:item:rejected', { itemId, reason });
-            }
-
-            // Refresh data
-            AdminUtils.updateMetrics();
-            await this.loadPendingPosts();
-        } catch (error) {
-            console.error('❌ Failed to reject item:', error);
-            AdminUtils.showMessage('Failed to reject item', 'error');
-        }
-    }
-
-
-    restrictUser(userId) {
-        const user = mockData.users.find(u => u.id === userId);
-        if (!user) return;
-
-        user.status = 'inactive';
-        AdminUtils.updateMetrics();
-        document.getElementById('reportModal').style.display = 'none';
-        AdminUtils.showMessage('User restricted successfully', 'success');
-    }
-
-
-    editGuidelines() {
-        const newGuidelines = prompt('Enter new community guidelines:', 'Current guidelines...');
-        if (newGuidelines) {
-            AdminUtils.showMessage('Community guidelines updated successfully', 'success');
-        }
+    showPendingView() {
+        this.currentView = 'pending';
+        document.getElementById('reportsSection').style.display = 'none';
+        document.getElementById('pendingSection').style.display = 'block';
+        document.getElementById('reportDetailSection').style.display = 'none';
+        
+        document.getElementById('showReportsBtn').classList.remove('active');
+        document.getElementById('showPendingBtn').classList.add('active');
+        
+        this.renderPendingModeration();
     }
 
     async renderReportsTable() {
         const tbody = document.getElementById('reportsTableBody');
         if (!tbody) return;
-        
+
         const startTime = Date.now();
-        
-        // Show loading state
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Loading reports...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">⚡ Loading reports...</td></tr>';
 
         try {
-            console.log('⚡ Fast fetching reports from API...');
+            console.log('⚡ Fast fetching reports...');
             
-            // Use cached data if available (sub-1s performance)
-            const cached = api.getFromCache('reports', 15000);
+            const cached = api.getFromCache('reports', 10000);
             if (cached) {
-                const cachedTime = Date.now() - startTime;
-                console.log(`⚡ Reports loaded from cache in ${cachedTime}ms`);
+                const cacheTime = Date.now() - startTime;
+                console.log(`⚡ Cache hit! Loaded in ${cacheTime}ms`);
                 this.displayReports(cached, tbody);
+                api.getReports().then(fresh => api.setCache('reports', fresh)).catch(e => console.log('Background refresh failed:', e));
                 return;
             }
-            
-            // Fetch with aggressive timeout for sub-1s requirement
+
             const fetchPromise = api.getReports();
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Request timeout after 1s')), 1000)
+                setTimeout(() => reject(new Error('Timeout')), 800)
             );
-            
+
             const reports = await Promise.race([fetchPromise, timeoutPromise]);
-            
             const fetchTime = Date.now() - startTime;
-            console.log(`⚡ Reports fetched in ${fetchTime}ms:`, reports.length);
+            console.log(`⚡ Fetched ${reports.length} reports in ${fetchTime}ms`);
             
-            // Cache the results
             api.setCache('reports', reports);
-            
-            if (!reports || reports.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #888;">No reports found</td></tr>';
-                return;
-            }
-            
             this.displayReports(reports, tbody);
+
         } catch (error) {
-            console.error('❌ Error fetching reports:', error);
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #dc3545;">Failed to load reports. Please refresh.</td></tr>';
+            console.error('❌ Error loading reports:', error);
+            const fallback = api.getFromCache('reports', 300000);
+            if (fallback) {
+                console.log('📦 Using stale cache as fallback');
+                this.displayReports(fallback, tbody);
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #e74c3c;">⚠️ Failed to load reports. Please refresh.</td></tr>';
+            }
         }
     }
-    
+
     displayReports(reports, tbody) {
+        if (!reports || reports.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No reports found</td></tr>';
+            return;
+        }
+
         tbody.innerHTML = '';
-        
         reports.forEach(report => {
             const row = document.createElement('tr');
-            const userName = report.reportedUserId?.name || 'Unknown User';
-            const userEmail = report.reportedUserId?.email || 'No email';
-            const avatarInitial = userName.charAt(0).toUpperCase();
+            const createdAt = new Date(report.createdAt).toLocaleDateString();
             
             row.innerHTML = `
+                <td>${report.reporterName || 'Anonymous'}</td>
+                <td>${report.reportedUserName || 'Unknown'}</td>
+                <td><span class="status-badge status-${report.status}">${report.status}</span></td>
                 <td>
-                    <div class="report-user">
-                        <div class="report-avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">${avatarInitial}</div>
-                        <div>
-                            <div class="user-name">${userName}</div>
-                            <div class="user-email">${userEmail}</div>
-                        </div>
-                    </div>
-                </td>
-                <td>
-                    <div class="report-reason">${report.reason}</div>
-                </td>
-                <td>${report.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'No date'}</td>
-                <td>
-                    <button class="view-details-btn" onclick="contentModeration.viewReport('${report._id}')">
+                    <button class="btn-view" onclick="window.contentModeration.viewReport('${report._id}')">
                         View Details
                     </button>
                 </td>
@@ -295,276 +163,257 @@ class ContentModerationManager {
     }
 
     async viewReport(reportId) {
+        console.log('👁️ Viewing report:', reportId);
+        this.currentReportId = reportId;
+        
         try {
-            const reports = await api.getReports();
-            const report = reports.find(r => r._id === reportId);
+            const report = await api.getReportById(reportId);
+            console.log('📄 Report details:', report);
             
-            if (!report) {
-                console.error('Report not found:', reportId);
-                AdminUtils.showMessage('Report not found', 'error');
-                return;
-            }
-
-            // Store current report ID and switch to report detail view
-            this.currentReportId = reportId;
-            this.currentView = 'reportDetail';
-            console.log('Switching to report detail view for report:', reportId);
-            this.showView('reportDetail');
-            this.populateReportDetailView(report);
-        } catch (error) {
-            console.error('Error loading report details:', error);
-            AdminUtils.showMessage('Error loading report details', 'error');
-        }
-    }
-
-    populateReportDetail(report) {
-        document.getElementById('reportUserName').textContent = report.userName;
-        document.getElementById('reportUserEmail').textContent = report.userEmail;
-        document.getElementById('reportReason').textContent = report.reason;
-        document.getElementById('reportDescription').textContent = report.description;
-
-        // Display evidence photos
-        const photosContainer = document.getElementById('evidencePhotos');
-        if (photosContainer) {
-            photosContainer.innerHTML = '';
+            document.getElementById('reporterName').textContent = report.reporterName || 'Anonymous';
+            document.getElementById('reportedUserName').textContent = report.reportedUserName || 'Unknown';
+            document.getElementById('reportReason').textContent = report.reason || 'No reason provided';
+            document.getElementById('reportDescription').textContent = report.description || 'No additional description provided';
+            document.getElementById('reportStatus').textContent = report.status;
+            document.getElementById('reportStatus').className = `status-badge status-${report.status}`;
+            
+            const evidenceContainer = document.getElementById('evidencePhotos');
             if (report.evidencePhotos && report.evidencePhotos.length > 0) {
-                report.evidencePhotos.forEach((photo, index) => {
-                    const photoDiv = document.createElement('div');
-                    photoDiv.className = 'evidence-photo';
-                    photoDiv.innerHTML = `
-                        <img src="${photo.url}" alt="Evidence ${index + 1}" onclick="contentModeration.viewPhoto('${photo.url}')">
-                        <span>Evidence ${index + 1}</span>
-                    `;
-                    photosContainer.appendChild(photoDiv);
-                });
+                evidenceContainer.innerHTML = report.evidencePhotos.map(photo => 
+                    `<img src="${photo}" alt="Evidence" style="max-width: 200px; margin: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`
+                ).join('');
             } else {
-                photosContainer.innerHTML = '<p>No evidence photos provided</p>';
+                evidenceContainer.innerHTML = '<p>No evidence photos provided</p>';
             }
+            
+            document.getElementById('reportsSection').style.display = 'none';
+            document.getElementById('reportDetailSection').style.display = 'block';
+            
+        } catch (error) {
+            console.error('❌ Error loading report details:', error);
+            alert('Failed to load report details. Please try again.');
         }
-
-        // Store current report ID for actions
-        document.getElementById('restrictBtn').onclick = () => this.showRestrictionModal(reportId);
-    }
-
-    viewPhoto(photoUrl) {
-        // Create a modal to view the full-size photo
-        const photoModal = document.createElement('div');
-        photoModal.className = 'photo-modal';
-        photoModal.innerHTML = `
-            <div class="photo-modal-content">
-                <span class="close-photo">&times;</span>
-                <img src="${photoUrl}" alt="Evidence Photo" class="full-size-photo">
-            </div>
-        `;
-        document.body.appendChild(photoModal);
-
-        // Close modal functionality
-        photoModal.querySelector('.close-photo').onclick = () => {
-            document.body.removeChild(photoModal);
-        };
-        photoModal.onclick = (e) => {
-            if (e.target === photoModal) {
-                document.body.removeChild(photoModal);
-            }
-        };
     }
 
     showRestrictionModal(reportId) {
-        console.log('showRestrictionModal called with reportId:', reportId);
+        console.log('🔒 Opening restriction modal for report:', reportId);
+        this.currentReportId = reportId;
         
-        // First confirmation modal
-        const firstModal = document.createElement('div');
-        firstModal.className = 'modal';
-        firstModal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Restrict Account</h3>
-                    <span class="close">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to restrict this account?</p>
-                    <div class="modal-actions">
-                        <button class="cancel-btn" onclick="this.closest('.modal').remove()">Cancel</button>
-                        <button class="confirm-btn" onclick="contentModeration.showDurationModal(${reportId})">Yes</button>
-                    </div>
+        const modal = document.createElement('div');
+        modal.id = 'restrictionModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <h3>Restrict Account</h3>
+                <p>Are you sure you want to restrict this account?</p>
+                <div style="margin: 20px 0;">
+                    <button class="btn-cancel" onclick="window.contentModeration.closeModal()">Cancel</button>
+                    <button class="btn-danger" onclick="window.contentModeration.showDurationModal()">Yes</button>
                 </div>
             </div>
         `;
-        document.body.appendChild(firstModal);
-        firstModal.style.display = 'block';
-
-        // Close modal functionality
-        firstModal.querySelector('.close').onclick = () => {
-            document.body.removeChild(firstModal);
-        };
+        document.body.appendChild(modal);
     }
 
-    showDurationModal(reportId) {
-        // Remove first modal
-        document.querySelectorAll('.modal').forEach(modal => modal.remove());
-
-        // Second modal for duration selection
-        const durationModal = document.createElement('div');
-        durationModal.className = 'modal';
-        durationModal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Select Restriction Duration</h3>
-                    <span class="close">&times;</span>
+    showDurationModal() {
+        this.closeModal();
+        
+        const modal = document.createElement('div');
+        modal.id = 'durationModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <h3>Select Restriction Duration</h3>
+                <div style="margin: 20px 0;">
+                    <button class="duration-btn" onclick="window.contentModeration.selectDuration('1 day')" style="display: block; width: 100%; margin: 10px 0; padding: 12px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 16px;">1 Day</button>
+                    <button class="duration-btn" onclick="window.contentModeration.selectDuration('3 days')" style="display: block; width: 100%; margin: 10px 0; padding: 12px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 16px;">3 Days</button>
+                    <button class="duration-btn" onclick="window.contentModeration.selectDuration('1 week')" style="display: block; width: 100%; margin: 10px 0; padding: 12px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 16px;">1 Week</button>
+                    <button class="duration-btn" onclick="window.contentModeration.selectDuration('1 month')" style="display: block; width: 100%; margin: 10px 0; padding: 12px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 16px;">1 Month</button>
+                    <button class="duration-btn" onclick="window.contentModeration.selectDuration('permanent')" style="display: block; width: 100%; margin: 10px 0; padding: 12px; border: 2px solid #e74c3c; background: white; border-radius: 8px; cursor: pointer; font-size: 16px; color: #e74c3c; font-weight: bold;">Permanent</button>
                 </div>
-                <div class="modal-body">
-                    <div class="restriction-options">
-                        <label>Restriction Duration:</label>
-                        <select id="restrictionDuration">
-                            <option value="1 day">1 day</option>
-                            <option value="10 days">10 days</option>
-                            <option value="20 days">20 days</option>
-                            <option value="1 month">1 month</option>
-                        </select>
-                        <label>Reason for Restriction:</label>
-                        <textarea id="restrictionReason" placeholder="Enter reason for restriction..."></textarea>
-                    </div>
-                    <div class="modal-actions">
-                        <button class="cancel-btn" onclick="this.closest('.modal').remove()">Cancel</button>
-                        <button class="confirm-btn" onclick="contentModeration.confirmRestriction(${reportId})">Confirm Restriction</button>
-                    </div>
+                <button class="btn-cancel" onclick="window.contentModeration.closeModal()" style="margin-top: 10px;">Cancel</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    selectDuration(duration) {
+        console.log('⏱️ Duration selected:', duration);
+        this.selectedRestrictionDuration = duration;
+        this.closeModal();
+        this.showReasonModal();
+    }
+
+    showReasonModal() {
+        const modal = document.createElement('div');
+        modal.id = 'reasonModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <h3>Enter Restriction Reason</h3>
+                <textarea id="restrictionReason" placeholder="Enter reason for restriction..." style="width: 100%; min-height: 120px; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; font-family: Arial, sans-serif; resize: vertical; margin: 15px 0;"></textarea>
+                <div style="margin-top: 20px;">
+                    <button class="btn-cancel" onclick="window.contentModeration.closeModal()">Cancel</button>
+                    <button class="btn-danger" onclick="window.contentModeration.confirmRestriction()">Confirm Restriction</button>
                 </div>
             </div>
         `;
-        document.body.appendChild(durationModal);
-        durationModal.style.display = 'block';
-
-        // Close modal functionality
-        durationModal.querySelector('.close').onclick = () => {
-            document.body.removeChild(durationModal);
-        };
+        document.body.appendChild(modal);
     }
 
-    async confirmRestriction(reportId) {
-        const duration = document.getElementById('restrictionDuration').value;
-        const reason = document.getElementById('restrictionReason').value;
-
-        if (!reason.trim()) {
-            alert('Please enter a reason for restriction');
+    async confirmRestriction() {
+        const reasonInput = document.getElementById('restrictionReason');
+        const reason = reasonInput ? reasonInput.value.trim() : '';
+        
+        if (!reason) {
+            alert('Please enter a reason for the restriction.');
             return;
         }
 
+        if (!this.currentReportId || !this.selectedRestrictionDuration) {
+            alert('Missing restriction details. Please try again.');
+            this.closeModal();
+            return;
+        }
+
+        console.log('✅ Confirming restriction:', {
+            reportId: this.currentReportId,
+            duration: this.selectedRestrictionDuration,
+            reason: reason
+        });
+
         try {
-            console.log(`Restricting user for report ${reportId} for ${duration}. Reason: ${reason}`);
+            this.closeModal();
             
-            await api.restrictUser(reportId, duration, reason);
+            const result = await api.restrictUser(
+                this.currentReportId,
+                this.selectedRestrictionDuration,
+                reason
+            );
             
-            AdminUtils.showMessage(`User account restricted for ${duration}`, 'success');
+            console.log('✅ Restriction successful:', result);
+            alert(`Account restricted successfully for ${this.selectedRestrictionDuration}.`);
             
-            // Close all modals
-            document.querySelectorAll('.modal').forEach(modal => modal.remove());
+            this.currentReportId = null;
+            this.selectedRestrictionDuration = null;
             
-            // If we're in report detail view, go back to reports table
-            if (this.currentView === 'reportDetail') {
-                this.backToReports();
-            } else {
-                // Refresh the reports table
-                this.renderReportsTable();
-            }
+            this.showReportsView();
+            
         } catch (error) {
-            console.error('Error restricting user:', error);
-            AdminUtils.showMessage('Failed to restrict user account', 'error');
+            console.error('❌ Error restricting account:', error);
+            alert('Failed to restrict account. Please try again.');
         }
     }
 
-    async backToReports() {
-        // Switch back to reports view
-        this.currentView = 'reports';
-        this.showView('reports');
-        await this.renderReportsTable();
+    closeModal() {
+        const modals = ['restrictionModal', 'durationModal', 'reasonModal'];
+        modals.forEach(id => {
+            const modal = document.getElementById(id);
+            if (modal) modal.remove();
+        });
     }
 
-    populateReportDetailView(report) {
-        console.log('Populating report detail view with:', report);
-        
-        // Update report detail view elements
-        const userName = report.reportedUserId?.name || 'Unknown User';
-        const userEmail = report.reportedUserId?.email || 'No email';
-        
-        document.getElementById('reportDetailUserName').textContent = userName;
-        document.getElementById('reportDetailUserEmail').textContent = userEmail;
-        document.getElementById('reportDetailReason').textContent = report.reason;
-        document.getElementById('reportDetailDescription').textContent = report.description || 'No additional description provided';
+    async renderPendingModeration() {
+        const container = document.getElementById('pendingItemsContainer');
+        if (!container) return;
 
-        // Display evidence photos
-        const photosContainer = document.getElementById('reportDetailEvidencePhotos');
-        if (photosContainer) {
-            photosContainer.innerHTML = '';
-            if (report.evidencePhotos && report.evidencePhotos.length > 0) {
-                report.evidencePhotos.forEach((photo, index) => {
-                    const photoDiv = document.createElement('div');
-                    photoDiv.className = 'evidence-photo';
-                    photoDiv.innerHTML = `
-                        <img src="${photo.url}" alt="Evidence ${index + 1}" onclick="contentModeration.viewPhoto('${photo.url}')">
-                        <span>Evidence ${index + 1}</span>
-                    `;
-                    photosContainer.appendChild(photoDiv);
-                });
+        const startTime = Date.now();
+        container.innerHTML = '<div style="text-align: center; padding: 40px;">⚡ Loading pending items...</div>';
+
+        try {
+            console.log('⚡ Fast fetching pending items...');
+            
+            const cached = api.getFromCache('pendingItems', 10000);
+            if (cached) {
+                const cacheTime = Date.now() - startTime;
+                console.log(`⚡ Cache hit! Loaded in ${cacheTime}ms`);
+                this.displayPendingItems(cached, container);
+                api.getPendingItems().then(fresh => api.setCache('pendingItems', fresh)).catch(e => console.log('Background refresh failed:', e));
+                return;
+            }
+
+            const fetchPromise = api.getPendingItems();
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 800)
+            );
+
+            const items = await Promise.race([fetchPromise, timeoutPromise]);
+            const fetchTime = Date.now() - startTime;
+            console.log(`⚡ Fetched ${items.length} items in ${fetchTime}ms`);
+            
+            api.setCache('pendingItems', items);
+            this.displayPendingItems(items, container);
+
+        } catch (error) {
+            console.error('❌ Error loading pending items:', error);
+            const fallback = api.getFromCache('pendingItems', 300000);
+            if (fallback) {
+                console.log('📦 Using stale cache as fallback');
+                this.displayPendingItems(fallback, container);
             } else {
-                photosContainer.innerHTML = '<p>No evidence photos provided</p>';
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #e74c3c;">⚠️ Failed to load items. Please refresh.</div>';
             }
         }
+    }
 
-        // Set up restrict button
-        const restrictBtn = document.getElementById('reportDetailRestrictBtn');
-        if (restrictBtn) {
-            restrictBtn.onclick = () => {
-                console.log('Restrict button clicked for report:', this.currentReportId);
-                this.showRestrictionModal(this.currentReportId);
-            };
-        } else {
-            console.error('Restrict button not found');
+    displayPendingItems(items, container) {
+        if (!items || items.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 40px;">No pending items</div>';
+            return;
+        }
+
+        container.innerHTML = items.map(item => `
+            <div class="pending-item-card">
+                <img src="${item.imageUrl || '/placeholder.png'}" alt="${item.name}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;">
+                <div style="padding: 15px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 18px;">${item.name}</h4>
+                    <p style="margin: 5px 0; color: #666;"><strong>Category:</strong> ${item.category}</p>
+                    <p style="margin: 5px 0; color: #666;"><strong>Price:</strong> ₱${item.price}</p>
+                    <p style="margin: 5px 0; color: #666;"><strong>Seller:</strong> ${item.sellerName || 'Unknown'}</p>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button class="btn-approve" onclick="window.contentModeration.approveItem('${item._id}')">✓ Approve</button>
+                        <button class="btn-reject" onclick="window.contentModeration.rejectItem('${item._id}')">✗ Reject</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async approveItem(itemId) {
+        if (!confirm('Approve this item for marketplace?')) return;
+
+        try {
+            console.log('✅ Approving item:', itemId);
+            await api.approveMarketplaceItem(itemId);
+            alert('Item approved successfully!');
+            this.renderPendingModeration();
+        } catch (error) {
+            console.error('❌ Error approving item:', error);
+            alert('Failed to approve item. Please try again.');
         }
     }
 
-    // View switching methods
-    async switchToReports() {
-        this.currentView = 'reports';
-        this.showView('reports');
-        await this.renderReportsTable();
-    }
+    async rejectItem(itemId) {
+        const reason = prompt('Enter reason for rejection:');
+        if (!reason) return;
 
-    switchToPending() {
-        this.currentView = 'pending';
-        this.showView('pending');
-        this.renderPendingPosts();
-    }
-
-    showView(viewName) {
-        // Hide all views
-        const pendingView = document.getElementById('pendingView');
-        const reportsView = document.getElementById('reportsView');
-        const reportDetailView = document.getElementById('reportDetailView');
-        
-        if (pendingView) pendingView.style.display = 'none';
-        if (reportsView) reportsView.style.display = 'none';
-        if (reportDetailView) reportDetailView.style.display = 'none';
-        
-        // Show the selected view
-        if (viewName === 'pending' && pendingView) {
-            pendingView.style.display = 'block';
-        } else if (viewName === 'reports' && reportsView) {
-            reportsView.style.display = 'block';
-        } else if (viewName === 'reportDetail' && reportDetailView) {
-            reportDetailView.style.display = 'block';
+        try {
+            console.log('❌ Rejecting item:', itemId);
+            await api.rejectMarketplaceItem(itemId, reason);
+            alert('Item rejected successfully!');
+            this.renderPendingModeration();
+        } catch (error) {
+            console.error('❌ Error rejecting item:', error);
+            alert('Failed to reject item. Please try again.');
         }
     }
 }
 
-// Initialize content moderation manager when DOM is loaded
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         window.contentModeration = new ContentModerationManager();
     });
 } else {
-    // DOM already loaded
     window.contentModeration = new ContentModerationManager();
 }
 
-// Also make it available globally immediately
-window.contentModeration = window.contentModeration || new ContentModerationManager();
