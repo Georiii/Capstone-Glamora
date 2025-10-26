@@ -263,7 +263,6 @@ class ContentModerationManager {
     
     displayReports(reports, tbody) {
         tbody.innerHTML = '';
-        const avatarInitial = reports[0]?.reportedUserId?.name?.charAt(0).toUpperCase() || 'U';
         
         reports.forEach(report => {
             const row = document.createElement('tr');
@@ -281,22 +280,18 @@ class ContentModerationManager {
                         </div>
                     </div>
                 </td>
-                    <td>
-                        <div class="report-reason">${report.reason}</div>
-                    </td>
-                    <td>${report.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'No date'}</td>
-                    <td>
-                        <button class="view-details-btn" onclick="contentModeration.viewReport('${report._id}')">
-                            View Details
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        } catch (error) {
-            console.error('Error loading reports:', error);
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">Error loading reports</td></tr>';
-        }
+                <td>
+                    <div class="report-reason">${report.reason}</div>
+                </td>
+                <td>${report.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'No date'}</td>
+                <td>
+                    <button class="view-details-btn" onclick="contentModeration.viewReport('${report._id}')">
+                        View Details
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
     }
 
     async viewReport(reportId) {
@@ -562,6 +557,14 @@ class ContentModerationManager {
 }
 
 // Initialize content moderation manager when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.contentModeration = new ContentModerationManager();
+    });
+} else {
+    // DOM already loaded
     window.contentModeration = new ContentModerationManager();
-});
+}
+
+// Also make it available globally immediately
+window.contentModeration = window.contentModeration || new ContentModerationManager();
