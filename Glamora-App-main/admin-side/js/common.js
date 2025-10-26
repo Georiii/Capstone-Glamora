@@ -1,7 +1,7 @@
 // Common JavaScript functionality shared across all pages
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://glamora-g5my.onrender.com';
 
 // API Helper Functions
 const api = {
@@ -231,14 +231,43 @@ class AdminUtils {
         window.location.href = 'login.html';
     }
 
-    static updateMetrics() {
+    static async updateMetrics() {
         const totalUsersEl = document.getElementById('totalUsers');
         const reportsTodayEl = document.getElementById('reportsToday');
         const activeListingEl = document.getElementById('activeListing');
 
-        if (totalUsersEl) totalUsersEl.textContent = mockData.users.length;
-        if (reportsTodayEl) reportsTodayEl.textContent = mockData.reports.length;
-        if (activeListingEl) activeListingEl.textContent = mockData.posts.length;
+        try {
+            // Fetch real-time metrics from backend
+            const data = await api.request('/api/admin/metrics');
+            
+            if (totalUsersEl) totalUsersEl.textContent = data.totalUsers || 0;
+            if (reportsTodayEl) reportsTodayEl.textContent = data.totalReports || 0;
+            if (activeListingEl) activeListingEl.textContent = data.activeListings || 0;
+            
+            console.log('✅ Metrics updated from backend:', data);
+        } catch (error) {
+            console.error('❌ Failed to fetch metrics, using fallback:', error);
+            // Fallback to mock data if API fails
+            if (totalUsersEl) totalUsersEl.textContent = mockData.users.length;
+            if (reportsTodayEl) reportsTodayEl.textContent = mockData.reports.length;
+            if (activeListingEl) activeListingEl.textContent = mockData.posts.length;
+        }
+    }
+
+    static updateMetricsDisplay(data) {
+        const totalUsersEl = document.getElementById('totalUsers');
+        const reportsTodayEl = document.getElementById('reportsToday');
+        const activeListingEl = document.getElementById('activeListing');
+
+        if (totalUsersEl && data.totalUsers !== undefined) {
+            totalUsersEl.textContent = data.totalUsers;
+        }
+        if (reportsTodayEl && data.totalReports !== undefined) {
+            reportsTodayEl.textContent = data.totalReports;
+        }
+        if (activeListingEl && data.activeListings !== undefined) {
+            activeListingEl.textContent = data.activeListings;
+        }
     }
 
     static setupModalHandlers() {
@@ -267,6 +296,96 @@ class AdminUtils {
     }
 }
 
+// Socket.IO Real-Time Connection
+let adminSocket = null;
+
+class AdminSocketManager {
+    static connect() {
+        if (adminSocket && adminSocket.connected) {
+            console.log('🔌 Socket already connected');
+            return adminSocket;
+        }
+
+        try {
+            // Initialize Socket.IO connection
+            adminSocket = io(API_BASE_URL, {
+                auth: {
+                    token: localStorage.getItem('adminToken')
+                },
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000
+            });
+
+            adminSocket.on('connect', () => {
+                console.log('✅ Admin dashboard connected to real-time server');
+            });
+
+            adminSocket.on('disconnect', () => {
+                console.log('❌ Admin dashboard disconnected from server');
+            });
+
+            // Listen for real-time metric updates
+            adminSocket.on('metrics:update', (data) => {
+                console.log('📊 Real-time metrics update:', data);
+                AdminUtils.updateMetricsDisplay(data);
+            });
+
+            // Listen for new user registrations
+            adminSocket.on('user:registered', (data) => {
+                console.log('👤 New user registered:', data);
+                AdminUtils.updateMetrics();
+            });
+
+            // Listen for new reports
+            adminSocket.on('report:created', (data) => {
+                console.log('🚨 New report submitted:', data);
+                AdminUtils.updateMetrics();
+                if (typeof window.loadReports === 'function') {
+                    window.loadReports();
+                }
+            });
+
+            // Listen for marketplace item submissions
+            adminSocket.on('marketplace:item:created', (data) => {
+                console.log('🛍️ New marketplace item posted:', data);
+                AdminUtils.updateMetrics();
+                if (typeof window.loadPendingItems === 'function') {
+                    window.loadPendingItems();
+                }
+            });
+
+            // Listen for marketplace item approvals/rejections
+            adminSocket.on('marketplace:item:updated', (data) => {
+                console.log('✅ Marketplace item updated:', data);
+                AdminUtils.updateMetrics();
+            });
+
+            return adminSocket;
+        } catch (error) {
+            console.error('❌ Socket connection error:', error);
+            return null;
+        }
+    }
+
+    static disconnect() {
+        if (adminSocket) {
+            adminSocket.disconnect();
+            adminSocket = null;
+            console.log('🔌 Socket disconnected');
+        }
+    }
+
+    static emit(event, data) {
+        if (adminSocket && adminSocket.connected) {
+            adminSocket.emit(event, data);
+        } else {
+            console.warn('⚠️ Socket not connected, cannot emit event:', event);
+        }
+    }
+}
+
 // Initialize common functionality when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Only run on dashboard pages (not login)
@@ -275,12 +394,18 @@ document.addEventListener('DOMContentLoaded', () => {
         AdminUtils.updateMetrics();
         AdminUtils.setupModalHandlers();
         AdminUtils.setupLogoutHandler();
+        
+        // Connect to real-time server
+        AdminSocketManager.connect();
+        
+        // Refresh metrics every 30 seconds as backup
+        setInterval(() => AdminUtils.updateMetrics(), 30000);
     }
 });
 
 // API Integration Functions (for future backend connection)
 class AdminAPI {
-    static baseURL = 'http://localhost:3000/api/admin';
+    static baseURL = 'https://glamora-g5my.onrender.com/api/admin';
 
     static async login(credentials) {
         try {

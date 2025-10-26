@@ -49,6 +49,18 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const user = new User({ name, username, email, passwordHash });
     await user.save();
+    
+    // Emit real-time event for admin dashboard
+    if (req.app.get('io')) {
+      req.app.get('io').emit('user:registered', {
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        timestamp: new Date()
+      });
+      console.log('✅ Emitted user:registered event for:', user.email);
+    }
+    
     res.status(201).json({ message: 'User registered successfully.', user: { _id: user._id, name: user.name, email: user.email } });
   } catch (err) {
     res.status(500).json({ message: 'Registration failed.', error: err.message });
@@ -78,6 +90,15 @@ router.post('/login', async (req, res) => {
     if (!valid) {
       console.log('Invalid password');
       return res.status(401).json({ message: 'Invalid credentials.' });
+    }
+    
+    // Check if account is active
+    if (user.isActive === false) {
+      console.log('Account is deactivated');
+      return res.status(403).json({ 
+        message: 'Your account has been deactivated by the admin. Please contact support for assistance.',
+        deactivated: true
+      });
     }
     
     console.log('Password valid, generating token');

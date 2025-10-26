@@ -67,6 +67,18 @@ router.post('/', auth, async (req, res) => {
     await report.populate('reporterId', 'name email');
     await report.populate('reportedUserId', 'name email');
 
+    // Emit real-time event for admin dashboard
+    if (req.app.get('io')) {
+      req.app.get('io').emit('report:created', {
+        reportId: report._id,
+        reporterName: report.reporterId.name,
+        reportedUserName: report.reportedUserId.name,
+        reason: report.reason,
+        timestamp: new Date()
+      });
+      console.log('✅ Emitted report:created event');
+    }
+
     res.status(201).json({ 
       message: 'Report submitted successfully.', 
       report: report 

@@ -276,7 +276,7 @@ router.get('/marketplace/pending', adminAuth, async (req, res) => {
 
 router.put('/marketplace/:id/approve', adminAuth, async (req, res) => {
     try {
-        const item = await MarketplaceItem.findById(req.params.id);
+        const item = await MarketplaceItem.findById(req.params.id).populate('userId');
         if (!item) {
             return res.status(404).json({ message: 'Item not found' });
         }
@@ -286,6 +286,17 @@ router.put('/marketplace/:id/approve', adminAuth, async (req, res) => {
         item.approvedAt = new Date();
 
         await item.save();
+
+        // Emit real-time event to notify user
+        if (req.app.get('io')) {
+            req.app.get('io').emit('marketplace:item:approved', {
+                itemId: item._id,
+                userId: item.userId._id,
+                itemName: item.name,
+                timestamp: new Date()
+            });
+            console.log('✅ Emitted marketplace:item:approved event for:', item.name);
+        }
 
         res.json({ message: 'Item approved successfully', item });
     } catch (error) {
@@ -298,7 +309,7 @@ router.put('/marketplace/:id/reject', adminAuth, async (req, res) => {
     try {
         const { reason } = req.body;
         
-        const item = await MarketplaceItem.findById(req.params.id);
+        const item = await MarketplaceItem.findById(req.params.id).populate('userId');
         if (!item) {
             return res.status(404).json({ message: 'Item not found' });
         }
@@ -309,6 +320,18 @@ router.put('/marketplace/:id/reject', adminAuth, async (req, res) => {
         item.rejectedAt = new Date();
 
         await item.save();
+
+        // Emit real-time event to notify user
+        if (req.app.get('io')) {
+            req.app.get('io').emit('marketplace:item:rejected', {
+                itemId: item._id,
+                userId: item.userId._id,
+                itemName: item.name,
+                reason: reason,
+                timestamp: new Date()
+            });
+            console.log('✅ Emitted marketplace:item:rejected event for:', item.name);
+        }
 
         res.json({ message: 'Item rejected successfully', item });
     } catch (error) {

@@ -147,7 +147,7 @@ router.delete('/:id', auth, async (req, res) => {
 // POST /api/marketplace - add a new marketplace item
 router.post('/marketplace', auth, async (req, res) => {
   try {
-    const { imageUrl, name, description, price } = req.body;
+    const { imageUrl, name, description, price, category } = req.body;
     if (!imageUrl || !name || !price) return res.status(400).json({ message: 'Missing required fields: imageUrl, name, and price' });
     
     // Get user information from database including profile picture
@@ -163,9 +163,28 @@ router.post('/marketplace', auth, async (req, res) => {
       userName: user.name || '',
       userEmail: user.email || '',
       userProfilePicture: user.profilePicture?.url || '', // Include seller's profile picture
+      category: category || '',
+      status: 'pending', // All new items start as pending
     });
     await item.save();
-    res.status(201).json({ message: 'Marketplace item posted', item });
+    
+    // Emit real-time event for admin dashboard
+    if (req.app.get('io')) {
+      req.app.get('io').emit('marketplace:item:created', {
+        itemId: item._id,
+        name: item.name,
+        userName: user.name,
+        userEmail: user.email,
+        timestamp: new Date()
+      });
+      console.log('✅ Emitted marketplace:item:created event for:', item.name);
+    }
+    
+    res.status(201).json({ 
+      message: 'Your item is pending review. It will be visible once approved by the admin.', 
+      item,
+      pending: true 
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -175,7 +194,10 @@ router.post('/marketplace', auth, async (req, res) => {
 router.get('/marketplace', async (req, res) => {
   try {
     const search = req.query.search || '';
-    const query = search ? { name: { $regex: search, $options: 'i' } } : {};
+    // Only show active (approved) items to regular users
+    const query = search 
+      ? { name: { $regex: search, $options: 'i' }, status: 'active' } 
+      : { status: 'active' };
     const items = await MarketplaceItem.find(query).sort({ createdAt: -1 }).populate('userId', 'profilePicture');
     
     // Update each item with the latest profile picture from the user

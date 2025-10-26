@@ -3,12 +3,14 @@
 class AnalyticsManager {
     constructor() {
         this.analyticsChart = null;
+        this.analyticsData = null;
         this.init();
     }
 
     init() {
         this.setupEventListeners();
         this.loadAnalytics();
+        this.setupRealtimeUpdates();
     }
 
     setupEventListeners() {
@@ -19,8 +21,35 @@ class AnalyticsManager {
         }
     }
 
-    loadAnalytics() {
-        this.renderChart();
+    setupRealtimeUpdates() {
+        // Listen for real-time updates via Socket.IO
+        if (window.adminSocket) {
+            window.adminSocket.on('user:registered', () => {
+                console.log('👤 New user registered, refreshing analytics');
+                this.loadAnalytics();
+            });
+
+            window.adminSocket.on('marketplace:item:created', () => {
+                console.log('🛍️ New marketplace item, refreshing analytics');
+                this.loadAnalytics();
+            });
+        }
+    }
+
+    async loadAnalytics() {
+        try {
+            // Fetch analytics data from backend
+            const data = await api.request('/api/admin/analytics?period=6months');
+            this.analyticsData = data;
+            console.log('✅ Analytics data loaded:', data);
+            this.renderChart();
+        } catch (error) {
+            console.error('❌ Failed to load analytics:', error);
+            // Fallback to mock data
+            this.analyticsData = mockData.analytics;
+            this.renderChart();
+            AdminUtils.showMessage('Failed to load analytics. Using cached data.', 'warning');
+        }
     }
 
     renderChart() {
@@ -32,21 +61,61 @@ class AnalyticsManager {
             this.analyticsChart.destroy();
         }
 
+        // Prepare data for chart
+        let months = [];
+        let userRegistrations = [];
+        let marketplaceActivity = [];
+
+        if (this.analyticsData && this.analyticsData.userRegistrations) {
+            // Process backend data
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            // Get last 6 months
+            const now = new Date();
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                months.push(monthNames[date.getMonth()]);
+            }
+
+            // Map backend data to months
+            userRegistrations = months.map(() => 0);
+            marketplaceActivity = months.map(() => 0);
+
+            this.analyticsData.userRegistrations.forEach(item => {
+                const monthIndex = months.indexOf(monthNames[item._id.month - 1]);
+                if (monthIndex !== -1) {
+                    userRegistrations[monthIndex] = item.count;
+                }
+            });
+
+            this.analyticsData.marketplaceActivity.forEach(item => {
+                const monthIndex = months.indexOf(monthNames[item._id.month - 1]);
+                if (monthIndex !== -1) {
+                    marketplaceActivity[monthIndex] = item.count;
+                }
+            });
+        } else {
+            // Use mock data
+            months = mockData.analytics.months;
+            userRegistrations = mockData.analytics.userLogins;
+            marketplaceActivity = mockData.analytics.outfitGeneration;
+        }
+
         this.analyticsChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: mockData.analytics.months,
+                labels: months,
                 datasets: [
                     {
-                        label: 'User login',
-                        data: mockData.analytics.userLogins,
+                        label: 'User Registrations',
+                        data: userRegistrations,
                         backgroundColor: '#3498db',
                         borderColor: '#2980b9',
                         borderWidth: 1
                     },
                     {
-                        label: 'no. of times they generate',
-                        data: mockData.analytics.outfitGeneration,
+                        label: 'Marketplace Items Posted',
+                        data: marketplaceActivity,
                         backgroundColor: '#2ecc71',
                         borderColor: '#27ae60',
                         borderWidth: 1

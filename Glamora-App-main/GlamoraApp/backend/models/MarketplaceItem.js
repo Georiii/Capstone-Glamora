@@ -9,6 +9,13 @@ const marketplaceItemSchema = new mongoose.Schema({
   userName: { type: String },
   userEmail: { type: String },
   userProfilePicture: { type: String }, // Add seller's profile picture
+  status: { type: String, enum: ['pending', 'active', 'rejected'], default: 'pending' },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  approvedAt: { type: Date },
+  rejectedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  rejectedAt: { type: Date },
+  rejectionReason: { type: String },
+  category: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
 

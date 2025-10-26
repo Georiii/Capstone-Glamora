@@ -4,12 +4,15 @@ class ContentModerationManager {
     constructor() {
         this.currentView = 'pending'; // 'pending', 'reports', or 'reportDetail'
         this.currentReportId = null;
+        this.pendingItems = [];
+        this.reports = [];
         this.init();
     }
 
     init() {
         this.setupEventListeners();
         this.loadContentModeration();
+        this.setupRealtimeUpdates();
     }
 
     setupEventListeners() {
@@ -20,8 +23,28 @@ class ContentModerationManager {
         }
     }
 
+    setupRealtimeUpdates() {
+        // Listen for real-time updates via Socket.IO
+        if (window.adminSocket) {
+            window.adminSocket.on('marketplace:item:created', (data) => {
+                console.log('🛍️ New marketplace item pending moderation:', data);
+                this.loadPendingPosts();
+            });
+
+            window.adminSocket.on('report:created', (data) => {
+                console.log('🚨 New report submitted:', data);
+                this.renderReportsTable();
+            });
+
+            window.adminSocket.on('marketplace:item:updated', (data) => {
+                console.log('✅ Marketplace item status updated:', data);
+                this.loadPendingPosts();
+            });
+        }
+    }
+
     async loadContentModeration() {
-        this.renderPendingPosts();
+        await this.loadPendingPosts();
         await this.renderReportsTable();
         this.checkIntegrationStatus();
     }
@@ -46,26 +69,56 @@ class ContentModerationManager {
         }
     }
 
+    async loadPendingPosts() {
+        try {
+            const response = await api.request('/api/admin/marketplace/pending');
+            this.pendingItems = response.items || [];
+            console.log('✅ Loaded pending items:', this.pendingItems.length);
+            this.renderPendingPosts();
+        } catch (error) {
+            console.error('❌ Failed to load pending items:', error);
+            // Fallback to mock data
+            this.pendingItems = mockData.posts || [];
+            this.renderPendingPosts();
+            AdminUtils.showMessage('Failed to load pending items. Using cached data.', 'warning');
+        }
+    }
+
     renderPendingPosts() {
         const container = document.getElementById('pendingPosts');
         if (!container) return;
         
         container.innerHTML = '';
 
-        mockData.posts.forEach(post => {
+        if (this.pendingItems.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 20px; color: #888;">No pending items for moderation</p>';
+            return;
+        }
+
+        this.pendingItems.forEach(item => {
             const postElement = document.createElement('div');
             postElement.className = 'post-item';
+            const userName = item.userId?.name || 'Unknown User';
+            const userEmail = item.userId?.email || 'No email';
+            
             postElement.innerHTML = `
                 <div class="post-info">
-                    <span>User Post</span>
-                    <a href="#" onclick="contentModeration.viewPost(${post.id})">View post</a>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${item.imageUrl || 'https://via.placeholder.com/50'}" alt="${item.name}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
+                        <div>
+                            <strong>${item.name}</strong>
+                            <p style="margin: 0; font-size: 12px; color: #666;">Posted by: ${userName} (${userEmail})</p>
+                            <p style="margin: 0; font-size: 12px; color: #888;">Price: ₱${item.price || 0}</p>
+                        </div>
+                    </div>
+                    <a href="#" onclick="contentModeration.viewPost('${item._id}')">View details</a>
                 </div>
                 <div class="post-actions">
-                    <button class="approve-btn" onclick="contentModeration.approvePost(${post.id})" title="Approve">
-                        <i class="fas fa-check"></i>
+                    <button class="approve-btn" onclick="contentModeration.approvePost('${item._id}')" title="Approve">
+                        <i class="fas fa-check"></i> Approve
                     </button>
-                    <button class="disapprove-btn" onclick="contentModeration.disapprovePost(${post.id})" title="Disapprove">
-                        <i class="fas fa-times"></i>
+                    <button class="disapprove-btn" onclick="contentModeration.disapprovePost('${item._id}')" title="Reject">
+                        <i class="fas fa-times"></i> Reject
                     </button>
                 </div>
             `;
@@ -73,32 +126,72 @@ class ContentModerationManager {
         });
     }
 
+    viewPost(itemId) {
+        const item = this.pendingItems.find(p => p._id === itemId);
+        if (!item) {
+            AdminUtils.showMessage('Item not found', 'error');
+            return;
+        }
 
-    viewPost(postId) {
-        const post = mockData.posts.find(p => p.id === postId);
-        if (!post) return;
-
-        alert(`Post Content: ${post.content}\n\nPosted by: ${post.userName}`);
+        const userName = item.userId?.name || 'Unknown User';
+        const userEmail = item.userId?.email || 'No email';
+        
+        alert(`Item: ${item.name}\n\nDescription: ${item.description || 'No description'}\n\nPrice: ₱${item.price || 0}\n\nPosted by: ${userName} (${userEmail})\n\nCategory: ${item.category || 'N/A'}`);
     }
 
-    approvePost(postId) {
-        const postIndex = mockData.posts.findIndex(p => p.id === postId);
-        if (postIndex === -1) return;
+    async approvePost(itemId) {
+        try {
+            if (!confirm('Are you sure you want to approve this item?')) {
+                return;
+            }
 
-        mockData.posts.splice(postIndex, 1);
-        this.renderPendingPosts();
-        AdminUtils.updateMetrics();
-        AdminUtils.showMessage('Post approved successfully', 'success');
+            const response = await api.request(`/api/admin/marketplace/${itemId}/approve`, {
+                method: 'PUT'
+            });
+
+            AdminUtils.showMessage('Item approved successfully', 'success');
+            
+            // Emit real-time update
+            if (window.adminSocket) {
+                window.adminSocket.emit('marketplace:item:approved', { itemId });
+            }
+
+            // Refresh data
+            AdminUtils.updateMetrics();
+            await this.loadPendingPosts();
+        } catch (error) {
+            console.error('❌ Failed to approve item:', error);
+            AdminUtils.showMessage('Failed to approve item', 'error');
+        }
     }
 
-    disapprovePost(postId) {
-        const postIndex = mockData.posts.findIndex(p => p.id === postId);
-        if (postIndex === -1) return;
+    async disapprovePost(itemId) {
+        try {
+            const reason = prompt('Enter reason for rejection (optional):');
+            
+            if (reason === null) {
+                return; // User cancelled
+            }
 
-        mockData.posts.splice(postIndex, 1);
-        this.renderPendingPosts();
-        AdminUtils.updateMetrics();
-        AdminUtils.showMessage('Post disapproved and removed', 'success');
+            const response = await api.request(`/api/admin/marketplace/${itemId}/reject`, {
+                method: 'PUT',
+                body: { reason: reason || 'No reason provided' }
+            });
+
+            AdminUtils.showMessage('Item rejected successfully', 'success');
+            
+            // Emit real-time update
+            if (window.adminSocket) {
+                window.adminSocket.emit('marketplace:item:rejected', { itemId, reason });
+            }
+
+            // Refresh data
+            AdminUtils.updateMetrics();
+            await this.loadPendingPosts();
+        } catch (error) {
+            console.error('❌ Failed to reject item:', error);
+            AdminUtils.showMessage('Failed to reject item', 'error');
+        }
     }
 
 
