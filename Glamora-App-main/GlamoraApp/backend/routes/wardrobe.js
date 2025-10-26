@@ -170,14 +170,14 @@ router.post('/marketplace', auth, async (req, res) => {
     
     // Emit real-time event for admin dashboard
     if (req.app.get('io')) {
-      req.app.get('io').emit('marketplace:item:created', {
+      req.app.get('io').to('admin-room').emit('marketplace:item:created', {
         itemId: item._id,
         name: item.name,
         userName: user.name,
         userEmail: user.email,
         timestamp: new Date()
       });
-      console.log('✅ Emitted marketplace:item:created event for:', item.name);
+      console.log('✅ Emitted marketplace:item:created event to admin-room for:', item.name);
     }
     
     res.status(201).json({ 

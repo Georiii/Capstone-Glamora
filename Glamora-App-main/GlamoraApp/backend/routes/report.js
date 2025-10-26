@@ -69,14 +69,14 @@ router.post('/', auth, async (req, res) => {
 
     // Emit real-time event for admin dashboard
     if (req.app.get('io')) {
-      req.app.get('io').emit('report:created', {
+      req.app.get('io').to('admin-room').emit('report:created', {
         reportId: report._id,
         reporterName: report.reporterId.name,
         reportedUserName: report.reportedUserId.name,
         reason: report.reason,
         timestamp: new Date()
       });
-      console.log('✅ Emitted report:created event');
+      console.log('✅ Emitted report:created event to admin-room');
     }
 
     res.status(201).json({ 

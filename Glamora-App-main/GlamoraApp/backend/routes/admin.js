@@ -89,13 +89,20 @@ router.get('/metrics', adminAuth, async (req, res) => {
         const activeListings = await MarketplaceItem.countDocuments({ status: 'active' });
         const pendingPosts = await MarketplaceItem.countDocuments({ status: 'pending' });
 
-        res.json({
+        const metrics = {
             totalUsers,
             activeUsers,
             totalReports,
             activeListings,
             pendingPosts
-        });
+        };
+
+        // Emit real-time metrics update to admin dashboard
+        if (req.app.get('io')) {
+            req.app.get('io').to('admin-room').emit('metrics:update', metrics);
+        }
+
+        res.json(metrics);
     } catch (error) {
         console.error('Get metrics error:', error);
         res.status(500).json({ message: 'Server error' });
@@ -180,6 +187,19 @@ router.put('/users/:id', adminAuth, async (req, res) => {
         if (typeof isActive === 'boolean') user.isActive = isActive;
 
         await user.save();
+
+        // Emit real-time event to admin dashboard
+        if (req.app.get('io')) {
+            req.app.get('io').to('admin-room').emit('user:updated', {
+                userId: user._id,
+                name: user.name,
+                email: user.email,
+                isActive: user.isActive,
+                role: user.role,
+                timestamp: new Date()
+            });
+            console.log('✅ Emitted user:updated event for:', user.email);
+        }
 
         res.json({ message: 'User updated successfully', user });
     } catch (error) {

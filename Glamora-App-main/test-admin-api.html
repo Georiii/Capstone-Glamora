@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Admin API</title>
+</head>
+<body>
+    <h1>Testing Admin API Endpoints</h1>
+    <button onclick="testHealth()">1. Test Health</button>
+    <button onclick="testAdminLogin()">2. Test Admin Login</button>
+    <button onclick="testMetrics()">3. Test Metrics</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const BASE_URL = 'https://glamora-g5my.onrender.com';
+        
+        async function testHealth() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<p>Testing /health endpoint...</p>';
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.json();
+                results.innerHTML += `<p>✅ Health check: ${JSON.stringify(data)}</p>`;
+            } catch (error) {
+                results.innerHTML += `<p>❌ Health check failed: ${error.message}</p>`;
+            }
+        }
+
+        async function testAdminLogin() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<p>Testing /api/admin/login endpoint...</p>';
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    results.innerHTML += `<p>✅ Admin login: ${JSON.stringify(data)}</p>`;
+                } else {
+                    results.innerHTML += `<p>❌ Admin login failed: ${JSON.stringify(data)}</p>`;
+                }
+            } catch (error) {
+                results.innerHTML += `<p>❌ Admin login error: ${error.message}</p>`;
+            }
+        }
+
+        async function testMetrics() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<p>Testing /api/admin/metrics endpoint...</p>';
+            try {
+                const response = await fetch(`${BASE_URL}/api/admin/metrics`, {
+                    headers: { 'Authorization': 'Bearer test-token' }
+                });
+                const data = await response.json();
+                results.innerHTML += `<p>Response: ${JSON.stringify(data)}</p>`;
+            } catch (error) {
+                results.innerHTML += `<p>❌ Metrics error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
+

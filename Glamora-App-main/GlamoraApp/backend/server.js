@@ -34,6 +34,25 @@ const io = socketIo(server, {
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('👤 User connected:', socket.id);
+  
+  // Check if this is an admin connection
+  const token = socket.handshake.auth.token;
+  let isAdmin = false;
+  
+  if (token) {
+    try {
+      const jwt = require('jsonwebtoken');
+      const { JWT_SECRET } = require('./config/database');
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded.role === 'admin') {
+        isAdmin = true;
+        socket.join('admin-room');
+        console.log('🔐 Admin connected to admin-room:', socket.id);
+      }
+    } catch (error) {
+      console.log('⚠️ Invalid token for socket connection:', error.message);
+    }
+  }
 
   // Join private chat room
   socket.on('join-chat', (data) => {
@@ -112,6 +131,9 @@ io.on('connection', (socket) => {
     console.log('👋 User disconnected:', socket.id);
   });
 });
+
+// Make Socket.IO instance available to all routes
+app.set('io', io);
 
 const authRoutes = require('./routes/auth');
 // Use full wardrobe routes so marketplace endpoints are available
