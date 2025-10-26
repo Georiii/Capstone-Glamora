@@ -1,0 +1,2 @@
+# Empty .gitmodules to prevent Netlify from trying to checkout non-existent submodules
+
