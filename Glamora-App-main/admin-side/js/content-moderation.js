@@ -1,4 +1,5 @@
-// Content Moderation page specific functionality
+// Content Moderation page specific functionality - v2.0
+// Fixed syntax errors and improved real-time updates
 
 class ContentModerationManager {
     constructor() {
