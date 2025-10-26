@@ -218,29 +218,48 @@ class ContentModerationManager {
         const tbody = document.getElementById('reportsTableBody');
         if (!tbody) return;
         
+        // Show loading state
         tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Loading reports...</td></tr>';
 
         try {
-            const reports = await api.getReports();
-            console.log('Reports from API:', reports);
+            console.log('Fetching reports from API...');
+            const startTime = Date.now();
             
-            if (reports.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No reports found</td></tr>';
+            // Fetch reports with timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
+            const reports = await Promise.race([
+                api.getReports(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Request timeout')), 10000)
+                )
+            ]);
+            
+            clearTimeout(timeoutId);
+            
+            const fetchTime = Date.now() - startTime;
+            console.log(`Reports fetched in ${fetchTime}ms:`, reports);
+            
+            if (!reports || reports.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #888;">No reports found</td></tr>';
                 return;
             }
 
             tbody.innerHTML = '';
 
             reports.forEach(report => {
-                console.log('Processing report:', report);
                 const row = document.createElement('tr');
                 const userName = report.reportedUserId?.name || 'Unknown User';
                 const userEmail = report.reportedUserId?.email || 'No email';
                 
+                // Use local placeholder instead of via.placeholder.com
+                const avatarInitial = userName.charAt(0).toUpperCase();
+                
                 row.innerHTML = `
                     <td>
                         <div class="report-user">
-                            <div class="report-avatar">${userName.charAt(0)}</div>
+                            <div class="report-avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">${avatarInitial}</div>
                             <div>
                                 <div class="user-name">${userName}</div>
                                 <div class="user-email">${userEmail}</div>

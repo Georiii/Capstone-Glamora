@@ -88,13 +88,55 @@ const api = {
         }
     },
 
-    // Fetch reports from backend
-    getReports: async () => {
+    // In-memory cache for API responses
+    _cache: new Map(),
+    _cacheTimestamps: new Map(),
+    
+    // Get cached data or fetch fresh
+    getFromCache: (key, maxAge = 30000) => { // 30 second cache by default
+        const cached = api._cache.get(key);
+        const timestamp = api._cacheTimestamps.get(key);
+        
+        if (cached && timestamp && (Date.now() - timestamp) < maxAge) {
+            console.log(`📦 Using cached data for ${key}`);
+            return cached;
+        }
+        
+        return null;
+    },
+    
+    setCache: (key, data) => {
+        api._cache.set(key, data);
+        api._cacheTimestamps.set(key, Date.now());
+    },
+    
+    clearCache: (key) => {
+        api._cache.delete(key);
+        api._cacheTimestamps.delete(key);
+    },
+    
+    // Fetch reports from backend with caching
+    getReports: async (useCache = true) => {
+        const cacheKey = 'reports';
+        
+        // Check cache first
+        if (useCache) {
+            const cached = api.getFromCache(cacheKey, 30000); // 30 second cache
+            if (cached) {
+                return cached;
+            }
+        }
+        
         try {
             const data = await api.request('/api/report/list');
             console.log('Fetched reports from API:', data);
             // API returns { reports: [...] }, so extract the reports array
-            return Array.isArray(data.reports) ? data.reports : [];
+            const reports = Array.isArray(data.reports) ? data.reports : [];
+            
+            // Cache the results
+            api.setCache(cacheKey, reports);
+            
+            return reports;
         } catch (error) {
             console.error('Failed to fetch reports from API, using mock data:', error);
             // Fallback to mock data if API fails
