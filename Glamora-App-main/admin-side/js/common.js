@@ -9,36 +9,35 @@ const api = {
     getAuthToken: async () => {
         let token = localStorage.getItem('adminToken');
         
-        // If no token or token is placeholder, login as admin
-        if (!token || token === 'admin_token_placeholder') {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        username: 'admin',
-                        password: 'admin123'
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    token = data.token;
-                    localStorage.setItem('adminToken', token);
-                    console.log('Admin login successful');
-                } else {
-                    console.error('Admin login failed');
-                    return null;
-                }
-            } catch (error) {
-                console.error('Admin login error:', error);
+        // Always refresh token to prevent 401 errors
+        try {
+            console.log('🔑 Refreshing admin token...');
+            const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: 'admin',
+                    password: 'admin123'
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                token = data.token;
+                localStorage.setItem('adminToken', token);
+                console.log('✅ Admin login successful - token refreshed');
+                return token;
+            } else {
+                const errorData = await response.json();
+                console.error('❌ Admin login failed:', errorData.message || response.statusText);
                 return null;
             }
+        } catch (error) {
+            console.error('❌ Admin login error:', error);
+            return null;
         }
-        
-        return token;
     },
 
     // Make authenticated API requests
@@ -158,16 +157,18 @@ const api = {
     // Restrict user account
     restrictUser: async (reportId, restrictionDuration, restrictionReason) => {
         try {
-            const data = await api.request(`/api/report/${reportId}/restrict`, {
+            console.log(`🔒 Restricting user for report ${reportId}...`);
+            const data = await api.request(`/api/admin/reports/${reportId}/restrict`, {
                 method: 'PUT',
                 body: {
                     restrictionDuration,
                     restrictionReason
                 }
             });
+            console.log('✅ User restricted successfully:', data);
             return data;
         } catch (error) {
-            console.error('Failed to restrict user:', error);
+            console.error('❌ Failed to restrict user:', error);
             throw error;
         }
     }
