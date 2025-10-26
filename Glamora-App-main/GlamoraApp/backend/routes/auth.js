@@ -101,6 +101,23 @@ router.post('/login', async (req, res) => {
       });
     }
     
+    // Check if account is restricted
+    if (user.accountStatus && user.accountStatus.isRestricted) {
+      const now = new Date();
+      const endDate = user.accountStatus.restrictionEndDate;
+      
+      if (endDate && endDate > now) {
+        const daysRemaining = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+        return res.status(403).json({
+          message: `Your account is restricted for ${user.accountStatus.restrictionDuration}. Reason: ${user.accountStatus.restrictionReason}. ${daysRemaining} day(s) remaining.`,
+          restricted: true,
+          restrictionReason: user.accountStatus.restrictionReason,
+          restrictionDuration: user.accountStatus.restrictionDuration,
+          daysRemaining: daysRemaining
+        });
+      }
+    }
+    
     console.log('Password valid, generating token');
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
     console.log('Login successful for user:', user.email);

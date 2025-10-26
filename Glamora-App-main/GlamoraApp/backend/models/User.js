@@ -8,6 +8,17 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isActive: { type: Boolean, default: true },
   
+  // Account Restriction Status
+  accountStatus: {
+    isActive: { type: Boolean, default: true },
+    isRestricted: { type: Boolean, default: false },
+    restrictionReason: { type: String },
+    restrictionStartDate: { type: Date },
+    restrictionEndDate: { type: Date },
+    restrictionDuration: { type: String },
+    restrictedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  },
+  
   // Body Measurements
   bodyMeasurements: {
     height: { type: Number }, // in cm
