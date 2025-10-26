@@ -343,26 +343,39 @@ class AdminUtils {
 let adminSocket = null;
 
 class AdminSocketManager {
-    static connect() {
+    static async connect() {
         if (adminSocket && adminSocket.connected) {
             console.log('🔌 Socket already connected');
             return adminSocket;
         }
 
         try {
-            // Initialize Socket.IO connection
+            // Get fresh admin token before connecting
+            console.log('🔑 Getting fresh admin token for Socket.IO...');
+            const token = await api.getAuthToken();
+            
+            if (!token) {
+                console.error('❌ Failed to get admin token for Socket.IO connection');
+                return;
+            }
+
+            // Initialize Socket.IO connection with fresh token
+            console.log('🔌 Connecting to Socket.IO server...');
             adminSocket = io(API_BASE_URL, {
-                auth: {
-                    token: localStorage.getItem('adminToken')
-                },
+                auth: { token },
                 transports: ['websocket', 'polling'],
                 reconnection: true,
                 reconnectionAttempts: 5,
-                reconnectionDelay: 1000
+                reconnectionDelay: 1000,
+                timeout: 10000
             });
 
             adminSocket.on('connect', () => {
                 console.log('✅ Admin dashboard connected to real-time server');
+            });
+
+            adminSocket.on('connect_error', (error) => {
+                console.error('❌ Socket.IO connection error:', error);
             });
 
             adminSocket.on('disconnect', () => {
