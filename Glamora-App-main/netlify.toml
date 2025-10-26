@@ -1,6 +1,5 @@
 [build]
-  base = "admin-side"
-  publish = "."
+  publish = "admin-side"
   command = ""
 
 [[redirects]]
