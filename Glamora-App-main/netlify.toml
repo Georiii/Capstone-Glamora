@@ -1,5 +1,6 @@
 [build]
-  publish = "Glamora-App-main/admin-side"
+  base = "Glamora-App-main"
+  publish = "admin-side"
   command = ""
 
 [[redirects]]
