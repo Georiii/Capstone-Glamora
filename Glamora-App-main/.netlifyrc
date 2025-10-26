@@ -1,8 +1,10 @@
 {
   "build": {
-    "ignore": "git submodule deinit -f . || true",
     "publish": "admin-side",
     "command": ""
+  },
+  "functions": {
+    "directory": "admin-side/netlify/functions"
   }
 }
 

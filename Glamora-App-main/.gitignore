@@ -117,3 +117,6 @@ jspm_packages/
 .tern-port
 
 app-example
+
+# Ignore problematic nested directory
+Glamora-App-main/Glamora-App-main
