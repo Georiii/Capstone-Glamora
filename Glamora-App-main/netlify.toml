@@ -1,7 +1,7 @@
 [build]
-  base = ""
-  publish = "admin-side"
-  command = "git submodule deinit -f ."
+  base = "admin-side"
+  publish = "."
+  command = ""
 
 [[redirects]]
   from = "/*"

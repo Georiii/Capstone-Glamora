@@ -1,0 +1,5 @@
+{
+  "siteId": "YOUR_SITE_ID",
+  "ignoreCommand": "git submodule deinit -f . || true"
+}
+

@@ -1,0 +1,8 @@
+{
+  "build": {
+    "ignore": "git submodule deinit -f . || true",
+    "publish": "admin-side",
+    "command": ""
+  }
+}
+
