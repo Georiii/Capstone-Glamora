@@ -1,2 +1,2 @@
-Deploy version to force cache invalidation
+v5.0 - Complete syntax error fix and performance optimization - 2025-10-27
 
