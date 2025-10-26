@@ -1,5 +1,5 @@
-// Content Moderation page specific functionality - v4.0
-// Complete rewrite to eliminate syntax errors and optimize for sub-1s performance
+// Content Moderation - v5.0 - FINAL FIX
+// All syntax errors resolved - Netlify fresh deployment
 
 class ContentModerationManager {
     constructor() {
