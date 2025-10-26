@@ -92,7 +92,7 @@ const api = {
     _cacheTimestamps: new Map(),
     
     // Get cached data or fetch fresh
-    getFromCache: (key, maxAge = 30000) => { // 30 second cache by default
+    getFromCache: (key, maxAge = 15000) => { // 15 second cache for sub-1s performance
         const cached = api._cache.get(key);
         const timestamp = api._cacheTimestamps.get(key);
         
