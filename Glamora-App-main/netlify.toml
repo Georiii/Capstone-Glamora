@@ -2,6 +2,9 @@
   base = "Glamora-App-main"
   publish = "admin-side"
   command = ""
+  
+[build.environment]
+  NETLIFY_SKIP_CACHE = "1"
 
 [[redirects]]
   from = "/*"
