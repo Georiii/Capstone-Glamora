@@ -1,12 +1,7 @@
 [build]
   base = ""
   publish = "admin-side"
-  command = ""
-  skipProcessing = false
-
-# Ignore git submodules
-[build.environment]
-  NPM_FLAGS = "--ignore-scripts"
+  command = "git submodule deinit -f ."
 
 [[redirects]]
   from = "/*"
