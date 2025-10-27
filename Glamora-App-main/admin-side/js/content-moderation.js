@@ -251,6 +251,14 @@ class ContentModerationManager {
     }
 
     showDurationModal(userId) {
+        // If userId not provided, try to get it from currentReportedUserId
+        if (!userId) {
+            userId = this.currentReportedUserId || this.currentReportId;
+            if (!userId) {
+                alert('No user ID available for restriction.');
+                return;
+            }
+        }
         this.currentUserIdToRestrict = userId;
         const modal = document.createElement('div');
         modal.id = 'restrictionDurationModal';
@@ -260,7 +268,6 @@ class ContentModerationManager {
                 <div style="position: relative; padding: 30px;">
                     <span onclick="window.contentModeration.closeModal()" style="position:absolute; top:15px; left:15px; cursor:pointer; font-size:24px; font-weight:bold; color:#666;">&times;</span>
                     <h3 style="margin: 0 0 25px 0; text-align:center; color: #2C3E50; font-size:20px;">Select Restriction Duration</h3>
-                    
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px;">
                         <button onclick="window.contentModeration.selectRestrictionDuration('30 minutes')" class="duration-btn" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; color:#333; transition:all 0.2s;">30 Minutes</button>
@@ -357,71 +364,6 @@ class ContentModerationManager {
     switchToPending() { this.showPendingView(); }
     backToReports() { this.showReportsView(); }
 
-    showRestrictionModal(reportId) {
-        console.log('🔒 Opening restriction modal for report:', reportId);
-        this.currentReportId = reportId;
-        
-        const modal = document.createElement('div');
-        modal.id = 'restrictionModal';
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px;">
-                <h3>Restrict Account</h3>
-                <p>Are you sure you want to restrict this account?</p>
-                <div style="margin: 20px 0;">
-                    <button class="btn-cancel" onclick="window.contentModeration.closeModal()">Cancel</button>
-                    <button class="btn-danger" onclick="window.contentModeration.showDurationModal()">Yes</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-
-    showDurationModal() {
-        this.closeModal();
-        
-        const modal = document.createElement('div');
-        modal.id = 'durationModal';
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px;">
-                <h3>Select Restriction Duration</h3>
-                <div style="margin: 20px 0;">
-                    <button class="duration-btn" onclick="window.contentModeration.selectDuration('1 day')" style="display: block; width: 100%; margin: 10px 0; padding: 12px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 16px;">1 Day</button>
-                    <button class="duration-btn" onclick="window.contentModeration.selectDuration('3 days')" style="display: block; width: 100%; margin: 10px 0; padding: 12px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 16px;">3 Days</button>
-                    <button class="duration-btn" onclick="window.contentModeration.selectDuration('1 week')" style="display: block; width: 100%; margin: 10px 0; padding: 12px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 16px;">1 Week</button>
-                    <button class="duration-btn" onclick="window.contentModeration.selectDuration('1 month')" style="display: block; width: 100%; margin: 10px 0; padding: 12px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 16px;">1 Month</button>
-                    <button class="duration-btn" onclick="window.contentModeration.selectDuration('permanent')" style="display: block; width: 100%; margin: 10px 0; padding: 12px; border: 2px solid #e74c3c; background: white; border-radius: 8px; cursor: pointer; font-size: 16px; color: #e74c3c; font-weight: bold;">Permanent</button>
-                </div>
-                <button class="btn-cancel" onclick="window.contentModeration.closeModal()" style="margin-top: 10px;">Cancel</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-
-    selectDuration(duration) {
-        console.log('⏱️ Duration selected:', duration);
-        this.selectedRestrictionDuration = duration;
-        this.closeModal();
-        this.showReasonModal();
-    }
-
-    showReasonModal() {
-        const modal = document.createElement('div');
-        modal.id = 'reasonModal';
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px;">
-                <h3>Enter Restriction Reason</h3>
-                <textarea id="restrictionReason" placeholder="Enter reason for restriction..." style="width: 100%; min-height: 120px; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; font-family: Arial, sans-serif; resize: vertical; margin: 15px 0;"></textarea>
-                <div style="margin-top: 20px;">
-                    <button class="btn-cancel" onclick="window.contentModeration.closeModal()">Cancel</button>
-                    <button class="btn-danger" onclick="window.contentModeration.confirmRestriction()">Confirm Restriction</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
 
     async confirmRestriction() {
         const reasonInput = document.getElementById('restrictionReason');
