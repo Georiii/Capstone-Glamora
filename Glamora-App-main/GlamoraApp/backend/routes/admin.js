@@ -109,6 +109,38 @@ router.get('/metrics', adminAuth, async (req, res) => {
     }
 });
 
+// Lightweight granular counters for fast Promise.all() calls
+router.get('/total-users', adminAuth, async (req, res) => {
+    try {
+        const count = await User.countDocuments({ role: 'user' });
+        res.json({ count });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.get('/active-listings', adminAuth, async (req, res) => {
+    try {
+        const count = await MarketplaceItem.countDocuments({ status: 'active' });
+        res.json({ count });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.get('/reports-today', adminAuth, async (req, res) => {
+    try {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
+        const count = await Report.countDocuments({ timestamp: { $gte: start, $lte: end } });
+        res.json({ count });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // User Management Routes
 router.get('/users', adminAuth, async (req, res) => {
     try {

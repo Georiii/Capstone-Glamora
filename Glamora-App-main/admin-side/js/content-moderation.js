@@ -166,21 +166,33 @@ class ContentModerationManager {
         try {
             const report = await api.getReportById(reportId);
             console.log('📄 Report details:', report);
-            
-            document.getElementById('reporterName').textContent = report.reporterName || 'Anonymous';
-            document.getElementById('reportedUserName').textContent = report.reportedUserName || 'Unknown';
-            document.getElementById('reportReason').textContent = report.reason || 'No reason provided';
-            document.getElementById('reportDescription').textContent = report.description || 'No additional description provided';
-            document.getElementById('reportStatus').textContent = report.status;
-            document.getElementById('reportStatus').className = `status-badge status-${report.status}`;
+            if (!report) throw new Error('Report not found');
+
+            const safe = (elId) => document.getElementById(elId);
+            const rName = safe('reporterName');
+            const ruName = safe('reportedUserName');
+            const rReason = safe('reportReason');
+            const rDesc = safe('reportDescription');
+            const rStatus = safe('reportStatus');
+            if (rName) rName.textContent = report.reporterName || report.reporterId?.name || 'Anonymous';
+            if (ruName) ruName.textContent = report.reportedUserName || report.reportedUserId?.name || 'Unknown';
+            if (rReason) rReason.textContent = report.reason || 'No reason provided';
+            if (rDesc) rDesc.textContent = report.description || 'No additional description provided';
+            if (rStatus) {
+                rStatus.textContent = report.status || 'pending';
+                rStatus.className = `status-badge status-${report.status || 'pending'}`;
+            }
             
             const evidenceContainer = document.getElementById('evidencePhotos');
-            if (report.evidencePhotos && report.evidencePhotos.length > 0) {
-                evidenceContainer.innerHTML = report.evidencePhotos.map(photo => 
-                    `<img src="${photo}" alt="Evidence" style="max-width: 200px; margin: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`
-                ).join('');
-            } else {
-                evidenceContainer.innerHTML = '<p>No evidence photos provided</p>';
+            if (evidenceContainer) {
+                const photos = report.evidencePhotos || report.evidencePhotos?.map(p => p.url) || [];
+                if (photos.length > 0) {
+                    evidenceContainer.innerHTML = photos.map(photo => 
+                        `<img src="${photo}" alt="Evidence" style="max-width: 200px; margin: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`
+                    ).join('');
+                } else {
+                    evidenceContainer.innerHTML = '<p>No evidence photos provided</p>';
+                }
             }
             
             const reportsView = document.getElementById('reportsView');
