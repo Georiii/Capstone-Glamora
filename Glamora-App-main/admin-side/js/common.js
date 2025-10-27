@@ -315,9 +315,9 @@ class AdminUtils {
             let totals;
             try {
                 const [u, a, r] = await Promise.all([
-                    api.request('/api/admin/total-users'),
-                    api.request('/api/admin/active-listings'),
-                    api.request('/api/admin/reports-today')
+                    api.request('/api/admin/total-users', { timeoutMs: 6000 }),
+                    api.request('/api/admin/active-listings', { timeoutMs: 6000 }),
+                    api.request('/api/admin/reports-today', { timeoutMs: 6000 })
                 ]);
                 totals = {
                     totalUsers: u?.count ?? 0,
@@ -326,7 +326,7 @@ class AdminUtils {
                 };
             } catch (_) {
                 // Fallback to combined endpoint
-                const data = await api.request('/api/admin/metrics');
+                const data = await api.request('/api/admin/metrics', { timeoutMs: 6000 });
                 totals = {
                     totalUsers: data?.totalUsers ?? 0,
                     activeListings: data?.activeListings ?? 0,
