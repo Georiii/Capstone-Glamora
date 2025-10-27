@@ -567,6 +567,80 @@ router.put('/reports/:id/restrict', adminAuth, async (req, res) => {
     }
 });
 
+// Send admin message to a user (system/inbox message)
+router.post('/send-message', adminAuth, async (req, res) => {
+    try {
+        const { recipientId, message } = req.body;
+        if (!recipientId || !message) {
+            return res.status(400).json({ message: 'recipientId and message are required' });
+        }
+
+        const chat = new ChatMessage({
+            senderId: req.adminId,
+            receiverId: recipientId,
+            text: message,
+            timestamp: new Date(),
+            read: false,
+        });
+        await chat.save();
+
+        // Optionally emit to user channel if sockets on mobile listen
+        if (req.app.get('io')) {
+            req.app.get('io').to(String(recipientId)).emit('admin:message', {
+                _id: chat._id,
+                text: chat.text,
+                timestamp: chat.timestamp
+            });
+        }
+
+        res.json({ message: 'Message sent successfully', chatId: chat._id });
+    } catch (error) {
+        console.error('Send admin message error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Restrict account with duration
+router.patch('/restrict-account', adminAuth, async (req, res) => {
+    try {
+        const { userId, status = 'restricted', duration } = req.body;
+        if (!userId || !duration) {
+            return res.status(400).json({ message: 'userId and duration are required' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const now = new Date();
+        const end = new Date(now);
+        const map = {
+            '1 day': 1,
+            '3 days': 3,
+            '7 days': 7,
+            '30 days': 30,
+            'permanent': 36500
+        };
+        const days = map[String(duration).toLowerCase()] || 7;
+        end.setDate(end.getDate() + days);
+
+        user.accountStatus = {
+            isActive: true,
+            isRestricted: true,
+            restrictionReason: 'Policy violation',
+            restrictionStartDate: now,
+            restrictionEndDate: end,
+            restrictionDuration: duration,
+            restrictedBy: req.adminId
+        };
+        await user.save();
+
+        res.json({ message: 'Account has been restricted successfully.' });
+    } catch (error) {
+        console.error('Restrict account error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Marketplace Management Routes
 router.get('/marketplace/categories', adminAuth, async (req, res) => {
     try {

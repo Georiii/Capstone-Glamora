@@ -137,7 +137,7 @@
                     
                     <div class="report-detail-container">
                         <div class="report-user-section">
-                            <img src="https://via.placeholder.com/80" alt="User Avatar" class="report-avatar" id="reportDetailAvatar">
+                            <img src="img/avatar.svg" alt="User Avatar" class="report-avatar" id="reportDetailAvatar">
                             <div class="report-user-info">
                                 <p><strong>Name:</strong> <span id="reportDetailUserName">Name</span></p>
                                 <p><strong>Email:</strong> <span id="reportDetailUserEmail">Email</span></p>
@@ -162,8 +162,14 @@
                         </div>
 
                         <div class="admin-actions-section">
+                            <div style="flex:1; padding-right:20px;">
+                                <textarea id="adminMessageBox" placeholder="Message user" style="width:100%; min-height:120px; padding:12px; border:2px solid #ddd; border-radius:8px;"></textarea>
+                                <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+                                    <button class="back-btn" onclick="contentModeration.sendMessageToUser(window.contentModeration.currentReportedUserId)">Send</button>
+                                </div>
+                            </div>
                             <div class="action-buttons">
-                                <button class="restrict-btn" id="reportDetailRestrictBtn">
+                                <button class="restrict-btn" id="reportDetailRestrictBtn" onclick="contentModeration.openRestrictModal()">
                                     <i class="fas fa-ban"></i>
                                     Restrict Account
                                 </button>

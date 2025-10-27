@@ -176,6 +176,8 @@ class ContentModerationManager {
             const rStatus = safe('reportStatus');
             if (rName) rName.textContent = report.reporterName || report.reporterId?.name || 'Anonymous';
             if (ruName) ruName.textContent = report.reportedUserName || report.reportedUserId?.name || 'Unknown';
+            // store for message/restriction actions
+            this.currentReportedUserId = report.reportedUserId || report.reportedUser?._id || report.reportedUser;
             if (rReason) rReason.textContent = report.reason || 'No reason provided';
             if (rDesc) rDesc.textContent = report.description || 'No additional description provided';
             if (rStatus) {
@@ -205,6 +207,50 @@ class ContentModerationManager {
         } catch (error) {
             console.error('❌ Error loading report details:', error);
             alert('Failed to load report details. Please try again.');
+        }
+    }
+
+    openRestrictModal() {
+        if (!this.currentReportedUserId) {
+            alert('No reported user selected.');
+            return;
+        }
+        this.restrictAccount(this.currentReportedUserId);
+    }
+
+    async sendMessageToUser(userId) {
+        try {
+            const textarea = document.getElementById('adminMessageBox');
+            const message = textarea?.value.trim();
+            if (!message) {
+                alert('Please enter a message before sending.');
+                return;
+            }
+            await api.request('/api/admin/send-message', {
+                method: 'POST',
+                body: { recipientId: userId, sender: 'admin', message }
+            });
+            alert('Message sent successfully.');
+            textarea.value = '';
+        } catch (err) {
+            console.error('Send message error:', err);
+            alert('Failed to send message. Please try again later.');
+        }
+    }
+
+    async restrictAccount(userId) {
+        try {
+            const duration = prompt('Select restriction duration: 1 day, 3 days, 7 days, 30 days, permanent');
+            if (!duration) return;
+            await api.request('/api/admin/restrict-account', {
+                method: 'PATCH',
+                body: { userId, status: 'restricted', duration }
+            });
+            alert('Account has been restricted successfully.');
+            this.showReportsView();
+        } catch (err) {
+            console.error('Restrict account error:', err);
+            alert('Failed to restrict account. Please try again later.');
         }
     }
 
