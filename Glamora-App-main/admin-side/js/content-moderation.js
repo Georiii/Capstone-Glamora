@@ -261,6 +261,7 @@ class ContentModerationManager {
                     <span onclick="window.contentModeration.closeModal()" style="position:absolute; top:15px; left:15px; cursor:pointer; font-size:24px; font-weight:bold; color:#666;">&times;</span>
                     <h3 style="margin: 0 0 25px 0; text-align:center; color: #2C3E50; font-size:20px;">Select Restriction Duration</h3>
                     
+                    
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px;">
                         <button onclick="window.contentModeration.selectRestrictionDuration('30 minutes')" class="duration-btn" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; color:#333; transition:all 0.2s;">30 Minutes</button>
                         <button onclick="window.contentModeration.selectRestrictionDuration('1 hour')" class="duration-btn" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; color:#333; transition:all 0.2s;">1 Hour</button>
