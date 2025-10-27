@@ -144,6 +144,35 @@ const api = {
         }
     },
 
+    // Get single report by id (admin-view)
+    getReportById: async (reportId) => {
+        const all = await api.getReports();
+        return all.find(r => r._id === reportId || r.id === reportId) || null;
+    },
+
+    // Pending marketplace items for moderation
+    getPendingItems: async () => {
+        try {
+            const data = await api.request('/api/admin/marketplace/pending');
+            return Array.isArray(data.items) ? data.items : [];
+        } catch (error) {
+            console.error('Failed to fetch pending items:', error);
+            return [];
+        }
+    },
+
+    // Approve marketplace item
+    approveMarketplaceItem: async (itemId) => {
+        const data = await api.request(`/api/admin/marketplace/${itemId}/approve`, { method: 'PUT' });
+        return data;
+    },
+
+    // Reject marketplace item
+    rejectMarketplaceItem: async (itemId, reason) => {
+        const data = await api.request(`/api/admin/marketplace/${itemId}/reject`, { method: 'PUT', body: { reason } });
+        return data;
+    },
+
     // Test API connection
     testConnection: async () => {
         try {
