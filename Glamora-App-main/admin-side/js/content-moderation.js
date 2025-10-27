@@ -256,28 +256,28 @@ class ContentModerationManager {
         modal.id = 'restrictionDurationModal';
         modal.className = 'modal-overlay';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 550px; padding: 0; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                <div style="position: relative; padding: 30px;">
-                    <span onclick="window.contentModeration.closeModal()" style="position:absolute; top:15px; left:15px; cursor:pointer; font-size:24px; font-weight:bold; color:#666;">&times;</span>
-                    <h3 style="margin: 0 0 25px 0; text-align:center; color: #2C3E50; font-size:20px;">Select Restriction Duration</h3>
+            <div class="restriction-modal-content">
+                <div class="restriction-modal-inner">
+                    <span class="restriction-modal-close" onclick="window.contentModeration.closeModal()">&times;</span>
+                    <h3 class="restriction-modal-title">Select Restriction Duration</h3>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px;">
-                        <button onclick="window.contentModeration.selectRestrictionDuration('30 minutes')" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; transition:all 0.2s;">30 Minutes</button>
-                        <button onclick="window.contentModeration.selectRestrictionDuration('1 hour')" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; transition:all 0.2s;">1 Hour</button>
-                        <button onclick="window.contentModeration.selectRestrictionDuration('1 day')" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; transition:all 0.2s;">1 Day</button>
-                        <button onclick="window.contentModeration.selectRestrictionDuration('3 days')" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; transition:all 0.2s;">3 Days</button>
-                        <button onclick="window.contentModeration.selectRestrictionDuration('1 month')" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; transition:all 0.2s;">1 Month</button>
-                        <button onclick="window.contentModeration.selectRestrictionDuration('permanent')" style="padding:14px; background:#f8f9fa; border:2px solid #e74c3c; color:#e74c3c; border-radius:8px; cursor:pointer; font-size:15px; font-weight:bold; transition:all 0.2s;">Permanent</button>
+                    <div class="restriction-duration-grid">
+                        <button onclick="window.contentModeration.selectRestrictionDuration('30 minutes')" class="duration-btn">30 Minutes</button>
+                        <button onclick="window.contentModeration.selectRestrictionDuration('1 hour')" class="duration-btn">1 Hour</button>
+                        <button onclick="window.contentModeration.selectRestrictionDuration('1 day')" class="duration-btn">1 Day</button>
+                        <button onclick="window.contentModeration.selectRestrictionDuration('3 days')" class="duration-btn">3 Days</button>
+                        <button onclick="window.contentModeration.selectRestrictionDuration('1 month')" class="duration-btn">1 Month</button>
+                        <button onclick="window.contentModeration.selectRestrictionDuration('permanent')" class="duration-btn duration-permanent">Permanent</button>
                     </div>
                     
-                    <div style="margin-bottom: 20px;">
-                        <label style="display:block; margin-bottom:8px; font-weight:600; color:#2C3E50; font-size:15px;">Restriction Reason</label>
-                        <textarea id="restrictionReasonText" placeholder="Write a message" style="width:100%; min-height:100px; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family: inherit; resize:vertical;"></textarea>
+                    <div class="restriction-reason-section">
+                        <label class="restriction-reason-label">Restriction Reason</label>
+                        <textarea id="restrictionReasonText" class="restriction-reason-textarea" placeholder="Write a message"></textarea>
                     </div>
                     
-                    <div style="display:flex; justify-content:flex-end; gap:12px;">
-                        <button onclick="window.contentModeration.closeModal()" style="padding:12px 24px; background:#6c757d; color:white; border:none; border-radius:8px; cursor:pointer; font-size:15px;">Cancel</button>
-                        <button onclick="window.contentModeration.confirmRestrictionDuration()" style="padding:12px 24px; background:#e74c3c; color:white; border:none; border-radius:8px; cursor:pointer; font-size:15px; font-weight:600;">Confirm</button>
+                    <div class="restriction-modal-actions">
+                        <button onclick="window.contentModeration.closeModal()" class="restriction-btn-cancel">Cancel</button>
+                        <button onclick="window.contentModeration.confirmRestrictionDuration()" class="restriction-btn-confirm">Confirm</button>
                     </div>
                 </div>
             </div>
@@ -287,16 +287,15 @@ class ContentModerationManager {
 
     selectRestrictionDuration(duration) {
         this.selectedRestrictionDuration = duration;
-        // Visual feedback - highlight selected duration button
-        document.querySelectorAll('#restrictionDurationModal button').forEach(btn => {
-            if (btn.textContent.trim() === duration || btn.textContent.trim() === duration.charAt(0).toUpperCase() + duration.slice(1)) {
-                btn.style.background = '#e3f2fd';
-                btn.style.border = '2px solid #2196f3';
-                btn.style.color = '#2196f3';
-            } else if (btn.textContent.trim() !== 'Cancel' && btn.textContent.trim() !== 'Confirm') {
-                btn.style.background = '#f8f9fa';
-                btn.style.border = '1px solid #ddd';
-                btn.style.color = '#333';
+        // Visual feedback - add 'selected' class for CSS styling
+        document.querySelectorAll('#restrictionDurationModal .duration-btn').forEach(btn => {
+            const btnText = btn.textContent.trim().toLowerCase();
+            const durationMatch = duration.toLowerCase();
+            
+            if (btnText === durationMatch) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
             }
         });
     }

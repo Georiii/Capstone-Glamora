@@ -712,6 +712,142 @@
     to { opacity: 1; }
 }
 
+/* Restriction Modal Specific Styles */
+.restriction-modal-content {
+    max-width: 550px;
+    width: 100%;
+    padding: 0;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    background: white;
+}
+
+.restriction-modal-inner {
+    position: relative;
+    padding: 30px;
+}
+
+.restriction-modal-close {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    cursor: pointer;
+    font-size: 24px;
+    font-weight: bold;
+    color: #666;
+}
+
+.restriction-modal-title {
+    margin: 0 0 25px 0;
+    text-align: center;
+    color: #2C3E50;
+    font-size: 20px;
+}
+
+.restriction-duration-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.duration-btn {
+    padding: 14px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    color: #333;
+    transition: all 0.2s;
+}
+
+.duration-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.duration-permanent {
+    border: 2px solid #e74c3c !important;
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.duration-permanent:hover {
+    background: #ffe0e0;
+}
+
+.duration-btn.selected {
+    background: #e3f2fd;
+    border: 2px solid #2196f3;
+    color: #2196f3;
+}
+
+.restriction-reason-section {
+    margin-bottom: 20px;
+}
+
+.restriction-reason-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2C3E50;
+    font-size: 15px;
+}
+
+.restriction-reason-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.restriction-reason-textarea:focus {
+    outline: none;
+    border-color: #2196f3;
+}
+
+.restriction-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.restriction-btn-cancel {
+    padding: 12px 24px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background 0.2s;
+}
+
+.restriction-btn-cancel:hover {
+    background: #5a6268;
+}
+
+.restriction-btn-confirm {
+    padding: 12px 24px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.restriction-btn-confirm:hover {
+    background: #c0392b;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .evidence-photos-container {
