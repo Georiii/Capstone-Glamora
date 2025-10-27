@@ -88,7 +88,7 @@ class UserManagementManager {
             row.innerHTML = `
                 <td>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${profilePicUrl}" alt="${user.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/40'">
+                        <img src="${profilePicUrl}" alt="${user.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" onerror="this.src='img/avatar.svg'">
                         <span>${user.name}</span>
                     </div>
                 </td>
@@ -129,7 +129,7 @@ class UserManagementManager {
             // Display profile picture if available
             const profilePicContainer = document.getElementById('modalUserProfilePic');
             if (profilePicContainer) {
-                profilePicContainer.innerHTML = `<img src="${profilePicUrl}" alt="${user.name}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/150'">`;
+                profilePicContainer.innerHTML = `<img src="${profilePicUrl}" alt="${user.name}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;" onerror="this.src='img/avatar.svg'">`;
             }
 
             // Display user statistics

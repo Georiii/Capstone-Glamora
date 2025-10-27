@@ -142,19 +142,26 @@ class ContentModerationManager {
         tbody.innerHTML = '';
         reports.forEach(report => {
             const row = document.createElement('tr');
-            const createdAt = new Date(report.timestamp || report.createdAt).toLocaleString();
+            let createdAt;
+            try {
+                const ts = new Date(report.timestamp || report.createdAt || Date.now());
+                createdAt = isNaN(ts.getTime()) ? '—' : ts.toLocaleString();
+            } catch {
+                createdAt = '—';
+            }
             
-            const reporter = `${report.reporterName || 'Anonymous'} / ${report.reporterEmail || ''}`.trim();
-            const subject = report.reportedUserName || report.reportedItemId || 'Unknown';
+            const reporter = report.reporterName || 'Anonymous';
+            const subject = report.reportedUserName || 'Unknown';
             const reason = report.reason || '—';
 
+            const reportId = report._id || report.id || 'unknown';
             row.innerHTML = `
                 <td>${reporter}</td>
                 <td>${subject}</td>
                 <td>${reason}</td>
                 <td>${createdAt}</td>
                 <td>
-                    <button class="btn-view" onclick="window.contentModeration.viewReport('${report._id}')">View Details</button>
+                    <button class="btn-view" onclick="window.contentModeration.viewReport('${reportId}')">View Details</button>
                 </td>
             `;
             tbody.appendChild(row);

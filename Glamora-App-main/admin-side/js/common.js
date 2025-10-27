@@ -43,13 +43,16 @@ const api = {
         }
 
         // Short timeout to keep UI responsive
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), options.timeoutMs || 6000);
-        config.signal = controller.signal;
+        let timeoutId;
+        if (options.timeoutMs) {
+            const controller = new AbortController();
+            timeoutId = setTimeout(() => controller.abort(), options.timeoutMs);
+            config.signal = controller.signal;
+        }
 
         try {
             const response = await fetch(url, config);
-            clearTimeout(timeout);
+            if (timeoutId) clearTimeout(timeoutId);
 
             const isJson = response.headers.get('content-type')?.includes('application/json');
             const data = isJson ? await response.json() : null;
@@ -222,10 +225,7 @@ const mockData = {
             userEmail: 'mike.johnson@gmail.com', 
             reason: 'Seller scammed me by requesting payment outside the app and never shipped the item.', 
             description: 'User reported for attempting to sell fake designer items', 
-            evidencePhotos: [
-                { url: 'https://via.placeholder.com/300x200/FF6B6B/FFFFFF?text=Evidence+1', filename: 'evidence_1.jpg' },
-                { url: 'https://via.placeholder.com/300x200/4ECDC4/FFFFFF?text=Evidence+2', filename: 'evidence_2.jpg' }
-            ],
+            evidencePhotos: [],
             date: '2024-02-20' 
         },
         { 
@@ -235,9 +235,7 @@ const mockData = {
             userEmail: 'lisa.davis@gmail.com', 
             reason: 'Seller falsely claimed the item was authentic when it wasn\'t.', 
             description: 'User posted misleading information about product authenticity', 
-            evidencePhotos: [
-                { url: 'https://via.placeholder.com/300x200/45B7D1/FFFFFF?text=Evidence+3', filename: 'evidence_3.jpg' }
-            ],
+            evidencePhotos: [],
             date: '2024-02-19' 
         },
         { 
