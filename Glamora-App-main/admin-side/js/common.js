@@ -70,7 +70,10 @@ const api = {
 
             return data;
         } catch (error) {
-            console.error('API request failed:', error);
+            // Only log non-abort errors to reduce console noise during cold starts
+            if (error.name !== 'AbortError') {
+                console.error('API request failed:', error);
+            }
             throw error;
         }
     },
@@ -80,7 +83,7 @@ const api = {
     _cacheTimestamps: new Map(),
     
     // Get cached data or fetch fresh
-    getFromCache: (key, maxAge = 10000) => { // 10 second cache for instant loading
+    getFromCache: (key, maxAge = 30000) => { // 30 second cache for reduced API calls
         const cached = api._cache.get(key);
         const timestamp = api._cacheTimestamps.get(key);
         
@@ -505,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
         AdminUtils.setupModalHandlers();
         AdminUtils.setupLogoutHandler();
         AdminSocketManager.connect();
-        setInterval(() => AdminUtils.updateMetrics(), 10000); // 10s interval for freshness
+        setInterval(() => AdminUtils.updateMetrics(), 30000); // 30s interval to reduce load on cold Render instances
     }
 });
 
