@@ -256,25 +256,59 @@ class ContentModerationManager {
         modal.id = 'restrictionDurationModal';
         modal.className = 'modal-overlay';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 450px; padding: 30px; border-radius: 12px;">
-                <h3 style="margin-bottom: 20px; color: #2C3E50;">Select Restriction Duration</h3>
-                <div style="margin: 20px 0;">
-                    <button onclick="window.contentModeration.confirmRestrictWithDuration('1 day')" style="width:100%; padding:14px; margin:8px 0; background:#fff; border:2px solid #ddd; border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.3s;">1 Day</button>
-                    <button onclick="window.contentModeration.confirmRestrictWithDuration('3 days')" style="width:100%; padding:14px; margin:8px 0; background:#fff; border:2px solid #ddd; border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.3s;">3 Days</button>
-                    <button onclick="window.contentModeration.confirmRestrictWithDuration('7 days')" style="width:100%; padding:14px; margin:8px 0; background:#fff; border:2px solid #ddd; border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.3s;">1 Week</button>
-                    <button onclick="window.contentModeration.confirmRestrictWithDuration('30 days')" style="width:100%; padding:14px; margin:8px 0; background:#fff; border:2px solid #ddd; border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.3s;">30 Days</button>
-                    <button onclick="window.contentModeration.confirmRestrictWithDuration('permanent')" style="width:100%; padding:14px; margin:8px 0; background:#fff; border:2px solid #e74c3c; border-radius:8px; cursor:pointer; font-size:16px; color:#e74c3c; font-weight:bold; transition:all 0.3s;">Permanent</button>
+            <div class="modal-content" style="max-width: 550px; padding: 0; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                <div style="position: relative; padding: 30px;">
+                    <span onclick="window.contentModeration.closeModal()" style="position:absolute; top:15px; left:15px; cursor:pointer; font-size:24px; font-weight:bold; color:#666;">&times;</span>
+                    <h3 style="margin: 0 0 25px 0; text-align:center; color: #2C3E50; font-size:20px;">Select Restriction Duration</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px;">
+                        <button onclick="window.contentModeration.selectRestrictionDuration('30 minutes')" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; transition:all 0.2s;">30 Minutes</button>
+                        <button onclick="window.contentModeration.selectRestrictionDuration('1 hour')" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; transition:all 0.2s;">1 Hour</button>
+                        <button onclick="window.contentModeration.selectRestrictionDuration('1 day')" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; transition:all 0.2s;">1 Day</button>
+                        <button onclick="window.contentModeration.selectRestrictionDuration('3 days')" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; transition:all 0.2s;">3 Days</button>
+                        <button onclick="window.contentModeration.selectRestrictionDuration('1 month')" style="padding:14px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:15px; transition:all 0.2s;">1 Month</button>
+                        <button onclick="window.contentModeration.selectRestrictionDuration('permanent')" style="padding:14px; background:#f8f9fa; border:2px solid #e74c3c; color:#e74c3c; border-radius:8px; cursor:pointer; font-size:15px; font-weight:bold; transition:all 0.2s;">Permanent</button>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display:block; margin-bottom:8px; font-weight:600; color:#2C3E50; font-size:15px;">Restriction Reason</label>
+                        <textarea id="restrictionReasonText" placeholder="Write a message" style="width:100%; min-height:100px; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family: inherit; resize:vertical;"></textarea>
+                    </div>
+                    
+                    <div style="display:flex; justify-content:flex-end; gap:12px;">
+                        <button onclick="window.contentModeration.closeModal()" style="padding:12px 24px; background:#6c757d; color:white; border:none; border-radius:8px; cursor:pointer; font-size:15px;">Cancel</button>
+                        <button onclick="window.contentModeration.confirmRestrictionDuration()" style="padding:12px 24px; background:#e74c3c; color:white; border:none; border-radius:8px; cursor:pointer; font-size:15px; font-weight:600;">Confirm</button>
+                    </div>
                 </div>
-                <button onclick="window.contentModeration.closeModal()" style="width:100%; padding:12px; margin-top:15px; background:#6c757d; color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px;">Cancel</button>
             </div>
         `;
         document.body.appendChild(modal);
     }
 
-    async confirmRestrictWithDuration(duration) {
-        this.closeModal();
-        const reason = prompt('Enter a reason for the restriction:');
-        if (!reason) return;
+    selectRestrictionDuration(duration) {
+        this.selectedRestrictionDuration = duration;
+        // Visual feedback - highlight selected
+        document.querySelectorAll('#restrictionDurationModal button').forEach(btn => {
+            if (btn.textContent.trim() === duration) {
+                btn.style.background = '#e3f2fd';
+                btn.style.border = '2px solid #2196f3';
+            }
+        });
+    }
+
+    async confirmRestrictionDuration() {
+        const textarea = document.getElementById('restrictionReasonText');
+        const reason = textarea ? textarea.value.trim() : '';
+        
+        if (!reason) {
+            alert('Please enter a restriction reason.');
+            return;
+        }
+
+        if (!this.selectedRestrictionDuration) {
+            alert('Please select a duration.');
+            return;
+        }
 
         if (!this.currentUserIdToRestrict) {
             alert('No user ID to restrict.');
@@ -282,22 +316,24 @@ class ContentModerationManager {
         }
 
         try {
+            this.closeModal();
             await api.request('/api/admin/restrict-account', {
                 method: 'PATCH',
                 body: { 
                     userId: this.currentUserIdToRestrict, 
                     status: 'restricted', 
-                    duration,
+                    duration: this.selectedRestrictionDuration,
                     restrictionReason: reason
                 }
             });
-            alert(`Account restricted successfully for ${duration}.`);
+            alert(`Account restricted successfully for ${this.selectedRestrictionDuration}.`);
             this.showReportsView();
         } catch (err) {
             console.error('Restrict account error:', err);
             alert('Failed to restrict account. Please try again later.');
         }
     }
+
 
     // Backward compatibility aliases for legacy inline handlers
     switchToReports() { this.showReportsView(); }
