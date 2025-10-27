@@ -51,23 +51,37 @@ class LoginManager {
         loginBtn.textContent = 'Logging in...';
 
         try {
-            // Authenticate against backend
-            const res = await fetch(`${API_BASE_URL}/api/admin/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
-            if (!res.ok || !data?.token) throw new Error(data?.message || 'Invalid credentials');
+            // Authenticate against backend with timeout for cold Render instances
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                
+                const data = await res.json();
+                if (!res.ok || !data?.token) throw new Error(data?.message || 'Invalid credentials');
+                
+                // Success: persist session
+                localStorage.setItem('adminToken', data.token);
+                localStorage.setItem('isAdminLoggedIn', 'true');
+                localStorage.removeItem(this.failedAttemptsKey);
+                localStorage.removeItem(this.lockoutUntilKey);
 
-            // Success: persist session
-            localStorage.setItem('adminToken', data.token);
-            localStorage.setItem('isAdminLoggedIn', 'true');
-            localStorage.removeItem(this.failedAttemptsKey);
-            localStorage.removeItem(this.lockoutUntilKey);
-
-            this.showMessage('Login successful! Redirecting...', 'success');
-            window.location.href = 'analytics.html';
+                this.showMessage('Login successful! Redirecting...', 'success');
+                window.location.href = 'analytics.html';
+            } catch (fetchError) {
+                clearTimeout(timeoutId);
+                if (fetchError.name === 'AbortError') {
+                    throw new Error('Login request timed out. Please try again.');
+                }
+                throw fetchError;
+            }
         } catch (err) {
             this.incrementFailedAttempts();
             this.showMessage(err.message || 'Login failed', 'error');

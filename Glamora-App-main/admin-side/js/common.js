@@ -414,10 +414,8 @@ class AdminSocketManager {
             adminSocket = io(API_BASE_URL, {
                 auth: { token },
                 transports: ['websocket', 'polling'],
-                reconnection: true,
-                reconnectionAttempts: 5,
-                reconnectionDelay: 1000,
-                timeout: 10000,
+                reconnection: false, // Disable auto-reconnection to prevent constant timeout errors
+                timeout: 5000, // Shorten timeout to fail fast on cold Render instances
                 secure: true,
                 forceNew: true,
                 upgrade: true
@@ -430,7 +428,8 @@ class AdminSocketManager {
             });
 
             adminSocket.on('connect_error', (error) => {
-                console.error('❌ Socket.IO connection error:', error);
+                // Silently fail - real-time updates are optional
+                console.info('ℹ️ Socket.IO connection failed (real-time updates unavailable). This is normal for cold Render instances.');
             });
 
             adminSocket.on('disconnect', () => {
