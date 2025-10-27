@@ -101,21 +101,15 @@ class ContentModerationManager {
         try {
             console.log('⚡ Fast fetching reports...');
             
-            const cached = api.getFromCache('reports', 10000);
+            const cached = api.getFromCache('reports', 5000);
             if (cached) {
                 const cacheTime = Date.now() - startTime;
                 console.log(`⚡ Cache hit! Loaded in ${cacheTime}ms`);
                 this.displayReports(cached, tbody);
-                api.getReports().then(fresh => api.setCache('reports', fresh)).catch(e => console.log('Background refresh failed:', e));
-                return;
             }
 
-            const fetchPromise = api.getReports();
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout')), 800)
-            );
-
-            const reports = await Promise.race([fetchPromise, timeoutPromise]);
+            // Always fetch real data; no hard 800ms race
+            const reports = await api.getReports(false);
             const fetchTime = Date.now() - startTime;
             console.log(`⚡ Fetched ${reports.length} reports in ${fetchTime}ms`);
             
@@ -135,6 +129,11 @@ class ContentModerationManager {
     }
 
     displayReports(reports, tbody) {
+        // Sort by most recent timestamp
+        if (Array.isArray(reports)) {
+            reports.sort((a, b) => new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0));
+        }
+
         if (!reports || reports.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No reports found</td></tr>';
             return;
@@ -143,16 +142,19 @@ class ContentModerationManager {
         tbody.innerHTML = '';
         reports.forEach(report => {
             const row = document.createElement('tr');
-            const createdAt = new Date(report.createdAt).toLocaleDateString();
+            const createdAt = new Date(report.timestamp || report.createdAt).toLocaleString();
             
+            const reporter = `${report.reporterName || 'Anonymous'} / ${report.reporterEmail || ''}`.trim();
+            const subject = report.reportedUserName || report.reportedItemId || 'Unknown';
+            const reason = report.reason || '—';
+
             row.innerHTML = `
-                <td>${report.reporterName || 'Anonymous'}</td>
-                <td>${report.reportedUserName || 'Unknown'}</td>
-                <td><span class="status-badge status-${report.status}">${report.status}</span></td>
+                <td>${reporter}</td>
+                <td>${subject}</td>
+                <td>${reason}</td>
+                <td>${createdAt}</td>
                 <td>
-                    <button class="btn-view" onclick="window.contentModeration.viewReport('${report._id}')">
-                        View Details
-                    </button>
+                    <button class="btn-view" onclick="window.contentModeration.viewReport('${report._id}')">View Details</button>
                 </td>
             `;
             tbody.appendChild(row);

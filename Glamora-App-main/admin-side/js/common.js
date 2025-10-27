@@ -44,7 +44,7 @@ const api = {
 
         // Short timeout to keep UI responsive
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), options.timeoutMs || 2500);
+        const timeout = setTimeout(() => controller.abort(), options.timeoutMs || 6000);
         config.signal = controller.signal;
 
         try {
@@ -117,11 +117,24 @@ const api = {
             console.log('Fetched reports from API:', data);
             // API returns { reports: [...] }, so extract the reports array
             const reports = Array.isArray(data.reports) ? data.reports : [];
+            // Normalize shape to match UI spec
+            const normalized = reports.map(r => ({
+                _id: r._id,
+                reporterId: r.reporterId?._id || r.reporterId,
+                reporterName: r.reporterId?.name || r.reporterName,
+                reporterEmail: r.reporterId?.email || r.reporterEmail,
+                reportedUserId: r.reportedUserId?._id || r.reportedUserId,
+                reportedUserName: r.reportedUserId?.name || r.reportedUserName,
+                reportedItemId: r.marketplaceItemId || r.reportedItemId,
+                reason: r.reason,
+                additionalNotes: r.description || r.additionalNotes,
+                timestamp: r.timestamp || r.createdAt || r.date,
+                evidencePhotos: r.evidencePhotos || []
+            }));
             
             // Cache the results
-            api.setCache(cacheKey, reports);
-            
-            return reports;
+            api.setCache(cacheKey, normalized);
+            return normalized;
         } catch (error) {
             console.error('Failed to fetch reports from API, using mock data:', error);
             // Fallback to mock data if API fails

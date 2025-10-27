@@ -34,6 +34,8 @@ class AnalyticsManager {
                 this.loadAnalytics();
             });
         }
+        // Backup refresh every 5s for real-time accuracy
+        setInterval(() => AdminUtils.updateMetrics(), 5000);
     }
 
     async loadAnalytics() {
