@@ -368,11 +368,16 @@ class AdminSocketManager {
                 reconnection: true,
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000,
-                timeout: 10000
+                timeout: 10000,
+                secure: true,
+                forceNew: true,
+                upgrade: true
             });
 
             adminSocket.on('connect', () => {
                 console.log('✅ Admin dashboard connected to real-time server');
+                // Notify listeners that socket is ready (for modules that attach later)
+                document.dispatchEvent(new Event('adminSocket:ready'));
             });
 
             adminSocket.on('connect_error', (error) => {

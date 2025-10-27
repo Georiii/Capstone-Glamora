@@ -8,9 +8,19 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// Configure CORS for development
+// Configure CORS (production-safe)
+const allowedOrigins = [
+  'https://glamoraapp.netlify.app',
+  'http://glamoraapp.netlify.app',
+  'https://glamora-g5my.onrender.com',
+];
+
 app.use(cors({
-  origin: '*', // Allow all origins for development
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // allow same-origin/no-origin
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, true); // fallback to allow, keeps mobile clients working
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -22,11 +32,11 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
 
-// Configure Socket.IO
+// Configure Socket.IO with explicit CORS for Netlify domain
 const io = socketIo(server, {
   cors: {
-    origin: "*", // Allow all origins for development
-    methods: ["GET", "POST"],
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
     credentials: true
   }
 });

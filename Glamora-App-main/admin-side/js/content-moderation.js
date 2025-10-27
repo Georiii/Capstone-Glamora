@@ -20,77 +20,74 @@ class ContentModerationManager {
     }
 
     setupEventListeners() {
+        // Aliases for legacy inline handlers in HTML
+        // These methods are kept for backward compatibility with existing markup
+        this.switchToReports = this.switchToReports.bind(this);
+        this.switchToPending = this.switchToPending.bind(this);
+        this.backToReports = this.backToReports.bind(this);
+
+        // Buttons with explicit IDs may not exist on the page; guard access
         const showReportsBtn = document.getElementById('showReportsBtn');
         const showPendingBtn = document.getElementById('showPendingBtn');
         const backToReportsBtn = document.getElementById('backToReportsBtn');
 
-        if (showReportsBtn) {
-            showReportsBtn.addEventListener('click', () => this.showReportsView());
-        }
-        if (showPendingBtn) {
-            showPendingBtn.addEventListener('click', () => this.showPendingView());
-        }
-        if (backToReportsBtn) {
-            backToReportsBtn.addEventListener('click', () => this.showReportsView());
-        }
+        if (showReportsBtn) showReportsBtn.addEventListener('click', () => this.showReportsView());
+        if (showPendingBtn) showPendingBtn.addEventListener('click', () => this.showPendingView());
+        if (backToReportsBtn) backToReportsBtn.addEventListener('click', () => this.showReportsView());
     }
 
     setupSocketListeners() {
-        if (!window.adminSocket) {
-            console.warn('⚠️ Socket not available, real-time updates disabled');
-            return;
-        }
-
-        adminSocket.on('report:created', (data) => {
-            console.log('📢 New report received:', data);
-            if (this.currentView === 'reports') {
-                this.renderReportsTable();
+        const attach = () => {
+            if (typeof adminSocket === 'undefined' || !adminSocket) {
+                console.warn('⚠️ Socket not available, real-time updates disabled');
+                return;
             }
-        });
 
-        adminSocket.on('marketplace:item:created', (data) => {
-            console.log('📢 New marketplace item:', data);
-            if (this.currentView === 'pending') {
-                this.renderPendingModeration();
-            }
-        });
+            adminSocket.on('report:created', (data) => {
+                console.log('📢 New report received:', data);
+                if (this.currentView === 'reports') this.renderReportsTable();
+            });
 
-        adminSocket.on('marketplace:item:approved', (data) => {
-            console.log('✅ Item approved:', data);
-            if (this.currentView === 'pending') {
-                this.renderPendingModeration();
-            }
-        });
+            adminSocket.on('marketplace:item:created', (data) => {
+                console.log('📢 New marketplace item:', data);
+                if (this.currentView === 'pending') this.renderPendingModeration();
+            });
 
-        adminSocket.on('marketplace:item:rejected', (data) => {
-            console.log('❌ Item rejected:', data);
-            if (this.currentView === 'pending') {
-                this.renderPendingModeration();
-            }
-        });
+            adminSocket.on('marketplace:item:approved', (data) => {
+                console.log('✅ Item approved:', data);
+                if (this.currentView === 'pending') this.renderPendingModeration();
+            });
+
+            adminSocket.on('marketplace:item:rejected', (data) => {
+                console.log('❌ Item rejected:', data);
+                if (this.currentView === 'pending') this.renderPendingModeration();
+            });
+        };
+
+        // Attach now if socket is already ready; otherwise wait for readiness event
+        if (typeof adminSocket !== 'undefined' && adminSocket) attach();
+        document.addEventListener('adminSocket:ready', attach, { once: true });
     }
 
     showReportsView() {
         this.currentView = 'reports';
-        document.getElementById('reportsSection').style.display = 'block';
-        document.getElementById('pendingSection').style.display = 'none';
-        document.getElementById('reportDetailSection').style.display = 'none';
-        
-        document.getElementById('showReportsBtn').classList.add('active');
-        document.getElementById('showPendingBtn').classList.remove('active');
-        
+        const reportsView = document.getElementById('reportsView');
+        const pendingView = document.getElementById('pendingView');
+        const detailView = document.getElementById('reportDetailView');
+        if (reportsView) reportsView.style.display = 'block';
+        if (pendingView) pendingView.style.display = 'none';
+        if (detailView) detailView.style.display = 'none';
         this.renderReportsTable();
     }
 
     showPendingView() {
         this.currentView = 'pending';
-        document.getElementById('reportsSection').style.display = 'none';
-        document.getElementById('pendingSection').style.display = 'block';
-        document.getElementById('reportDetailSection').style.display = 'none';
-        
-        document.getElementById('showReportsBtn').classList.remove('active');
-        document.getElementById('showPendingBtn').classList.add('active');
-        
+        const reportsView = document.getElementById('reportsView');
+        const pendingView = document.getElementById('pendingView');
+        const detailView = document.getElementById('reportDetailView');
+        if (reportsView) reportsView.style.display = 'none';
+        if (pendingView) pendingView.style.display = 'block';
+        if (detailView) detailView.style.display = 'none';
         this.renderPendingModeration();
     }
 
@@ -186,14 +183,21 @@ class ContentModerationManager {
                 evidenceContainer.innerHTML = '<p>No evidence photos provided</p>';
             }
             
-            document.getElementById('reportsSection').style.display = 'none';
-            document.getElementById('reportDetailSection').style.display = 'block';
+            const reportsView = document.getElementById('reportsView');
+            const detailView = document.getElementById('reportDetailView');
+            if (reportsView) reportsView.style.display = 'none';
+            if (detailView) detailView.style.display = 'block';
             
         } catch (error) {
             console.error('❌ Error loading report details:', error);
             alert('Failed to load report details. Please try again.');
         }
     }
+
+    // Backward compatibility aliases for legacy inline handlers
+    switchToReports() { this.showReportsView(); }
+    switchToPending() { this.showPendingView(); }
+    backToReports() { this.showReportsView(); }
 
     showRestrictionModal(reportId) {
         console.log('🔒 Opening restriction modal for report:', reportId);
