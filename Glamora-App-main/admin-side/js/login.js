@@ -2,6 +2,8 @@
 
 class LoginManager {
     constructor() {
+        this.failedAttemptsKey = 'adminFailedAttempts';
+        this.lockoutUntilKey = 'adminLockoutUntil';
         this.init();
     }
 
@@ -25,29 +27,90 @@ class LoginManager {
     }
 
     checkExistingAuth() {
-        const token = localStorage.getItem('adminToken');
-        if (token) {
-            // Already logged in, redirect to analytics
-            window.location.href = 'analytics.html';
+        const isLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
+        if (isLoggedIn) window.location.href = 'analytics.html';
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('msg') === 'session') this.showMessage('Session expired. Please log in again.', 'warning');
+        this.applyLockoutState();
+    }
+
+    async handleLogin() {
+        if (this.isLockedOut()) return;
+
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+
+        try {
+            // Authenticate against backend
+            const res = await fetch(`${API_BASE_URL}/api/admin/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (!res.ok || !data?.token) throw new Error(data?.message || 'Invalid credentials');
+
+            // Success: persist session
+            localStorage.setItem('adminToken', data.token);
+            localStorage.setItem('isAdminLoggedIn', 'true');
+            localStorage.removeItem(this.failedAttemptsKey);
+            localStorage.removeItem(this.lockoutUntilKey);
+
+            AdminUtils.showMessage('Login successful!', 'success');
+            setTimeout(() => window.location.href = 'analytics.html', 300);
+        } catch (err) {
+            this.incrementFailedAttempts();
+            this.showMessage(err.message || 'Login failed', 'error');
+            this.applyLockoutState();
         }
     }
 
-    handleLogin() {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        // Simple authentication (in real app, this would be server-side)
-        if (username === 'admin' && password === 'admin123') {
-            localStorage.setItem('adminToken', 'mock-token');
-            AdminUtils.showMessage('Login successful!', 'success');
-            
-            // Redirect to analytics page after short delay
-            setTimeout(() => {
-                window.location.href = 'analytics.html';
-            }, 1000);
-        } else {
-            AdminUtils.showMessage('Invalid credentials. Use admin/admin123', 'error');
+    incrementFailedAttempts() {
+        const attempts = parseInt(localStorage.getItem(this.failedAttemptsKey) || '0', 10) + 1;
+        localStorage.setItem(this.failedAttemptsKey, String(attempts));
+        if (attempts >= 3) {
+            const lockoutUntil = Date.now() + 60 * 1000; // 1 minute
+            localStorage.setItem(this.lockoutUntilKey, String(lockoutUntil));
         }
+    }
+
+    isLockedOut() {
+        const until = parseInt(localStorage.getItem(this.lockoutUntilKey) || '0', 10);
+        return until && Date.now() < until;
+    }
+
+    applyLockoutState() {
+        const loginBtn = document.getElementById('loginBtn');
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+
+        const update = () => {
+            const until = parseInt(localStorage.getItem(this.lockoutUntilKey) || '0', 10);
+            if (until && Date.now() < until) {
+                const remaining = Math.ceil((until - Date.now()) / 1000);
+                loginBtn.disabled = true; username.disabled = true; password.disabled = true;
+                this.showMessage(`Login disabled. Try again in ${remaining} seconds.`, 'warning');
+            } else {
+                if (loginBtn.disabled) this.showMessage('You can try logging in again.', 'info');
+                loginBtn.disabled = false; username.disabled = false; password.disabled = false;
+                localStorage.removeItem(this.lockoutUntilKey);
+                localStorage.removeItem(this.failedAttemptsKey);
+            }
+        };
+
+        update();
+        if (this.isLockedOut()) {
+            clearInterval(this._lockTimer);
+            this._lockTimer = setInterval(() => {
+                update();
+                if (!this.isLockedOut()) clearInterval(this._lockTimer);
+            }, 1000);
+        }
+    }
+
+    showMessage(text, type) {
+        const box = document.getElementById('loginMessage');
+        box.textContent = text; box.className = `message ${type}`; box.style.display = 'block';
     }
 }
 

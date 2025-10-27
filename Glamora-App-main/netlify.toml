@@ -5,6 +5,8 @@
   
 [build.environment]
   NETLIFY_SKIP_CACHE = "1"
+  # Ensure JS served with correct MIME and no caching issues
+  NODE_VERSION = "18"
 
 [[redirects]]
   from = "/*"

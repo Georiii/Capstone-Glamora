@@ -7,50 +7,33 @@ const API_BASE_URL = 'https://glamora-g5my.onrender.com';
 const api = {
     // Get authentication token (for admin authentication)
     getAuthToken: async () => {
-        let token = localStorage.getItem('adminToken');
-        
-        // Always refresh token to prevent 401 errors
-        try {
-            console.log('🔑 Refreshing admin token...');
-            const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    username: 'admin',
-                    password: 'admin123'
-                })
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                token = data.token;
-                localStorage.setItem('adminToken', token);
-                console.log('✅ Admin login successful - token refreshed');
-                return token;
-            } else {
-                const errorData = await response.json();
-                console.error('❌ Admin login failed:', errorData.message || response.statusText);
-                return null;
-            }
-        } catch (error) {
-            console.error('❌ Admin login error:', error);
-            return null;
-        }
+        // Require explicit session
+        const isLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
+        if (!isLoggedIn) return null;
+
+        const existing = localStorage.getItem('adminToken');
+        if (existing) return existing;
+
+        // No silent re-login to avoid bypassing login; return null so caller can redirect
+        return null;
     },
 
     // Make authenticated API requests
     request: async (endpoint, options = {}) => {
         const url = `${API_BASE_URL}${endpoint}`;
-        
-        // Get authentication token
+
+        // Enforce session for all admin requests
+        if (localStorage.getItem('isAdminLoggedIn') !== 'true') {
+            window.location.href = 'login.html?msg=session';
+            throw new Error('Not authenticated');
+        }
+
         const token = await api.getAuthToken();
-        
+
         const defaultOptions = {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token || ''}`
             }
         };
 
@@ -59,27 +42,29 @@ const api = {
             config.body = JSON.stringify(config.body);
         }
 
+        // Short timeout to keep UI responsive
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), options.timeoutMs || 2500);
+        config.signal = controller.signal;
+
         try {
             const response = await fetch(url, config);
-            const data = await response.json();
-            
+            clearTimeout(timeout);
+
+            const isJson = response.headers.get('content-type')?.includes('application/json');
+            const data = isJson ? await response.json() : null;
+
             if (!response.ok) {
-                // If token is invalid, clear it and retry
-                if (response.status === 401 && localStorage.getItem('adminToken')) {
-                    console.log('Token expired or invalid, refreshing...');
+                if (response.status === 401) {
+                    // Invalidate session and redirect to login
                     localStorage.removeItem('adminToken');
-                    const newToken = await api.getAuthToken();
-                    config.headers['Authorization'] = `Bearer ${newToken}`;
-                    const retryResponse = await fetch(url, config);
-                    const retryData = await retryResponse.json();
-                    if (!retryResponse.ok) {
-                        throw new Error(retryData.message || 'API request failed');
-                    }
-                    return retryData;
+                    localStorage.removeItem('isAdminLoggedIn');
+                    window.location.href = 'login.html?msg=session';
+                    throw new Error('Unauthorized');
                 }
-                throw new Error(data.message || 'API request failed');
+                throw new Error((data && data.message) || 'API request failed');
             }
-            
+
             return data;
         } catch (error) {
             console.error('API request failed:', error);
@@ -291,9 +276,9 @@ class AdminUtils {
     }
 
     static checkAuthentication() {
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = 'login.html';
+        const isLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
+        if (!isLoggedIn) {
+            window.location.href = 'login.html?msg=session';
             return false;
         }
         return true;
@@ -310,14 +295,38 @@ class AdminUtils {
         const activeListingEl = document.getElementById('activeListing');
 
         try {
-            // Fetch real-time metrics from backend
-            const data = await api.request('/api/admin/metrics');
+            // Initial skeleton
+            if (totalUsersEl) totalUsersEl.textContent = '…';
+            if (reportsTodayEl) reportsTodayEl.textContent = '…';
+            if (activeListingEl) activeListingEl.textContent = '…';
+
+            // Try granular endpoints first for Promise.all; fallback to /metrics
+            let totals;
+            try {
+                const [u, a, r] = await Promise.all([
+                    api.request('/api/admin/total-users'),
+                    api.request('/api/admin/active-listings'),
+                    api.request('/api/admin/reports-today')
+                ]);
+                totals = {
+                    totalUsers: u?.count ?? 0,
+                    activeListings: a?.count ?? 0,
+                    totalReports: r?.count ?? 0
+                };
+            } catch (_) {
+                // Fallback to combined endpoint
+                const data = await api.request('/api/admin/metrics');
+                totals = {
+                    totalUsers: data?.totalUsers ?? 0,
+                    activeListings: data?.activeListings ?? 0,
+                    totalReports: data?.totalReports ?? 0
+                };
+            }
+
+            if (totalUsersEl) totalUsersEl.textContent = String(totals.totalUsers);
+            if (reportsTodayEl) reportsTodayEl.textContent = String(totals.totalReports);
+            if (activeListingEl) activeListingEl.textContent = String(totals.activeListings);
             
-            if (totalUsersEl) totalUsersEl.textContent = data.totalUsers || 0;
-            if (reportsTodayEl) reportsTodayEl.textContent = data.totalReports || 0;
-            if (activeListingEl) activeListingEl.textContent = data.activeListings || 0;
-            
-            console.log('✅ Metrics updated from backend:', data);
         } catch (error) {
             console.error('❌ Failed to fetch metrics, using fallback:', error);
             // Fallback to mock data if API fails
@@ -479,18 +488,14 @@ class AdminSocketManager {
 
 // Initialize common functionality when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Only run on dashboard pages (not login)
-    if (!window.location.pathname.includes('login.html')) {
-        AdminUtils.checkAuthentication();
+    const isLoginPage = window.location.pathname.includes('login.html');
+    if (!isLoginPage) {
+        if (!AdminUtils.checkAuthentication()) return;
         AdminUtils.updateMetrics();
         AdminUtils.setupModalHandlers();
         AdminUtils.setupLogoutHandler();
-        
-        // Connect to real-time server
         AdminSocketManager.connect();
-        
-        // Refresh metrics every 30 seconds as backup
-        setInterval(() => AdminUtils.updateMetrics(), 30000);
+        setInterval(() => AdminUtils.updateMetrics(), 10000); // 10s interval for freshness
     }
 });
 
