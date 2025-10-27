@@ -287,11 +287,16 @@ class ContentModerationManager {
 
     selectRestrictionDuration(duration) {
         this.selectedRestrictionDuration = duration;
-        // Visual feedback - highlight selected
+        // Visual feedback - highlight selected duration button
         document.querySelectorAll('#restrictionDurationModal button').forEach(btn => {
-            if (btn.textContent.trim() === duration) {
+            if (btn.textContent.trim() === duration || btn.textContent.trim() === duration.charAt(0).toUpperCase() + duration.slice(1)) {
                 btn.style.background = '#e3f2fd';
                 btn.style.border = '2px solid #2196f3';
+                btn.style.color = '#2196f3';
+            } else if (btn.textContent.trim() !== 'Cancel' && btn.textContent.trim() !== 'Confirm') {
+                btn.style.background = '#f8f9fa';
+                btn.style.border = '1px solid #ddd';
+                btn.style.color = '#333';
             }
         });
     }
