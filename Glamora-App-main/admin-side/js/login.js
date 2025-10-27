@@ -40,6 +40,16 @@ class LoginManager {
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value.trim();
 
+        if (!username || !password) {
+            this.showMessage('Please enter both username and password', 'error');
+            return;
+        }
+
+        const loginBtn = document.getElementById('loginBtn');
+        const originalText = loginBtn.textContent;
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Logging in...';
+
         try {
             // Authenticate against backend
             const res = await fetch(`${API_BASE_URL}/api/admin/login`, {
@@ -56,12 +66,14 @@ class LoginManager {
             localStorage.removeItem(this.failedAttemptsKey);
             localStorage.removeItem(this.lockoutUntilKey);
 
-            AdminUtils.showMessage('Login successful!', 'success');
-            setTimeout(() => window.location.href = 'analytics.html', 300);
+            this.showMessage('Login successful! Redirecting...', 'success');
+            window.location.href = 'analytics.html';
         } catch (err) {
             this.incrementFailedAttempts();
             this.showMessage(err.message || 'Login failed', 'error');
             this.applyLockoutState();
+            loginBtn.disabled = false;
+            loginBtn.textContent = originalText;
         }
     }
 
