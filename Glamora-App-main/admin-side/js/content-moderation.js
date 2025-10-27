@@ -178,21 +178,16 @@ class ContentModerationManager {
             if (!report) throw new Error('Report not found');
 
             const safe = (elId) => document.getElementById(elId);
-            const rName = safe('reporterName');
-            const ruName = safe('reportedUserName');
-            const rReason = safe('reportReason');
-            const rDesc = safe('reportDescription');
-            const rStatus = safe('reportStatus');
-            if (rName) rName.textContent = report.reporterName || report.reporterId?.name || 'Anonymous';
-            if (ruName) ruName.textContent = report.reportedUserName || report.reportedUserId?.name || 'Unknown';
+            const rName = safe('reportDetailUserName');
+            const rEmail = safe('reportDetailUserEmail');
+            const rReason = safe('reportDetailReason');
+            const rDesc = safe('reportDetailDescription');
+            if (rName) rName.textContent = report.reportedUserName || report.reportedUserId?.name || 'Unknown';
+            if (rEmail) rEmail.textContent = report.reportedUserEmail || report.reportedUserId?.email || '—';
             // store for message/restriction actions
             this.currentReportedUserId = report.reportedUserId || report.reportedUser?._id || report.reportedUser;
             if (rReason) rReason.textContent = report.reason || 'No reason provided';
-            if (rDesc) rDesc.textContent = report.description || 'No additional description provided';
-            if (rStatus) {
-                rStatus.textContent = report.status || 'pending';
-                rStatus.className = `status-badge status-${report.status || 'pending'}`;
-            }
+            if (rDesc) rDesc.textContent = report.additionalNotes || report.description || 'No additional description provided';
             
             const evidenceContainer = document.getElementById('evidencePhotos');
             if (evidenceContainer) {
@@ -248,14 +243,55 @@ class ContentModerationManager {
     }
 
     async restrictAccount(userId) {
+        if (!userId) {
+            alert('No user ID available for restriction.');
+            return;
+        }
+        this.showDurationModal(userId);
+    }
+
+    showDurationModal(userId) {
+        this.currentUserIdToRestrict = userId;
+        const modal = document.createElement('div');
+        modal.id = 'restrictionDurationModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 450px; padding: 30px; border-radius: 12px;">
+                <h3 style="margin-bottom: 20px; color: #2C3E50;">Select Restriction Duration</h3>
+                <div style="margin: 20px 0;">
+                    <button onclick="window.contentModeration.confirmRestrictWithDuration('1 day')" style="width:100%; padding:14px; margin:8px 0; background:#fff; border:2px solid #ddd; border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.3s;">1 Day</button>
+                    <button onclick="window.contentModeration.confirmRestrictWithDuration('3 days')" style="width:100%; padding:14px; margin:8px 0; background:#fff; border:2px solid #ddd; border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.3s;">3 Days</button>
+                    <button onclick="window.contentModeration.confirmRestrictWithDuration('7 days')" style="width:100%; padding:14px; margin:8px 0; background:#fff; border:2px solid #ddd; border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.3s;">1 Week</button>
+                    <button onclick="window.contentModeration.confirmRestrictWithDuration('30 days')" style="width:100%; padding:14px; margin:8px 0; background:#fff; border:2px solid #ddd; border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.3s;">30 Days</button>
+                    <button onclick="window.contentModeration.confirmRestrictWithDuration('permanent')" style="width:100%; padding:14px; margin:8px 0; background:#fff; border:2px solid #e74c3c; border-radius:8px; cursor:pointer; font-size:16px; color:#e74c3c; font-weight:bold; transition:all 0.3s;">Permanent</button>
+                </div>
+                <button onclick="window.contentModeration.closeModal()" style="width:100%; padding:12px; margin-top:15px; background:#6c757d; color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px;">Cancel</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    async confirmRestrictWithDuration(duration) {
+        this.closeModal();
+        const reason = prompt('Enter a reason for the restriction:');
+        if (!reason) return;
+
+        if (!this.currentUserIdToRestrict) {
+            alert('No user ID to restrict.');
+            return;
+        }
+
         try {
-            const duration = prompt('Select restriction duration: 1 day, 3 days, 7 days, 30 days, permanent');
-            if (!duration) return;
             await api.request('/api/admin/restrict-account', {
                 method: 'PATCH',
-                body: { userId, status: 'restricted', duration }
+                body: { 
+                    userId: this.currentUserIdToRestrict, 
+                    status: 'restricted', 
+                    duration,
+                    restrictionReason: reason
+                }
             });
-            alert('Account has been restricted successfully.');
+            alert(`Account restricted successfully for ${duration}.`);
             this.showReportsView();
         } catch (err) {
             console.error('Restrict account error:', err);
@@ -379,7 +415,7 @@ class ContentModerationManager {
     }
 
     closeModal() {
-        const modals = ['restrictionModal', 'durationModal', 'reasonModal'];
+        const modals = ['restrictionModal', 'durationModal', 'reasonModal', 'restrictionDurationModal'];
         modals.forEach(id => {
             const modal = document.getElementById(id);
             if (modal) modal.remove();
