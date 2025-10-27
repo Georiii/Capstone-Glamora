@@ -185,7 +185,9 @@ class ContentModerationManager {
             
             const evidenceContainer = document.getElementById('evidencePhotos');
             if (evidenceContainer) {
-                const photos = report.evidencePhotos || report.evidencePhotos?.map(p => p.url) || [];
+                const photos = Array.isArray(report.evidencePhotos)
+                    ? report.evidencePhotos.map(p => (typeof p === 'string' ? p : (p.url || ''))).filter(Boolean)
+                    : [];
                 if (photos.length > 0) {
                     evidenceContainer.innerHTML = photos.map(photo => 
                         `<img src="${photo}" alt="Evidence" style="max-width: 200px; margin: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`

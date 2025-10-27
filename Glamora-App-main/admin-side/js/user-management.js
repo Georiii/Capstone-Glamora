@@ -83,7 +83,7 @@ class UserManagementManager {
         users.forEach(user => {
             const row = document.createElement('tr');
             const status = user.isActive ? 'active' : 'inactive';
-            const profilePicUrl = user.profilePicture?.url || 'https://via.placeholder.com/40';
+            const profilePicUrl = user.profilePicture?.url || 'img/avatar.svg';
             
             row.innerHTML = `
                 <td>
@@ -118,7 +118,7 @@ class UserManagementManager {
             }
 
             const status = user.isActive ? 'active' : 'inactive';
-            const profilePicUrl = user.profilePicture?.url || 'https://via.placeholder.com/150';
+            const profilePicUrl = user.profilePicture?.url || 'img/avatar.svg';
 
             document.getElementById('modalUserName').textContent = user.name;
             document.getElementById('modalUserEmail').textContent = user.email;
