@@ -25,6 +25,12 @@ config.resolver.blockList = exclusionList([
 // For EAS builds, this works because the environment is clean
 config.resolver.disableHierarchicalLookup = false;
 
+// Add source extensions for web resolution
+config.resolver.sourceExts = [...config.resolver.sourceExts, '.js', '.jsx', '.ts', '.tsx'];
+
+// Add condition names for better web/browser resolution
+config.resolver.unstable_conditionNames = ['react-native', 'browser', 'require'];
+
 // Enable package.json "exports" field for modern packages
 config.resolver.unstable_enablePackageExports = true;
 
