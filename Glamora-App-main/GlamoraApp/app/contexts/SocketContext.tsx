@@ -53,10 +53,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         auth: { token },
         transports: ['websocket', 'polling'],
         forceNew: true,
-        timeout: 10000, // 10 second timeout
+        timeout: 5000, // Reduced to 5 seconds for faster failure
         reconnection: true,
-        reconnectionAttempts: 3,
-        reconnectionDelay: 1000
+        reconnectionAttempts: 2, // Reduced attempts for production
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 5000
       });
 
       newSocket.on('connect', () => {
@@ -70,25 +71,42 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
 
       newSocket.on('connect_error', (error) => {
-        console.error('🔌 Socket connection error:', error);
+        console.error('🔌 Socket connection error:', error.message);
         setIsConnected(false);
+        // Don't crash the app, just silently fail
+      });
+
+      newSocket.on('error', (error) => {
+        console.error('❌ Socket error:', error);
       });
 
       // Listen for incoming messages
       newSocket.on('new-message', (data) => {
-        console.log('📨 Received new message:', data);
-        // This will be handled by individual chat components
+        try {
+          console.log('📨 Received new message:', data);
+          // This will be handled by individual chat components
+        } catch (error) {
+          console.error('❌ Error handling new message:', error);
+        }
       });
 
       // Listen for typing indicators
       newSocket.on('user-typing', (data) => {
-        console.log('✏️ User typing:', data);
-        // This will be handled by individual chat components
+        try {
+          console.log('✏️ User typing:', data);
+          // This will be handled by individual chat components
+        } catch (error) {
+          console.error('❌ Error handling typing:', error);
+        }
       });
 
       // Listen for message confirmations
       newSocket.on('message-sent', (data) => {
-        console.log('✅ Message sent confirmation:', data);
+        try {
+          console.log('✅ Message sent confirmation:', data);
+        } catch (error) {
+          console.error('❌ Error handling message sent:', error);
+        }
       });
 
       // Listen for message errors
@@ -101,6 +119,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     } catch (error) {
       console.error('❌ Error initializing socket:', error);
+      // Don't crash - socket connection is optional
     }
   };
 
