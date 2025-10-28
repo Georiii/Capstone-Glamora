@@ -2,6 +2,9 @@ module.exports = {
   expo: {
     name: "GlamoraApp",
     slug: "glamora-app-main",
+    plugins: [
+      'expo-router'
+    ],
     android: {
       usesCleartextTraffic: true,  // Allow HTTP traffic for development
       package: "com.glamora.app",

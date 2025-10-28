@@ -1,13 +1,14 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { ErrorBoundary, FallbackProps } from "react-native-error-boundary";
+import ErrorBoundary from "react-native-error-boundary";
 import { Stack } from "expo-router";
 import { SocketProvider } from "./contexts/SocketContext";
 import UserProvider from "./contexts/UserContext";
 import AuthProvider from "./contexts/AuthContext";
 
 // Error fallback component
-const ErrorFallback = ({ error, resetError }: FallbackProps) => {
+type FallbackPropsLocal = { error: Error; resetError: () => void };
+const ErrorFallback = ({ error, resetError }: FallbackPropsLocal) => {
   console.error('App crashed with error:', error);
   
   return (
@@ -24,13 +25,13 @@ const ErrorFallback = ({ error, resetError }: FallbackProps) => {
 export default function RootLayout() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <AuthProvider>
-        <UserProvider>
+      <UserProvider>
+        <AuthProvider>
           <SocketProvider>
             <Stack screenOptions={{ headerShown: false }} />
           </SocketProvider>
-        </UserProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </UserProvider>
     </ErrorBoundary>
   );
 }

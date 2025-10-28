@@ -151,12 +151,12 @@ class APICache {
   /**
    * Batch multiple API calls
    */
-  async batchFetch(requests: Array<{
+  async batchFetch(requests: {
     key: string;
     fetchFunction: () => Promise<any>;
     params?: any;
     expiry?: number;
-  }>): Promise<{ [key: string]: any }> {
+  }[]): Promise<{ [key: string]: any }> {
     const results: { [key: string]: any } = {};
     
     // Execute all requests in parallel
