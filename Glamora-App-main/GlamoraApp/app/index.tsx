@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Dimensions, SafeAreaView } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Dimensions, SafeAreaView, Platform } from 'react-native';
 import { useAuth } from './contexts/AuthContext';
+import * as Storage from '../utils/storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,7 +21,7 @@ export default function Home() {
           return;
         }
 
-        const hasLaunched = await AsyncStorage.getItem('hasLaunched');
+        const hasLaunched = await Storage.getStorageItem('hasLaunched');
         if (hasLaunched === 'true') {
           // User has launched before but not authenticated, go to login
           console.log('🔄 User has launched before, redirecting to login');
@@ -56,9 +56,10 @@ export default function Home() {
 
   const handleGetStarted = async () => {
     try {
-      await AsyncStorage.setItem('hasLaunched', 'true');
+      // Set hasLaunched flag
+      await Storage.setStorageItem('hasLaunched', 'true');
     } catch (e) {
-      // ignore
+      console.error('Error setting hasLaunched:', e);
     }
     router.replace('/login');
   };

@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import * as Storage from '../../utils/storage';
 
 interface User {
   _id: string;
@@ -43,13 +43,12 @@ const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from AsyncStorage on mount
+  // Load user from storage on mount
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userStr = await AsyncStorage.getItem('user');
-        if (userStr) {
-          const userData = JSON.parse(userStr);
+        const userData = await Storage.getUserData();
+        if (userData) {
           setUser(userData);
         }
       } catch (error) {
@@ -62,10 +61,10 @@ const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     loadUser();
   }, []);
 
-  // Save user to AsyncStorage whenever it changes
+  // Save user to storage whenever it changes
   useEffect(() => {
     if (user) {
-      AsyncStorage.setItem('user', JSON.stringify(user)).catch(error => {
+      Storage.setStorageItem('user', JSON.stringify(user)).catch(error => {
         console.error('Error saving user to storage:', error);
       });
     }
