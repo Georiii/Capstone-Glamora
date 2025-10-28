@@ -32,8 +32,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const initializeSocket = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const userData = await AsyncStorage.getItem('user');
+      const { getAuthToken, getUserData } = await import('../../utils/storage');
+      const token = await getAuthToken();
+      const userData = await getUserData();
       
       if (!token || !userData) {
         console.log('⚠️ No token or user data found, skipping socket connection');

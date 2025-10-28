@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { getAuthToken, getUserData } from '../utils/storage';
 import {
     ActivityIndicator,
     Alert,
@@ -92,13 +92,12 @@ export default function MessageBox() {
 
   const loadCurrentUser = async () => {
     try {
-      const userData = await AsyncStorage.getItem('user');
+      const userData = await getUserData();
       if (userData) {
-        const user = JSON.parse(userData);
-        setCurrentUser(user);
-        console.log('👤 Current user loaded:', user.email);
+        setCurrentUser(userData);
+        console.log('👤 Current user loaded:', userData.email);
       } else {
-        console.log('❌ No user data found in AsyncStorage');
+        console.log('❌ No user data found in storage');
       }
     } catch (error) {
       console.error('Error loading current user:', error);
@@ -113,10 +112,10 @@ export default function MessageBox() {
         setLoading(true);
       }
       
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       
       if (!token) {
-        console.log('❌ No token found in AsyncStorage');
+        console.log('❌ No token found in storage');
         Alert.alert('Authentication Required', 'Please login to view messages', [
           { text: 'OK', onPress: () => router.push('/login') }
         ]);

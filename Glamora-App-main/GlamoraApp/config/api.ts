@@ -3,9 +3,12 @@
  * This file centralizes all API endpoints and automatically adapts to different environments
  */
 
+import { Platform } from 'react-native';
+
 // Environment detection
 const isDevelopment = __DEV__;
 const isProduction = !isDevelopment;
+const isWeb = Platform.OS === 'web'; // Detect if running on web
 
 // Server configuration for different environments
 // For tunnel testing, set EXPO_PUBLIC_API_URL in your environment
@@ -25,10 +28,21 @@ const SERVER_CONFIG = {
 // Get the appropriate server URL based on environment
 export const getApiBaseUrl = (environment: 'local' | 'production' = 'local'): string => {
   const env = isDevelopment ? 'development' : 'production';
-  return SERVER_CONFIG[env][environment];
+  
+  // Smart detection: use localhost for web, Render for native
+  if (isWeb) {
+    // Web environment (Expo web) - use localhost
+    console.log('🌐 Web environment detected - using localhost:5000');
+    return 'http://localhost:5000';
+  } else {
+    // Native environment (Expo Go or built APK) - use Render
+    console.log('📱 Native environment detected - using Render URL');
+    return SERVER_CONFIG[env][environment];
+  }
 };
 
-// Default API base URL (uses local for development, production for production builds)
+// Default API base URL
+// Automatically uses localhost:5000 for web, and Render for native (Expo Go/APK)
 export const API_BASE_URL = getApiBaseUrl(isDevelopment ? 'local' : 'production');
 
 // Individual API endpoints for easy access
