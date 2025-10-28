@@ -21,8 +21,9 @@ config.resolver.blockList = exclusionList([
   R('backup-files/.*')
 ]);
 
-// Prevent resolving parent node_modules to avoid duplicate RN libraries
-config.resolver.disableHierarchicalLookup = true;
+// ENABLE hierarchical lookup for LOCAL WEB BUILDS to resolve expo-router/entry-classic
+// For EAS builds, this works because the environment is clean
+config.resolver.disableHierarchicalLookup = false;
 
 // Enable package.json "exports" field for modern packages
 config.resolver.unstable_enablePackageExports = true;
@@ -37,7 +38,5 @@ delete config.resolver.nodeModulesPaths;
 // Ensure only mobile app files are included
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
-// Prefer React Native/browser fields when resolving packages
-config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
 module.exports = config;
