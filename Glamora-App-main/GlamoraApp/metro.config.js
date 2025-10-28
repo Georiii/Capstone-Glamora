@@ -9,16 +9,12 @@ const repoRoot = path.resolve(__dirname, '..');
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const R = (rel) => new RegExp(`^${escapeRegExp(repoRoot.replace(/\\/g, '/'))}/${rel}`);
 
-// Exclude ONLY our repo's backend/server paths. Do not block node_modules.
+// Exclude ONLY specific backend/server paths to prevent bundling issues
 config.resolver.blockList = exclusionList([
-  R('src/server\\.js$'),
-  R('server\\.js$'),
-  R('backend/.*'),
-  R('backup-files/.*'),
-  R('routes/.*'),
-  R('models/.*'),
-  R('hell$'),
-  R('tatus$')
+  R('Glamora-App-main/src/server\\.js$'),
+  R('Glamora-App-main/GlamoraApp/backend/.*'),
+  R('Glamora-App-main/backend/.*'),
+  R('Glamora-App-main/admin-side/.*')
 ]);
 
 // Ensure only mobile app files are included
