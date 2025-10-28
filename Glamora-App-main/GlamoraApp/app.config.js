@@ -13,6 +13,9 @@ module.exports = {
       eas: {
         projectId: "c50f9159-c5f3-4e50-a191-518ab1dc07ce"
       }
+    },
+    experiments: {
+      typedRoutes: true
     }
     // ... rest of your expo config
   }

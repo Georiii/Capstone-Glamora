@@ -21,8 +21,11 @@ config.resolver.blockList = exclusionList([
   R('backup-files/.*')
 ]);
 
-// Ensure Metro does NOT resolve modules from parent node_modules (prevents duplicates like RNCSafeAreaProvider)
+// Prevent resolving parent node_modules to avoid duplicate RN libraries
 config.resolver.disableHierarchicalLookup = true;
+
+// Enable package.json "exports" field for modern packages
+config.resolver.unstable_enablePackageExports = true;
 
 // Remove forced extraNodeModules to let Metro resolve peer deps like
 // @react-native/virtualized-lists from react-native

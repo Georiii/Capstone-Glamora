@@ -3,6 +3,8 @@ module.exports = function (api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
+      // Expo Router transforms
+      'expo-router/babel',
       // Keep Reanimated plugin last
       [
         'module-resolver',
