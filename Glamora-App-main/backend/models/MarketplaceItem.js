@@ -8,6 +8,11 @@ const marketplaceItemSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   userName: { type: String },
   userEmail: { type: String },
+  userProfilePicture: { type: String },
+  status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
+  rejectionReason: { type: String },
+  approvedAt: { type: Date },
+  rejectedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
 });
 

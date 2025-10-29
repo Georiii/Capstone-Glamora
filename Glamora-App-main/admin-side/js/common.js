@@ -1,7 +1,7 @@
 // Common JavaScript functionality shared across all pages
 
-// API Configuration
-const API_BASE_URL = 'http://localhost:3000';
+// API Configuration - Backend runs on port 5000
+const API_BASE_URL = 'http://localhost:5000';
 
 // API Helper Functions
 const api = {
@@ -126,6 +126,44 @@ const api = {
             return data;
         } catch (error) {
             console.error('Failed to restrict user:', error);
+            throw error;
+        }
+    },
+
+    // Get pending marketplace items for moderation
+    getPendingMarketplaceItems: async () => {
+        try {
+            const data = await api.request('/api/admin/marketplace/pending');
+            return data.items || [];
+        } catch (error) {
+            console.error('Failed to fetch pending items:', error);
+            throw error;
+        }
+    },
+
+    // Approve marketplace item
+    approveMarketplaceItem: async (itemId) => {
+        try {
+            const data = await api.request(`/api/admin/marketplace/${itemId}/approve`, {
+                method: 'PUT'
+            });
+            return data;
+        } catch (error) {
+            console.error('Failed to approve item:', error);
+            throw error;
+        }
+    },
+
+    // Reject marketplace item
+    rejectMarketplaceItem: async (itemId, reason) => {
+        try {
+            const data = await api.request(`/api/admin/marketplace/${itemId}/reject`, {
+                method: 'PUT',
+                body: { reason }
+            });
+            return data;
+        } catch (error) {
+            console.error('Failed to reject item:', error);
             throw error;
         }
     }

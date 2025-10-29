@@ -263,8 +263,8 @@ router.put('/reports/:id', adminAuth, async (req, res) => {
 
 router.get('/marketplace/pending', adminAuth, async (req, res) => {
     try {
-        const pendingItems = await MarketplaceItem.find({ status: 'pending' })
-            .populate('userId', 'name email')
+        const pendingItems = await MarketplaceItem.find({ status: 'Pending' })
+            .populate('userId', 'name email profilePicture')
             .sort({ createdAt: -1 });
 
         res.json({ items: pendingItems });
@@ -281,9 +281,9 @@ router.put('/marketplace/:id/approve', adminAuth, async (req, res) => {
             return res.status(404).json({ message: 'Item not found' });
         }
 
-        item.status = 'active';
-        item.approvedBy = req.adminId;
+        item.status = 'Approved';
         item.approvedAt = new Date();
+        item.rejectionReason = undefined;
 
         await item.save();
 
@@ -303,9 +303,8 @@ router.put('/marketplace/:id/reject', adminAuth, async (req, res) => {
             return res.status(404).json({ message: 'Item not found' });
         }
 
-        item.status = 'rejected';
-        item.rejectionReason = reason;
-        item.rejectedBy = req.adminId;
+        item.status = 'Rejected';
+        item.rejectionReason = reason || 'Not specified';
         item.rejectedAt = new Date();
 
         await item.save();

@@ -14,6 +14,7 @@ interface MarketplaceItem {
   userEmail: string;
   userProfilePicture?: string; // Add seller's profile picture
   createdAt: string;
+  status?: 'Pending' | 'Approved' | 'Rejected';
 }
 
 export default function Marketplace() {
@@ -25,6 +26,7 @@ export default function Marketplace() {
   const fetchMarketplaceItems = useCallback(async () => {
     setLoading(true);
     try {
+      // 1) Public feed (Approved + legacy)
       const response = await fetch(API_ENDPOINTS.marketplaceSearch(searchQuery));
       
       if (!response.ok) {
@@ -47,8 +49,36 @@ export default function Marketplace() {
         console.error('JSON parse error');
         throw new Error('Invalid server response. Please try again.');
       }
-      
-      setItems(data.items || []);
+      const publicItems: MarketplaceItem[] = data.items || [];
+
+      // 2) User's own items (includes Pending) – merge for owner-only visibility of pending posts
+      //    This keeps public moderation intact while letting the poster see their own pending items.
+      try {
+        const token = await (await import('@react-native-async-storage/async-storage')).default.getItem('token');
+        if (token) {
+          const meResp = await fetch(API_ENDPOINTS.getUserMarketplaceItems, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (meResp.ok) {
+            const meData = await meResp.json();
+            const myItems: MarketplaceItem[] = meData.items || [];
+
+            // Merge unique by _id; keep public first to preserve ordering
+            const map = new Map<string, MarketplaceItem>();
+            for (const it of publicItems) map.set(it._id, it);
+            for (const it of myItems) if (!map.has(it._id)) map.set(it._id, it);
+            setItems(Array.from(map.values()));
+          } else {
+            // Fallback to public items only
+            setItems(publicItems);
+          }
+        } else {
+          setItems(publicItems);
+        }
+      } catch {
+        // If anything fails in secondary call, still show public items
+        setItems(publicItems);
+      }
       setLoading(false);
     } catch (error: any) {
       setLoading(false);

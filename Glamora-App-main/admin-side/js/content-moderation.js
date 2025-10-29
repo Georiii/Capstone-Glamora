@@ -46,59 +46,98 @@ class ContentModerationManager {
         }
     }
 
-    renderPendingPosts() {
+    async renderPendingPosts() {
         const container = document.getElementById('pendingPosts');
         if (!container) return;
         
-        container.innerHTML = '';
+        container.innerHTML = '<div style="text-align: center; padding: 20px;">Loading pending items...</div>';
 
-        mockData.posts.forEach(post => {
-            const postElement = document.createElement('div');
-            postElement.className = 'post-item';
-            postElement.innerHTML = `
-                <div class="post-info">
-                    <span>User Post</span>
-                    <a href="#" onclick="contentModeration.viewPost(${post.id})">View post</a>
-                </div>
-                <div class="post-actions">
-                    <button class="approve-btn" onclick="contentModeration.approvePost(${post.id})" title="Approve">
-                        <i class="fas fa-check"></i>
-                    </button>
-                    <button class="disapprove-btn" onclick="contentModeration.disapprovePost(${post.id})" title="Disapprove">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-            container.appendChild(postElement);
-        });
+        try {
+            const items = await api.getPendingMarketplaceItems();
+            
+            if (items.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">No pending items for moderation</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            items.forEach(item => {
+                const postElement = document.createElement('div');
+                postElement.className = 'post-item';
+                postElement.innerHTML = `
+                    <div class="post-info">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${item.imageUrl || 'https://via.placeholder.com/60'}" alt="${item.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 4px;">${item.name}</div>
+                                <div style="font-size: 12px; color: #666;">${item.description || 'No description'}</div>
+                                <div style="font-size: 12px; color: #888; margin-top: 4px;">By: ${item.userName || item.userId?.name || 'Unknown'}</div>
+                                <div style="font-size: 12px; color: #888;">Price: ₱${item.price || 0}</div>
+                            </div>
+                        </div>
+                        <a href="#" onclick="contentModeration.viewPost('${item._id}')" style="margin-top: 8px; display: inline-block;">View post</a>
+                    </div>
+                    <div class="post-actions">
+                        <button class="approve-btn" onclick="contentModeration.approvePost('${item._id}')" title="Approve">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="disapprove-btn" onclick="contentModeration.disapprovePost('${item._id}')" title="Disapprove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(postElement);
+            });
+        } catch (error) {
+            console.error('Error loading pending items:', error);
+            container.innerHTML = '<div style="text-align: center; padding: 20px; color: red;">Error loading pending items. Please try again.</div>';
+        }
     }
 
 
-    viewPost(postId) {
-        const post = mockData.posts.find(p => p.id === postId);
-        if (!post) return;
+    async viewPost(itemId) {
+        try {
+            const items = await api.getPendingMarketplaceItems();
+            const item = items.find(i => i._id === itemId);
+            
+            if (!item) {
+                AdminUtils.showMessage('Item not found', 'error');
+                return;
+            }
 
-        alert(`Post Content: ${post.content}\n\nPosted by: ${post.userName}`);
+            alert(`Item: ${item.name}\nDescription: ${item.description || 'No description'}\nPrice: ₱${item.price}\n\nPosted by: ${item.userName || item.userId?.name || 'Unknown'}`);
+        } catch (error) {
+            console.error('Error viewing post:', error);
+            AdminUtils.showMessage('Error loading item details', 'error');
+        }
     }
 
-    approvePost(postId) {
-        const postIndex = mockData.posts.findIndex(p => p.id === postId);
-        if (postIndex === -1) return;
-
-        mockData.posts.splice(postIndex, 1);
-        this.renderPendingPosts();
-        AdminUtils.updateMetrics();
-        AdminUtils.showMessage('Post approved successfully', 'success');
+    async approvePost(itemId) {
+        try {
+            await api.approveMarketplaceItem(itemId);
+            AdminUtils.showMessage('Item approved successfully', 'success');
+            await this.renderPendingPosts();
+            AdminUtils.updateMetrics();
+        } catch (error) {
+            console.error('Error approving item:', error);
+            AdminUtils.showMessage('Failed to approve item', 'error');
+        }
     }
 
-    disapprovePost(postId) {
-        const postIndex = mockData.posts.findIndex(p => p.id === postId);
-        if (postIndex === -1) return;
-
-        mockData.posts.splice(postIndex, 1);
-        this.renderPendingPosts();
-        AdminUtils.updateMetrics();
-        AdminUtils.showMessage('Post disapproved and removed', 'success');
+    async disapprovePost(itemId) {
+        const reason = prompt('Please provide a reason for rejection:');
+        if (reason === null) return; // User cancelled
+        
+        try {
+            await api.rejectMarketplaceItem(itemId, reason);
+            AdminUtils.showMessage('Item rejected successfully', 'success');
+            await this.renderPendingPosts();
+            AdminUtils.updateMetrics();
+        } catch (error) {
+            console.error('Error rejecting item:', error);
+            AdminUtils.showMessage('Failed to reject item', 'error');
+        }
     }
 
 
@@ -406,10 +445,10 @@ class ContentModerationManager {
         await this.renderReportsTable();
     }
 
-    switchToPending() {
+    async switchToPending() {
         this.currentView = 'pending';
         this.showView('pending');
-        this.renderPendingPosts();
+        await this.renderPendingPosts();
     }
 
     showView(viewName) {
