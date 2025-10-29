@@ -48,21 +48,33 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const user = await Storage.getUserData();
       const appWasTerminated = await Storage.getStorageItem('appWasTerminated');
       
+      // In development, skip auto-logout on app reload (hot reload triggers this)
+      const isDevelopment = __DEV__;
+      
       // If app was terminated (closed, not just minimized), logout for security
-      if (appWasTerminated === 'true') {
+      // Skip this in development to allow hot reload without logout
+      if (appWasTerminated === 'true' && !isDevelopment) {
         console.log('🚪 App was terminated, logging out for security');
         await Storage.removeStorageItem('token');
         await Storage.removeStorageItem('user');
         await Storage.removeStorageItem('appWasTerminated');
         setIsAuthenticated(false);
-      } else if (token && user) {
-        setIsAuthenticated(true);
-        setUser(user); // Set user in UserContext
-        console.log('✅ User is authenticated');
       } else {
-        setIsAuthenticated(false);
-        setUser(null); // Clear user in UserContext
-        console.log('❌ User is not authenticated');
+        // Clear the termination flag regardless (for next check)
+        if (appWasTerminated === 'true') {
+          console.log('🔧 Development mode: Ignoring app termination flag');
+          await Storage.removeStorageItem('appWasTerminated');
+        }
+        
+        if (token && user) {
+          setIsAuthenticated(true);
+          setUser(user); // Set user in UserContext
+          console.log('✅ User is authenticated');
+        } else {
+          setIsAuthenticated(false);
+          setUser(null); // Clear user in UserContext
+          console.log('❌ User is not authenticated');
+        }
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
@@ -154,9 +166,15 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       backgroundTimeRef.current = Date.now();
       
       // Mark that app went to background (for termination detection)
-      Storage.setStorageItem('appWasTerminated', 'true').catch(console.error);
+      // In development, only set if not a hot reload scenario
+      const isDevelopment = __DEV__;
+      if (!isDevelopment) {
+        Storage.setStorageItem('appWasTerminated', 'true').catch(console.error);
+      } else {
+        console.log('🔧 Development mode: Not setting termination flag');
+      }
       
-      // Set timer for auto-logout
+      // Set timer for auto-logout (still active in development for real backgrounds)
       backgroundTimerRef.current = setTimeout(() => {
         console.log('🚪 Auto-logout timer triggered');
         handleAutoLogout();

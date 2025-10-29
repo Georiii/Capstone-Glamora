@@ -118,14 +118,23 @@ const recommendationRoutes = require('./routes/recommendations');
 const weatherRoutes = require('./routes/weather');
 const adminRoutes = require('../admin-side/admin-api');
 
+console.log('🔧 Registering routes...');
 app.use('/api/auth', authRoutes);
+console.log('✅ Registered: /api/auth');
 app.use('/api/wardrobe', wardrobeRoutes);
+console.log('✅ Registered: /api/wardrobe (including /marketplace)');
 app.use('/api/chat', chatRoutes);
+console.log('✅ Registered: /api/chat');
 app.use('/api/report', reportRoutes);
+console.log('✅ Registered: /api/report');
 app.use('/api/outfits', outfitRoutes);
+console.log('✅ Registered: /api/outfits');
 app.use('/api/recommendations', recommendationRoutes);
+console.log('✅ Registered: /api/recommendations');
 app.use('/api/weather', weatherRoutes);
+console.log('✅ Registered: /api/weather');
 app.use('/api/admin', adminRoutes);
+console.log('✅ Registered: /api/admin');
 
 // Add error handling middleware AFTER routes
 app.use((err, req, res, next) => {
@@ -133,15 +142,29 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal server error', error: err.message });
 });
 
-const mongoUri = 'mongodb+srv://2260086:0v2FuF3KYSV9Z2zV@glamoraapp.qje3nri.mongodb.net/?retryWrites=true&w=majority&appName=GlamoraApp';
+const mongoUri = 'mongodb+srv://2260086:0v2FuF3KYSV9Z2zV@glamoraapp.qje3nri.mongodb.net/test?retryWrites=true&w=majority&appName=GlamoraApp';
 
 mongoose.connect(mongoUri)
-  .then(() => console.log('✅ MongoDB Atlas connected!'))
+  .then(() => console.log('✅ MongoDB Atlas connected to database: test'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Backend is running.', timestamp: new Date().toISOString() });
+});
+
+// Test marketplace endpoint directly
+app.get('/api/test-marketplace', async (req, res) => {
+  console.log('🧪 TEST ENDPOINT HIT');
+  try {
+    const MarketplaceItem = require('./models/MarketplaceItem');
+    const items = await MarketplaceItem.find({}).limit(5);
+    console.log('🧪 Test found items:', items.length);
+    res.json({ test: 'success', count: items.length, items });
+  } catch (err) {
+    console.error('🧪 Test error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Root endpoint

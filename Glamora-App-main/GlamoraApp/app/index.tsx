@@ -21,16 +21,32 @@ export default function Home() {
           return;
         }
 
-        const hasLaunched = await Storage.getStorageItem('hasLaunched');
-        if (hasLaunched === 'true') {
-          // User has launched before but not authenticated, go to login
-          console.log('🔄 User has launched before, redirecting to login');
-          router.replace('/login');
-          return;
-        }
+        // Web environment: Check sessionStorage for fresh server start
+        // Mobile environment: Check AsyncStorage for first install
+        const isWeb = Platform.OS === 'web';
         
-        // First time user, show onboarding
-        console.log('👋 First time user, showing onboarding');
+        if (isWeb) {
+          // Web: Use sessionStorage to detect fresh server start
+          // sessionStorage persists across page reloads but clears on server restart
+          const hasSeenOnboarding = typeof window !== 'undefined' ? 
+            sessionStorage.getItem('hasSeenOnboarding') : null;
+          
+          if (hasSeenOnboarding === 'true') {
+            console.log('🌐 Web: User has seen onboarding this session, redirecting to login');
+            router.replace('/login');
+            return;
+          }
+          console.log('🌐 Web: First load this session, showing onboarding');
+        } else {
+          // Mobile: Use AsyncStorage for persistent storage (only show once per install)
+          const hasLaunched = await Storage.getStorageItem('hasLaunched');
+          if (hasLaunched === 'true') {
+            console.log('📱 Mobile: User has launched before, redirecting to login');
+            router.replace('/login');
+            return;
+          }
+          console.log('📱 Mobile: First time user, showing onboarding');
+        }
       } catch (e) {
         console.error('Error checking auth status:', e);
         // If anything fails, just show onboarding
@@ -56,10 +72,21 @@ export default function Home() {
 
   const handleGetStarted = async () => {
     try {
-      // Set hasLaunched flag
-      await Storage.setStorageItem('hasLaunched', 'true');
+      const isWeb = Platform.OS === 'web';
+      
+      if (isWeb) {
+        // Web: Set sessionStorage flag (persists across page reloads, cleared on server restart)
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('hasSeenOnboarding', 'true');
+          console.log('🌐 Web: Set session flag for onboarding');
+        }
+      } else {
+        // Mobile: Set AsyncStorage flag (persistent until app uninstall)
+        await Storage.setStorageItem('hasLaunched', 'true');
+        console.log('📱 Mobile: Set persistent flag for onboarding');
+      }
     } catch (e) {
-      console.error('Error setting hasLaunched:', e);
+      console.error('Error setting onboarding flag:', e);
     }
     router.replace('/login');
   };

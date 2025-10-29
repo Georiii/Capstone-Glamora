@@ -9,6 +9,8 @@ const marketplaceItemSchema = new mongoose.Schema({
   userName: { type: String },
   userEmail: { type: String },
   createdAt: { type: Date, default: Date.now },
+}, { 
+  collection: 'marketplaceitems' // Explicitly specify collection name
 });
 
 module.exports = mongoose.model('MarketplaceItem', marketplaceItemSchema); 

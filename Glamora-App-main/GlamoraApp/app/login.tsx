@@ -237,8 +237,8 @@ const styles = StyleSheet.create({
     height: Math.min(width * 0.25, 100),
     resizeMode: 'contain',
     position: 'absolute',
-    top: height * 0.02,
-    right: width * 0.05,
+    top: 20,
+    right: 5,
   },
 
   text: {

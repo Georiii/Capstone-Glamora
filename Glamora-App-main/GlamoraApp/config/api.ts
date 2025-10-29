@@ -29,20 +29,20 @@ const SERVER_CONFIG = {
 export const getApiBaseUrl = (environment: 'local' | 'production' = 'local'): string => {
   const env = isDevelopment ? 'development' : 'production';
   
-  // Smart detection: use localhost for web, Render for native
+  // Always use Render backend for all environments (web, mobile, APK)
+  const renderUrl = SERVER_CONFIG[env][environment];
+  
   if (isWeb) {
-    // Web environment (Expo web) - use localhost
-    console.log('🌐 Web environment detected - using localhost:5000');
-    return 'http://localhost:5000';
+    console.log('🌐 Web environment detected - using Render URL:', renderUrl);
   } else {
-    // Native environment (Expo Go or built APK) - use Render
-    console.log('📱 Native environment detected - using Render URL');
-    return SERVER_CONFIG[env][environment];
+    console.log('📱 Native environment detected - using Render URL:', renderUrl);
   }
+  
+  return renderUrl;
 };
 
 // Default API base URL
-// Automatically uses localhost:5000 for web, and Render for native (Expo Go/APK)
+// Always uses Render backend for all environments (web, mobile, APK)
 export const API_BASE_URL = getApiBaseUrl(isDevelopment ? 'local' : 'production');
 
 // Individual API endpoints for easy access

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View, Dimensions } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { apiCache } from '../utils/apiCache';
@@ -28,17 +28,18 @@ export default function Marketplace() {
   const fetchMarketplaceItems = useCallback(async (forceRefresh = false) => {
     setLoading(true);
     try {
-      const cacheKey = API_ENDPOINTS.marketplaceSearch(searchQuery);
+      const apiUrl = API_ENDPOINTS.marketplaceSearch(searchQuery);
       
       // If force refresh, clear cache first
       if (forceRefresh) {
-        await apiCache.clear(cacheKey);
+        await apiCache.clear(apiUrl);
       }
       
       const data = await apiCache.getOrFetch(
-        cacheKey,
+        apiUrl,
         async () => {
-          const response = await fetch(API_ENDPOINTS.marketplaceSearch(searchQuery));
+          console.log('📡 Fetching marketplace items from API:', apiUrl);
+          const response = await fetch(apiUrl);
           
           if (!response.ok) {
             let errorMessage = 'Failed to fetch marketplace items.';
@@ -56,6 +57,7 @@ export default function Marketplace() {
           let responseData;
           try {
             responseData = await response.json();
+            console.log('📦 Marketplace API response:', responseData);
           } catch {
             console.error('JSON parse error');
             throw new Error('Invalid server response. Please try again.');
@@ -63,10 +65,11 @@ export default function Marketplace() {
           
           return responseData;
         },
-        { searchQuery }, // params for cache key
+        undefined, // Don't use params since search is already in URL
         2 * 60 * 1000 // 2 minutes cache for marketplace
       );
       
+      console.log('✅ Marketplace data loaded:', data);
       setItems(data.items || []);
     } catch (error: any) {
       if (error.message.includes('Network request failed')) {
@@ -80,7 +83,8 @@ export default function Marketplace() {
   }, [searchQuery]);
 
   useEffect(() => {
-    fetchMarketplaceItems();
+    // Force refresh on mount to ensure fresh data
+    fetchMarketplaceItems(true);
   }, [fetchMarketplaceItems]);
 
   const renderItem = useCallback(({ item }: { item: MarketplaceItem }) => (
@@ -117,8 +121,8 @@ export default function Marketplace() {
   const keyExtractor = useCallback((item: MarketplaceItem) => item._id, []);
 
   const getItemLayout = useCallback((data: any, index: number) => ({
-    length: (width - 48) / 2 + 16, // item height + margin
-    offset: ((width - 48) / 2 + 16) * Math.floor(index / 2),
+    length: (width - 32) / 2 + 8, // item height + margin
+    offset: ((width - 32) / 2 + 8) * Math.floor(index / 2),
     index,
   }), []);
 
@@ -215,18 +219,18 @@ const styles = StyleSheet.create({
     fontSize: 22, fontWeight: 'bold', color: '#222', marginLeft: 24, marginTop: 10, marginBottom: 18,
   },
   gridContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     paddingBottom: 120,
   },
   row: {
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    justifyContent: 'space-around',
+    paddingHorizontal: 4,
   },
   itemCard: {
-    width: (width - 48) / 2, // Responsive width: (screen width - padding) / 2 columns
+    width: (width - 32) / 2, // Responsive width: (screen width - padding) / 2 columns
     backgroundColor: '#fff',
     borderRadius: 18,
-    margin: 8,
+    margin: 4,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -238,12 +242,14 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   itemImage: {
-    width: (width - 48) / 2 - 20, // Responsive image width
-    height: Math.min((width - 48) / 2 - 20, 130), // Responsive height with max
+    width: (width - 32) / 2 - 20, // Responsive image width
+    height: Math.min((width - 32) / 2 - 20, 130), // Responsive height with max
     borderRadius: 12,
     marginTop: 10,
     marginBottom: 8,
     backgroundColor: '#eee',
+    resizeMode: 'cover',
+    minHeight: 80, // Ensure minimum height for small images
   },
   itemInfoRow: {
     flexDirection: 'column',
@@ -258,6 +264,8 @@ const styles = StyleSheet.create({
     color: '#222',
     textAlign: 'center',
     marginBottom: 4,
+    lineHeight: 18,
+    maxHeight: 36, // Allow for 2 lines
   },
   itemPrice: {
     fontSize: 15,

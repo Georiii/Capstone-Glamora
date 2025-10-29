@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const { JWT_SECRET } = require('../config/database');
 const WardrobeItem = require('../models/WardrobeItem');
 const User = require('../models/User');
@@ -167,12 +168,38 @@ router.post('/marketplace', auth, async (req, res) => {
 // GET /api/marketplace - list all marketplace items (with optional search)
 router.get('/marketplace', async (req, res) => {
   try {
+    console.log('🔍 Fetching marketplace items...');
+    console.log('📊 Query params:', req.query);
+    
     const search = req.query.search || '';
     const query = search ? { name: { $regex: search, $options: 'i' } } : {};
+    
+    // Get database info
+    const db = mongoose.connection.db;
+    const dbName = db.databaseName;
+    console.log('🌐 Connected DB:', dbName);
+    
+    // Check collection using native MongoDB driver
+    const collectionName = 'marketplaceitems';
+    const nativeCount = await db.collection(collectionName).countDocuments();
+    console.log('📊 Native MongoDB count:', nativeCount);
+    
+    // Try Mongoose query first
     const items = await MarketplaceItem.find(query).sort({ createdAt: -1 });
-    res.json({ items });
+    console.log('✅ Mongoose found items:', items.length);
+    
+    // If Mongoose returns empty but native has data, use native driver
+    let finalItems = items;
+    if (items.length === 0 && nativeCount > 0) {
+      console.log('⚠️ Mongoose returned empty, using native MongoDB driver as fallback');
+      finalItems = await db.collection(collectionName).find(query).sort({ createdAt: -1 }).toArray();
+      console.log('✅ Native driver found items:', finalItems.length);
+    }
+    
+    res.json({ items: finalItems });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error fetching marketplace items:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
