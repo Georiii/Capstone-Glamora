@@ -40,6 +40,9 @@ export const API_ENDPOINTS = {
   forgotPassword: `${API_BASE_URL}/api/auth/forgot-password`,
   verifyResetToken: `${API_BASE_URL}/api/auth/verify-reset-token`,
   resetPassword: `${API_BASE_URL}/api/auth/reset-password`,
+  requestEmailChange: `${API_BASE_URL}/api/auth/request-email-change`,
+  confirmEmailChange: (token: string) => `${API_BASE_URL}/api/auth/confirm-email-change?token=${token}`,
+  changePassword: `${API_BASE_URL}/api/auth/change-password`,
   
   // Profile & Measurements
   baseUrl: API_BASE_URL,
