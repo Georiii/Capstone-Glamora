@@ -34,6 +34,10 @@
     text-decoration: underline;
 }
 
+.posts-section {
+    margin-top: 0;
+}
+
 .posts-section h3 {
     font-size: 1.5rem;
     color: #2C3E50;
@@ -46,28 +50,51 @@
     gap: 15px;
 }
 
-.post-item {
+/* Simple Post Item List View (matches first reference) */
+.post-item-simple {
     background: white;
     border-radius: 8px;
-    padding: 20px;
+    padding: 15px 20px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 12px;
+    border: 1px solid #e0e0e0;
 }
 
-.post-info {
+.post-item-left {
     display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.post-type {
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+}
+
+.view-post-link {
+    color: #007AFF;
+    text-decoration: none;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.view-post-link:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.post-item-actions {
+    display: flex;
+    gap: 12px;
     align-items: center;
-    gap: 15px;
 }
 
-.post-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.approve-btn, .disapprove-btn {
+.approve-icon-btn, .disapprove-icon-btn {
     width: 40px;
     height: 40px;
     border: none;
@@ -77,21 +104,129 @@
     align-items: center;
     justify-content: center;
     font-size: 18px;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
 }
 
-.approve-btn {
+.approve-icon-btn {
     background-color: #27ae60;
     color: white;
 }
 
-.disapprove-btn {
+.approve-icon-btn:hover {
+    background-color: #229954;
+    transform: scale(1.1);
+}
+
+.disapprove-icon-btn {
     background-color: #e74c3c;
     color: white;
 }
 
-.approve-btn:hover, .disapprove-btn:hover {
+.disapprove-icon-btn:hover {
+    background-color: #c0392b;
     transform: scale(1.1);
+}
+
+/* Post Detail Modal Styles (matches second reference) */
+.post-detail-content {
+    padding: 10px 0;
+}
+
+.post-detail-layout {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+.post-detail-image-container {
+    flex-shrink: 0;
+}
+
+.post-detail-image {
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.post-detail-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.post-detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.post-detail-label {
+    font-size: 14px;
+    color: #666;
+    font-weight: normal;
+    text-transform: capitalize;
+}
+
+.post-detail-value {
+    font-size: 16px;
+    color: #333;
+    font-weight: normal;
+}
+
+.post-detail-name {
+    font-weight: 600;
+    color: #000;
+    font-size: 18px;
+}
+
+.post-detail-price {
+    font-weight: 600;
+    color: #000;
+    font-size: 18px;
+}
+
+.post-detail-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.post-detail-actions .approve-btn,
+.post-detail-actions .disapprove-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    flex: 1;
+    max-width: 150px;
+}
+
+.post-detail-actions .approve-btn {
+    background-color: #e8e8e8;
+    color: #27ae60;
+}
+
+.post-detail-actions .approve-btn:hover {
+    background-color: #d0d0d0;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.post-detail-actions .disapprove-btn {
+    background-color: #e8e8e8;
+    color: #e74c3c;
+}
+
+.post-detail-actions .disapprove-btn:hover {
+    background-color: #d0d0d0;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .reports-btn {
@@ -604,16 +739,22 @@
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
 }
 
 .modal-content {
     background-color: white;
-    margin: 10% auto;
+    margin: 5% auto;
     padding: 0;
     border-radius: 12px;
     width: 90%;
     max-width: 500px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content.post-detail-modal {
+    max-width: 900px !important;
+    position: relative;
 }
 
 .modal-header {
@@ -635,6 +776,10 @@
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    line-height: 1;
 }
 
 .close:hover {
@@ -694,6 +839,37 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .post-item-simple {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .post-item-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .post-detail-layout {
+        flex-direction: column;
+    }
+    
+    .post-detail-image {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        max-height: 400px;
+    }
+    
+    .post-detail-actions {
+        flex-direction: column;
+    }
+    
+    .post-detail-actions .approve-btn,
+    .post-detail-actions .disapprove-btn {
+        max-width: 100%;
+    }
+    
     .evidence-photos-container {
         justify-content: center;
     }

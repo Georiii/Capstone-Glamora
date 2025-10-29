@@ -18,6 +18,34 @@ class ContentModerationManager {
         if (editBtn) {
             editBtn.addEventListener('click', () => this.editGuidelines());
         }
+        
+        // Close modal on backdrop click
+        const postDetailModal = document.getElementById('postDetailModal');
+        if (postDetailModal) {
+            postDetailModal.addEventListener('click', (e) => {
+                if (e.target === postDetailModal) {
+                    this.closePostDetail();
+                }
+            });
+            
+            // Prevent modal from closing when clicking inside modal content
+            const modalContent = postDetailModal.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
+        }
+        
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('postDetailModal');
+                if (modal && modal.style.display === 'block') {
+                    this.closePostDetail();
+                }
+            }
+        });
     }
 
     async loadContentModeration() {
@@ -64,25 +92,17 @@ class ContentModerationManager {
             
             items.forEach(item => {
                 const postElement = document.createElement('div');
-                postElement.className = 'post-item';
+                postElement.className = 'post-item-simple';
                 postElement.innerHTML = `
-                    <div class="post-info">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <img src="${item.imageUrl || 'https://via.placeholder.com/60'}" alt="${item.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
-                            <div>
-                                <div style="font-weight: 600; margin-bottom: 4px;">${item.name}</div>
-                                <div style="font-size: 12px; color: #666;">${item.description || 'No description'}</div>
-                                <div style="font-size: 12px; color: #888; margin-top: 4px;">By: ${item.userName || item.userId?.name || 'Unknown'}</div>
-                                <div style="font-size: 12px; color: #888;">Price: ₱${item.price || 0}</div>
-                            </div>
-                        </div>
-                        <a href="#" onclick="contentModeration.viewPost('${item._id}')" style="margin-top: 8px; display: inline-block;">View post</a>
+                    <div class="post-item-left">
+                        <span class="post-type">User Post</span>
+                        <a href="#" class="view-post-link" onclick="contentModeration.viewPost('${item._id}'); return false;">View post</a>
                     </div>
-                    <div class="post-actions">
-                        <button class="approve-btn" onclick="contentModeration.approvePost('${item._id}')" title="Approve">
+                    <div class="post-item-actions">
+                        <button class="approve-icon-btn" onclick="contentModeration.approvePost('${item._id}')" title="Approve">
                             <i class="fas fa-check"></i>
                         </button>
-                        <button class="disapprove-btn" onclick="contentModeration.disapprovePost('${item._id}')" title="Disapprove">
+                        <button class="disapprove-icon-btn" onclick="contentModeration.disapprovePost('${item._id}')" title="Disapprove">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -106,10 +126,73 @@ class ContentModerationManager {
                 return;
             }
 
-            alert(`Item: ${item.name}\nDescription: ${item.description || 'No description'}\nPrice: ₱${item.price}\n\nPosted by: ${item.userName || item.userId?.name || 'Unknown'}`);
+            // Populate the detail modal
+            const modal = document.getElementById('postDetailModal');
+            const content = document.getElementById('postDetailContent');
+            
+            if (!modal || !content) {
+                console.error('Post detail modal elements not found');
+                return;
+            }
+
+            content.innerHTML = `
+                <div class="post-detail-layout">
+                    <div class="post-detail-image-container">
+                        <img src="${item.imageUrl || 'https://via.placeholder.com/300'}" alt="${item.name}" class="post-detail-image">
+                    </div>
+                    <div class="post-detail-info">
+                        <div class="post-detail-field">
+                            <span class="post-detail-label">Cloth name</span>
+                            <span class="post-detail-value post-detail-name">${item.name}</span>
+                        </div>
+                        <div class="post-detail-field">
+                            <span class="post-detail-label">Description</span>
+                            <span class="post-detail-value">${item.description || 'No description provided'}</span>
+                        </div>
+                        <div class="post-detail-field">
+                            <span class="post-detail-label">Price</span>
+                            <span class="post-detail-value post-detail-price">₱${item.price || 0}</span>
+                        </div>
+                        <div class="post-detail-actions">
+                            <button class="approve-btn" onclick="event.stopPropagation(); contentModeration.approvePost('${item._id}');">
+                                Approve
+                            </button>
+                            <button class="disapprove-btn" onclick="event.stopPropagation(); contentModeration.disapprovePostFromDetail('${item._id}');">
+                                Disapprove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Show modal
+            modal.style.display = 'block';
         } catch (error) {
             console.error('Error viewing post:', error);
             AdminUtils.showMessage('Error loading item details', 'error');
+        }
+    }
+
+    closePostDetail() {
+        const modal = document.getElementById('postDetailModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    async disapprovePostFromDetail(itemId) {
+        const reason = prompt('Please provide a reason for rejection:');
+        if (reason === null) return; // User cancelled
+        
+        try {
+            await api.rejectMarketplaceItem(itemId, reason);
+            AdminUtils.showMessage('Item rejected successfully', 'success');
+            this.closePostDetail();
+            await this.renderPendingPosts();
+            AdminUtils.updateMetrics();
+        } catch (error) {
+            console.error('Error rejecting item:', error);
+            AdminUtils.showMessage('Failed to reject item', 'error');
         }
     }
 
@@ -117,6 +200,7 @@ class ContentModerationManager {
         try {
             await api.approveMarketplaceItem(itemId);
             AdminUtils.showMessage('Item approved successfully', 'success');
+            this.closePostDetail();
             await this.renderPendingPosts();
             AdminUtils.updateMetrics();
         } catch (error) {
@@ -132,6 +216,7 @@ class ContentModerationManager {
         try {
             await api.rejectMarketplaceItem(itemId, reason);
             AdminUtils.showMessage('Item rejected successfully', 'success');
+            this.closePostDetail();
             await this.renderPendingPosts();
             AdminUtils.updateMetrics();
         } catch (error) {
