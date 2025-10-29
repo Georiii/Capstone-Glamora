@@ -302,6 +302,29 @@ router.put('/marketplace/:id/approve', adminAuth, async (req, res) => {
 
         await item.save();
 
+        // Automatically send approval confirmation message to the user
+        try {
+            // Find admin user to send as sender
+            const adminUser = await User.findOne({ role: 'admin' });
+            if (adminUser && item.userId) {
+                const approvalMessage = `Your item "${item.name}" has been approved and is now visible in the marketplace.`;
+                
+                const systemMessage = new ChatMessage({
+                    senderId: adminUser._id,
+                    receiverId: item.userId,
+                    text: approvalMessage,
+                    timestamp: new Date(),
+                    read: false
+                });
+                
+                await systemMessage.save();
+                console.log('✅ Approval message sent to user:', item.userId);
+            }
+        } catch (msgError) {
+            // Don't fail the approval if message sending fails
+            console.error('⚠️ Failed to send approval message:', msgError);
+        }
+
         res.json({ message: 'Item approved successfully', item });
     } catch (error) {
         console.error('Approve item error:', error);
@@ -329,7 +352,9 @@ router.put('/marketplace/:id/reject', adminAuth, async (req, res) => {
             // Find admin user to send as sender
             const adminUser = await User.findOne({ role: 'admin' });
             if (adminUser && item.userId) {
-                const rejectionMessage = `Your marketplace post "${item.name}" has been rejected due to a violation of our posting policy. ${reason ? `Reason: ${reason}` : 'Please review our community guidelines and try again.'}`;
+                const rejectionMessage = reason 
+                    ? `Your item was rejected due to policy violations. Reason: ${reason}`
+                    : `Your item was rejected due to policy violations.`;
                 
                 const systemMessage = new ChatMessage({
                     senderId: adminUser._id,
