@@ -185,12 +185,16 @@ const auth = (req, res, next) => {
 // POST /api/auth/request-email-change - Request email change (sends confirmation email)
 router.post('/request-email-change', auth, async (req, res) => {
   try {
-    const { newEmail } = req.body;
+    const { newEmail, currentPassword } = req.body;
     const userId = req.userId;
     
     // Validate input
     if (!newEmail || typeof newEmail !== 'string') {
       return res.status(400).json({ message: 'New email is required.' });
+    }
+    
+    if (!currentPassword || typeof currentPassword !== 'string') {
+      return res.status(400).json({ message: 'Current password is required to change email.' });
     }
     
     // Basic email validation
@@ -203,6 +207,12 @@ router.post('/request-email-change', auth, async (req, res) => {
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
+    }
+    
+    // Verify current password before allowing email change
+    const validPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!validPassword) {
+      return res.status(401).json({ message: 'Current password is incorrect.' });
     }
     
     // Check if new email is different
