@@ -4,12 +4,31 @@ class ContentModerationManager {
     constructor() {
         this.currentView = 'pending'; // 'pending', 'reports', or 'reportDetail'
         this.currentReportId = null;
+        this.refreshInterval = null; // Auto-refresh interval
         this.init();
     }
 
     init() {
         this.setupEventListeners();
         this.loadContentModeration();
+        this.startAutoRefresh();
+    }
+
+    startAutoRefresh() {
+        // Auto-refresh pending items every 30 seconds if on pending view
+        this.refreshInterval = setInterval(async () => {
+            if (this.currentView === 'pending') {
+                console.log('🔄 Auto-refreshing pending items...');
+                await this.renderPendingPosts();
+            }
+        }, 30000); // Refresh every 30 seconds
+    }
+
+    stopAutoRefresh() {
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+            this.refreshInterval = null;
+        }
     }
 
     setupEventListeners() {
@@ -49,9 +68,13 @@ class ContentModerationManager {
     }
 
     async loadContentModeration() {
-        this.renderPendingPosts();
+        console.log('🔄 Loading content moderation...');
+        // Ensure pending view is visible
+        this.showView('pending');
+        await this.renderPendingPosts();
         await this.renderReportsTable();
         this.checkIntegrationStatus();
+        console.log('✅ Content moderation loaded');
     }
 
     async checkIntegrationStatus() {
@@ -62,35 +85,56 @@ class ContentModerationManager {
             // Test API connection
             const isConnected = await api.testConnection();
             if (isConnected) {
-                statusElement.textContent = 'Connected to Mobile App';
+                statusElement.textContent = 'Connected to Backend';
                 statusElement.style.color = '#4CAF50';
             } else {
-                statusElement.textContent = 'Disconnected - Using Mock Data';
+                statusElement.textContent = 'Backend Not Available';
                 statusElement.style.color = '#FF6B6B';
+                // Don't log as error - it's expected if backend is not running
+                console.warn('ℹ️ Backend server not available - this is normal if server is not running');
             }
         } catch (error) {
-            statusElement.textContent = 'Disconnected - Using Mock Data';
+            statusElement.textContent = 'Backend Not Available';
             statusElement.style.color = '#FF6B6B';
+            // Only log non-connection errors as errors
+            if (error.message && !error.message.includes('Failed to fetch') && !error.message.includes('ERR_CONNECTION_REFUSED')) {
+                console.error('Error checking integration status:', error);
+            }
         }
     }
 
     async renderPendingPosts() {
         const container = document.getElementById('pendingPosts');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ Container #pendingPosts not found in DOM');
+            return;
+        }
         
         container.innerHTML = '<div style="text-align: center; padding: 20px;">Loading pending items...</div>';
 
         try {
+            console.log('📦 Fetching pending marketplace items...');
             const items = await api.getPendingMarketplaceItems();
+            console.log('✅ Received items:', items);
+            console.log('📊 Items count:', items?.length || 0);
             
-            if (items.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">No pending items for moderation</div>';
+            if (!items || items.length === 0) {
+                console.log('ℹ️ No pending items found');
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: #666;">
+                        <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">📋</div>
+                        <div style="font-size: 18px; font-weight: 500; color: #888; margin-bottom: 8px;">No pending items to check</div>
+                        <div style="font-size: 14px; color: #aaa;">All items have been moderated. Check back later for new submissions.</div>
+                    </div>
+                `;
                 return;
             }
 
+            console.log('🎨 Rendering', items.length, 'pending items...');
             container.innerHTML = '';
             
-            items.forEach(item => {
+            items.forEach((item, index) => {
+                console.log(`  Item ${index + 1}:`, item.name || item._id);
                 const postElement = document.createElement('div');
                 postElement.className = 'post-item-simple';
                 postElement.innerHTML = `
@@ -109,9 +153,35 @@ class ContentModerationManager {
                 `;
                 container.appendChild(postElement);
             });
+            console.log('✅ Successfully rendered', items.length, 'items');
         } catch (error) {
-            console.error('Error loading pending items:', error);
-            container.innerHTML = '<div style="text-align: center; padding: 20px; color: red;">Error loading pending items. Please try again.</div>';
+            console.error('❌ Error loading pending items:', error);
+            
+            // Check if it's a connection error - show helpful message
+            if (error.isConnectionError || error.message.includes('Cannot connect to backend')) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: #666;">
+                        <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">🔌</div>
+                        <div style="font-size: 18px; font-weight: 500; color: #888; margin-bottom: 8px;">Backend server not connected</div>
+                        <div style="font-size: 14px; color: #aaa; margin-bottom: 12px;">The backend server is not running or not reachable.</div>
+                        <div style="font-size: 12px; color: #bbb; font-style: italic;">Please start the backend server to view pending items.</div>
+                    </div>
+                `;
+            } else {
+                // Other errors - show error message
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    response: error.response
+                });
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: red;">
+                        <div style="font-weight: bold; margin-bottom: 10px;">Error loading pending items</div>
+                        <div style="font-size: 12px; color: #666;">${error.message || 'Unknown error'}</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 10px;">Check browser console for details</div>
+                    </div>
+                `;
+            }
         }
     }
 
@@ -534,6 +604,8 @@ class ContentModerationManager {
         this.currentView = 'pending';
         this.showView('pending');
         await this.renderPendingPosts();
+        // Restart auto-refresh when switching to pending view
+        this.startAutoRefresh();
     }
 
     showView(viewName) {
@@ -549,10 +621,15 @@ class ContentModerationManager {
         // Show the selected view
         if (viewName === 'pending' && pendingView) {
             pendingView.style.display = 'block';
+            console.log('✅ Showing pending view');
+            // Note: Don't call renderPendingPosts here to avoid recursion
+            // It's called separately in loadContentModeration and switchToPending
         } else if (viewName === 'reports' && reportsView) {
             reportsView.style.display = 'block';
+            this.stopAutoRefresh(); // Stop auto-refresh when viewing reports
         } else if (viewName === 'reportDetail' && reportDetailView) {
             reportDetailView.style.display = 'block';
+            this.stopAutoRefresh(); // Stop auto-refresh when viewing report details
         }
     }
 }

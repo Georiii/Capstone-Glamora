@@ -6,8 +6,16 @@ const getApiBaseUrl = () => {
   if (window.location.hostname.includes('netlify.app') || window.location.hostname.includes('glamoraapp')) {
     return 'https://glamora-g5my.onrender.com';
   }
-  // For local development, use localhost
-  return 'http://localhost:5000';
+  
+  // IMPORTANT: Admin dashboard should use Render backend to see items posted by mobile app
+  // Mobile app uses Render backend, so admin must use the same backend to see pending items
+  // If you need to test with local backend, uncomment the line below and comment out the Render URL
+  
+  // For local development - use Render backend to sync with mobile app
+  return 'https://glamora-g5my.onrender.com';
+  
+  // Uncomment below ONLY if you're testing with local backend AND local mobile app
+  // return 'http://localhost:5000';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -54,9 +62,15 @@ const api = {
     // Make authenticated API requests
     request: async (endpoint, options = {}) => {
         const url = `${API_BASE_URL}${endpoint}`;
+        console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
         
         // Get authentication token
-        const token = await api.getAuthToken();
+        let token = await api.getAuthToken();
+        if (!token) {
+            console.error('❌ No admin token available');
+            throw new Error('Authentication failed: No admin token');
+        }
+        console.log('🔑 Using admin token:', token.substring(0, 20) + '...');
         
         const defaultOptions = {
             headers: {
@@ -69,31 +83,69 @@ const api = {
         if (config.body && typeof config.body === 'object') {
             config.body = JSON.stringify(config.body);
         }
-
+        
         try {
-            const response = await fetch(url, config);
-            const data = await response.json();
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
+            const response = await fetch(url, {
+                ...config,
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            console.log(`📥 Response status: ${response.status} ${response.statusText}`);
             
             if (!response.ok) {
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch {
+                    const text = await response.text();
+                    errorData = { message: text || `HTTP error! status: ${response.status}` };
+                }
+                console.error('❌ API Error Response:', errorData);
+                
                 // If token is invalid, clear it and retry
                 if (response.status === 401 && localStorage.getItem('adminToken')) {
-                    console.log('Token expired or invalid, refreshing...');
+                    console.log('🔄 Token expired or invalid, refreshing...');
                     localStorage.removeItem('adminToken');
                     const newToken = await api.getAuthToken();
-                    config.headers['Authorization'] = `Bearer ${newToken}`;
-                    const retryResponse = await fetch(url, config);
-                    const retryData = await retryResponse.json();
-                    if (!retryResponse.ok) {
-                        throw new Error(retryData.message || 'API request failed');
+                    if (newToken) {
+                        config.headers['Authorization'] = `Bearer ${newToken}`;
+                        const retryResponse = await fetch(url, config);
+                        const retryData = await retryResponse.json();
+                        if (!retryResponse.ok) {
+                            const error = new Error(retryData.message || 'API request failed');
+                            error.status = retryResponse.status;
+                            error.response = retryData;
+                            throw error;
+                        }
+                        console.log('✅ Retry successful');
+                        return retryData;
                     }
-                    return retryData;
                 }
-                throw new Error(data.message || 'API request failed');
+                
+                const error = new Error(errorData.message || 'API request failed');
+                error.status = response.status;
+                error.statusText = response.statusText;
+                error.response = errorData;
+                throw error;
             }
             
+            const data = await response.json();
+            console.log('✅ API Response data:', data);
             return data;
         } catch (error) {
-            console.error('API request failed:', error);
+            // Handle network/connection errors gracefully
+            if (error.name === 'AbortError' || error.message.includes('Failed to fetch') || 
+                error.message.includes('ERR_CONNECTION_REFUSED') || error.message.includes('network')) {
+                const friendlyError = new Error('Cannot connect to backend server. Please ensure the server is running.');
+                friendlyError.isConnectionError = true;
+                friendlyError.originalError = error;
+                throw friendlyError;
+            }
+            console.error(`❌ API request failed for ${endpoint}:`, error);
             throw error;
         }
     },
@@ -115,10 +167,24 @@ const api = {
     // Test API connection
     testConnection: async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/health`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            
+            const response = await fetch(`${API_BASE_URL}/health`, {
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
             return response.ok;
         } catch (error) {
-            console.error('API connection test failed:', error);
+            // Don't log connection refused as error - it's expected when backend is down
+            if (error.message && (error.message.includes('Failed to fetch') || 
+                error.message.includes('ERR_CONNECTION_REFUSED') ||
+                error.name === 'AbortError')) {
+                console.warn('⚠️ Backend not reachable (this is normal if server is not running)');
+            } else {
+                console.error('API connection test failed:', error);
+            }
             return false;
         }
     },
@@ -143,11 +209,58 @@ const api = {
     // Get pending marketplace items for moderation
     getPendingMarketplaceItems: async () => {
         try {
+            console.log('📡 Calling API: /api/admin/marketplace/pending');
+            
+            // First check if backend is reachable
+            let healthTimeoutId;
+            try {
+                const controller = new AbortController();
+                healthTimeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                
+                const healthCheck = await fetch(`${API_BASE_URL}/health`, { 
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(healthTimeoutId);
+                
+                if (!healthCheck.ok) {
+                    throw new Error('Backend server not responding');
+                }
+            } catch (healthError) {
+                if (healthTimeoutId) clearTimeout(healthTimeoutId);
+                console.warn('⚠️ Backend server not reachable:', healthError.message);
+                console.warn('⚠️ Returning empty array - backend may be down');
+                // Return empty array instead of throwing - allows UI to show "no items" message
+                return [];
+            }
+            
             const data = await api.request('/api/admin/marketplace/pending');
-            return data.items || [];
+            console.log('📦 API Response:', data);
+            const items = data.items || [];
+            console.log('✅ Parsed items:', items.length, 'items');
+            return items;
         } catch (error) {
-            console.error('Failed to fetch pending items:', error);
-            throw error;
+            // Check if it's a connection error
+            if (error.message.includes('Failed to fetch') || 
+                error.message.includes('ERR_CONNECTION_REFUSED') ||
+                error.message.includes('network') ||
+                error.name === 'TypeError') {
+                console.warn('⚠️ Cannot connect to backend server. This is normal if backend is not running.');
+                console.warn('⚠️ Returning empty array - UI will show "No pending items" message');
+                // Return empty array instead of throwing - prevents UI breakage
+                return [];
+            }
+            
+            console.error('❌ Failed to fetch pending items:', error);
+            console.error('Error details:', {
+                message: error.message,
+                status: error.status,
+                statusText: error.statusText,
+                response: error.response
+            });
+            // For other errors, still return empty array to prevent UI breakage
+            return [];
         }
     },
 

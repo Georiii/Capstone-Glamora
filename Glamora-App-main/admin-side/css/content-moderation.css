@@ -34,16 +34,22 @@
     text-decoration: underline;
 }
 
+.posts-section {
+    margin-top: 30px;
+}
+
 .posts-section h3 {
     font-size: 1.5rem;
     color: #2C3E50;
     margin-bottom: 20px;
+    font-weight: 600;
 }
 
 .posts-list {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    min-height: 200px; /* Ensure container has minimum height for visibility */
 }
 
 .post-item {
@@ -438,6 +444,18 @@
 /* Content View Management */
 .content-view {
     width: 100%;
+    display: block; /* Ensure content-view is visible by default */
+}
+
+/* Ensure pending view is visible */
+#pendingView {
+    display: block !important;
+}
+
+/* Ensure pending posts container is visible */
+#pendingPosts {
+    min-height: 200px;
+    display: block;
 }
 
 /* Back Button */

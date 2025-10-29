@@ -138,8 +138,13 @@ router.post('/marketplace', auth, async (req, res) => {
       userName: user.name || '',
       userEmail: user.email || '',
       userProfilePicture: user.profilePicture?.url || '',
-      status: 'Pending', // New items are pending by default
+      status: 'Pending', // Explicitly set to Pending for moderation
     });
+    
+    // Ensure status is saved (in case schema default isn't working)
+    if (!item.status) {
+      item.status = 'Pending';
+    }
     
     await item.save();
     console.log('✅ Marketplace item created:', item._id);
@@ -155,23 +160,87 @@ router.post('/marketplace', auth, async (req, res) => {
 });
 
 // GET /api/wardrobe/marketplace - Get approved marketplace items
+// Returns only 'Approved' items OR items without status (legacy items from before moderation system)
+// This ensures existing 19 items are still visible while new posts require approval
 router.get('/marketplace', async (req, res) => {
   try {
-    console.log('📦 Fetching marketplace items...');
     const search = req.query.search || '';
-    const query = search ? { name: { $regex: search, $options: 'i' } } : {};
+    console.log('📦 Fetching marketplace items...');
+    console.log('🔍 Search query:', search);
     
-    // Only show 'Approved' items or items without a status (legacy items)
-    query.$or = [
-      { status: 'Approved' },
-      { status: { $exists: false } }
-    ];
+    // Build status filter: Approved items OR items without status (legacy items)
+    // MUST use $or at top level to match EITHER Approved OR items without status
+    // Also check for empty string status in case some items have ""
+    const statusFilter = {
+      $or: [
+        { status: 'Approved' },
+        { status: { $exists: false } }, // Legacy items posted before approval system
+        { status: null }, // Also handle items with null status
+        { status: '' } // Handle empty string status
+      ]
+    };
+    
+    // Combine search filter with status filter using $and
+    let query;
+    if (search) {
+      query = {
+        $and: [
+          { name: { $regex: search, $options: 'i' } },
+          statusFilter
+        ]
+      };
+    } else {
+      // No search - just use status filter
+      query = statusFilter;
+    }
+    
+    console.log('🔍 MongoDB query:', JSON.stringify(query, null, 2));
     
     const items = await MarketplaceItem.find(query)
       .sort({ createdAt: -1 })
-      .populate('userId', 'profilePicture');
+      .populate('userId', 'profilePicture name email');
     
-    console.log(`✅ Found ${items.length} marketplace items`);
+    // Log breakdown for debugging
+    const approvedCount = items.filter(item => item.status === 'Approved').length;
+    const legacyCount = items.filter(item => !item.status || item.status === null).length;
+    const pendingCount = items.filter(item => item.status === 'Pending').length;
+    const rejectedCount = items.filter(item => item.status === 'Rejected').length;
+    
+    console.log(`✅ Found ${items.length} marketplace items:`);
+    console.log(`   - Approved: ${approvedCount}`);
+    console.log(`   - Legacy (no status): ${legacyCount}`);
+    console.log(`   - Pending: ${pendingCount}`);
+    console.log(`   - Rejected: ${rejectedCount}`);
+    
+    // Debug: Always check total count and status distribution for troubleshooting
+    const totalCount = await MarketplaceItem.countDocuments({});
+    if (items.length === 0 && totalCount > 0) {
+      console.log(`⚠️ No items matched query. Total items in DB: ${totalCount}`);
+      
+      // Get status breakdown of ALL items
+      const allItems = await MarketplaceItem.find({}).limit(10);
+      console.log('📊 Sample items status:', allItems.map(item => ({
+        _id: item._id?.toString().substring(0, 10),
+        name: item.name,
+        status: item.status || 'NO STATUS (legacy)',
+        statusType: typeof item.status,
+        hasStatusField: 'status' in item.toObject(),
+        statusValue: item.status === undefined ? 'undefined' : item.status === null ? 'null' : item.status
+      })));
+      
+      // Test individual queries
+      const approvedTest = await MarketplaceItem.countDocuments({ status: 'Approved' });
+      const noStatusTest = await MarketplaceItem.countDocuments({ status: { $exists: false } });
+      const nullStatusTest = await MarketplaceItem.countDocuments({ status: null });
+      const emptyStringTest = await MarketplaceItem.countDocuments({ status: '' });
+      
+      console.log('🔍 Query test results:');
+      console.log(`   - status='Approved': ${approvedTest}`);
+      console.log(`   - status={$exists: false}: ${noStatusTest}`);
+      console.log(`   - status=null: ${nullStatusTest}`);
+      console.log(`   - status='': ${emptyStringTest}`);
+    }
+    
     res.json({ items });
   } catch (err) {
     console.error('❌ Error fetching marketplace items:', err);

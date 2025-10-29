@@ -189,7 +189,11 @@ export default function ItemDetail() {
         router.push('/marketplace');
       }, 500);
       
-      Alert.alert('Success', 'Item posted to marketplace successfully!');
+      Alert.alert(
+        'Pending Review', 
+        'Your item has been submitted for admin approval. It will be visible in the marketplace once approved.',
+        [{ text: 'OK' }]
+      );
     } catch (error: any) {
       console.error('Error posting to marketplace:', error);
       console.error('Error message:', error.message);

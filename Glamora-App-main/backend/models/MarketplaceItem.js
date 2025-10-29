@@ -9,11 +9,13 @@ const marketplaceItemSchema = new mongoose.Schema({
   userName: { type: String },
   userEmail: { type: String },
   userProfilePicture: { type: String },
-  status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
+  status: { type: String, enum: ['Pending', 'Approved', 'Rejected'] }, // No default - legacy items won't have this field
   rejectionReason: { type: String },
   approvedAt: { type: Date },
   rejectedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
+}, {
+  collection: 'marketplaceitems' // Explicitly set collection name to match database
 });
 
 module.exports = mongoose.model('MarketplaceItem', marketplaceItemSchema); 

@@ -278,14 +278,41 @@ router.put('/reports/:id', adminAuth, async (req, res) => {
 
 router.get('/marketplace/pending', adminAuth, async (req, res) => {
     try {
-        const pendingItems = await MarketplaceItem.find({ status: 'Pending' })
+        console.log('📦 Fetching pending marketplace items for admin...');
+        
+        // Check total count first
+        const totalCount = await MarketplaceItem.countDocuments({});
+        console.log(`Total items in marketplaceitems collection: ${totalCount}`);
+        
+        // Try multiple query patterns to catch all pending items
+        // Some items might have status stored as string, some might have different casing
+        const pendingItems = await MarketplaceItem.find({
+            $or: [
+                { status: 'Pending' },
+                { status: 'pending' }, // lowercase
+                { status: 'PENDING' }  // uppercase
+            ]
+        })
             .populate('userId', 'name email profilePicture')
             .sort({ createdAt: -1 });
 
+        console.log(`✅ Found ${pendingItems.length} pending items`);
+        
+        // Debug: If no items, check what statuses actually exist
+        if (pendingItems.length === 0 && totalCount > 0) {
+            const sampleItems = await MarketplaceItem.find({}).limit(10);
+            const statusBreakdown = {};
+            sampleItems.forEach(item => {
+                const status = item.status || 'NO_STATUS';
+                statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
+            });
+            console.log('📊 Status breakdown from sample:', statusBreakdown);
+        }
+
         res.json({ items: pendingItems });
     } catch (error) {
-        console.error('Get pending items error:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('❌ Get pending items error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
@@ -304,7 +331,6 @@ router.put('/marketplace/:id/approve', adminAuth, async (req, res) => {
 
         // Automatically send approval confirmation message to the user
         try {
-            // Find admin user to send as sender
             const adminUser = await User.findOne({ role: 'admin' });
             if (adminUser && item.userId) {
                 const approvalMessage = `Your item "${item.name}" has been approved and is now visible in the marketplace.`;
@@ -352,9 +378,7 @@ router.put('/marketplace/:id/reject', adminAuth, async (req, res) => {
             // Find admin user to send as sender
             const adminUser = await User.findOne({ role: 'admin' });
             if (adminUser && item.userId) {
-                const rejectionMessage = reason 
-                    ? `Your item was rejected due to policy violations. Reason: ${reason}`
-                    : `Your item was rejected due to policy violations.`;
+                const rejectionMessage = `Your marketplace post "${item.name}" has been rejected due to a violation of our posting policy. ${reason ? `Reason: ${reason}` : 'Please review our community guidelines and try again.'}`;
                 
                 const systemMessage = new ChatMessage({
                     senderId: adminUser._id,
