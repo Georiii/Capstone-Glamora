@@ -2,20 +2,28 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { API_BASE_URL } from '../config/api';
+import { Alert, ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { API_ENDPOINTS } from '../config/api';
 
 export default function Security() {
   const router = useRouter();
   const [username, setUsername] = useState('Glamora');
   const [email, setEmail] = useState('Glamora@gmail.com');
-  const [currentPassword, setCurrentPassword] = useState('********');
+  const [originalEmail, setOriginalEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [showEmailChange, setShowEmailChange] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailCurrentPassword, setEmailCurrentPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  // Password visibility states - separate for each field
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showEmailCurrentPassword, setShowEmailCurrentPassword] = useState(false);
 
   useEffect(() => {
     loadUserInfo();
@@ -28,14 +36,122 @@ export default function Security() {
         const user = JSON.parse(userStr);
         setUsername(user.name || 'Glamora');
         setEmail(user.email || 'Glamora@gmail.com');
+        setOriginalEmail(user.email || 'Glamora@gmail.com');
+      }
+      
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Authentication Required', 'Please log in to access security settings.', [
+          { text: 'OK', onPress: () => router.push('/login') }
+        ]);
       }
     } catch (error) {
       console.error('Error loading user info:', error);
     }
   };
 
+  const handleRequestEmailChange = async () => {
+    if (!newEmail || !newEmail.trim()) {
+      Alert.alert('Error', 'Please enter a new email address');
+      return;
+    }
+
+    if (!emailCurrentPassword) {
+      Alert.alert('Error', 'Please enter your current password');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    if (newEmail.toLowerCase() === email.toLowerCase()) {
+      Alert.alert('Error', 'New email must be different from current email');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Authentication required. Please log in again.');
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.requestEmailChange, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          newEmail: newEmail.trim(),
+          currentPassword: emailCurrentPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          Alert.alert('Error', 'Current password is incorrect. Please try again.');
+        } else if (response.status === 409) {
+          Alert.alert('Error', 'This email is already in use by another account.');
+        } else {
+          Alert.alert('Error', data.message || 'Failed to change email');
+        }
+        return;
+      }
+
+      // Email changed successfully - update local state and storage
+      setEmail(data.user.email || newEmail.trim());
+      setOriginalEmail(data.user.email || newEmail.trim());
+      
+      // Update AsyncStorage
+      try {
+        const userStr = await AsyncStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          user.email = data.user.email || newEmail.trim();
+          await AsyncStorage.setItem('user', JSON.stringify(user));
+        }
+      } catch (storageError) {
+        console.error('Error updating user in storage:', storageError);
+      }
+
+      Alert.alert(
+        'Success',
+        'Email successfully updated!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowEmailChange(false);
+              setNewEmail('');
+              setEmailCurrentPassword('');
+            }
+          }
+        ]
+      );
+    } catch (error: any) {
+      console.error('Error requesting email change:', error);
+      Alert.alert(
+        'Error',
+        error.message?.includes('Network request failed')
+          ? 'Unable to connect to server. Please check your internet connection.'
+          : 'Failed to request email change. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleChangePassword = async () => {
-    if (!newPassword || !confirmPassword) {
+    if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all password fields');
       return;
     }
@@ -54,38 +170,53 @@ export default function Security() {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
-        Alert.alert('Error', 'Please login again');
+        Alert.alert('Error', 'Authentication required. Please log in again.');
+        router.push('/login');
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
-        method: 'POST',
+      const response = await fetch(API_ENDPOINTS.changePassword, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          newPassword: newPassword,
-        }),
+          currentPassword,
+          newPassword
+        })
       });
 
-      if (response.ok) {
-        Alert.alert(
-          'Success',
-          'Password changed successfully!',
-          [{ text: 'OK', onPress: () => {
-            setShowPasswordChange(false);
-            setNewPassword('');
-            setConfirmPassword('');
-          }}]
-        );
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Error', errorData.message || 'Failed to change password');
+      const data = await response.json();
+
+      if (!response.ok) {
+        Alert.alert('Error', data.message || 'Failed to change password');
+        return;
       }
-    } catch (error) {
+
+      Alert.alert(
+        'Success',
+        'Password changed successfully!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowPasswordChange(false);
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+            }
+          }
+        ]
+      );
+    } catch (error: any) {
       console.error('Error changing password:', error);
-      Alert.alert('Error', 'Failed to change password. Please try again.');
+      Alert.alert(
+        'Error',
+        error.message?.includes('Network request failed')
+          ? 'Unable to connect to server. Please check your internet connection.'
+          : 'Failed to change password. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -114,83 +245,190 @@ export default function Security() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Email</Text>
           <Text style={styles.sectionValue}>{email}</Text>
+          
+          {showEmailChange ? (
+            <View style={styles.emailChangeForm}>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Current password"
+                  placeholderTextColor="#999"
+                  secureTextEntry={!showEmailCurrentPassword}
+                  value={emailCurrentPassword}
+                  onChangeText={setEmailCurrentPassword}
+                  editable={!loading}
+                />
+                {emailCurrentPassword.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowEmailCurrentPassword(!showEmailCurrentPassword)}
+                  >
+                    <Ionicons
+                      name={showEmailCurrentPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color="#666"
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <TextInput
+                style={styles.emailInput}
+                placeholder="New email address"
+                placeholderTextColor="#999"
+                value={newEmail}
+                onChangeText={setNewEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+              <View style={styles.emailButtons}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => {
+                    setShowEmailChange(false);
+                    setNewEmail('');
+                    setEmailCurrentPassword('');
+                  }}
+                  disabled={loading}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.saveButton, loading && styles.disabledButton]}
+                  onPress={handleRequestEmailChange}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Send Confirmation</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.changeButton}
+              onPress={() => setShowEmailChange(true)}
+              disabled={loading}
+            >
+              <Text style={styles.changeButtonText}>Change</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Password Change Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Change password</Text>
-          <Text style={styles.sectionValue}>{currentPassword}</Text>
+          <Text style={styles.sectionTitle}>Change Password</Text>
           
-          {showPasswordChange && (
+          {showPasswordChange ? (
             <View style={styles.passwordChangeForm}>
               <View style={styles.passwordInputContainer}>
                 <TextInput
                   style={styles.passwordInput}
+                  placeholder="Current password"
+                  placeholderTextColor="#999"
+                  secureTextEntry={!showCurrentPassword}
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  editable={!loading}
+                />
+                {currentPassword.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                  >
+                    <Ionicons
+                      name={showCurrentPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color="#666"
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
                   placeholder="New password"
+                  placeholderTextColor="#999"
                   secureTextEntry={!showNewPassword}
                   value={newPassword}
                   onChangeText={setNewPassword}
+                  editable={!loading}
                 />
-                <TouchableOpacity 
-                  style={styles.eyeIcon}
-                  onPress={() => setShowNewPassword(!showNewPassword)}
-                >
-                  <Ionicons 
-                    name={showNewPassword ? "eye-off" : "eye"} 
-                    size={22} 
-                    color="#666" 
-                  />
-                </TouchableOpacity>
+                {newPassword.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    <Ionicons
+                      name={showNewPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color="#666"
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
+              
               <View style={styles.passwordInputContainer}>
                 <TextInput
                   style={styles.passwordInput}
                   placeholder="Confirm new password"
+                  placeholderTextColor="#999"
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
+                  editable={!loading}
                 />
-                <TouchableOpacity 
-                  style={styles.eyeIcon}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  <Ionicons 
-                    name={showConfirmPassword ? "eye-off" : "eye"} 
-                    size={22} 
-                    color="#666" 
-                  />
-                </TouchableOpacity>
+                {confirmPassword.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <Ionicons
+                      name={showConfirmPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color="#666"
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
+              
               <View style={styles.passwordButtons}>
-                <TouchableOpacity 
-                  style={styles.cancelButton} 
+                <TouchableOpacity
+                  style={styles.cancelButton}
                   onPress={() => {
                     setShowPasswordChange(false);
+                    setCurrentPassword('');
                     setNewPassword('');
                     setConfirmPassword('');
                   }}
+                  disabled={loading}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.saveButton, loading && styles.saveButtonDisabled]} 
+                <TouchableOpacity
+                  style={[styles.saveButton, loading && styles.disabledButton]}
                   onPress={handleChangePassword}
                   disabled={loading}
                 >
-                  <Text style={styles.saveButtonText}>
-                    {loading ? 'Changing...' : 'Save'}
-                  </Text>
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
-          )}
-          
-          {!showPasswordChange && (
-            <TouchableOpacity 
-              style={styles.changePasswordButton}
+          ) : (
+            <TouchableOpacity
+              style={styles.changeButton}
               onPress={() => setShowPasswordChange(true)}
+              disabled={loading}
             >
-              <Text style={styles.changePasswordButtonText}>Change</Text>
+              <Text style={styles.changeButtonText}>Change</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -243,6 +481,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  emailChangeForm: {
+    marginTop: 15,
+  },
+  emailInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
   passwordChangeForm: {
     marginTop: 15,
   },
@@ -255,7 +505,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     borderRadius: 8,
     padding: 12,
-    paddingRight: 50,
+    paddingRight: 45,
     fontSize: 16,
     backgroundColor: '#fff',
   },
@@ -266,6 +516,11 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   passwordButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  emailButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 10,
@@ -288,19 +543,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#007AFF',
   },
+  disabledButton: {
+    opacity: 0.6,
+  },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  saveButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  changePasswordButton: {
+  changeButton: {
     alignSelf: 'flex-start',
     marginTop: 10,
   },
-  changePasswordButtonText: {
+  changeButtonText: {
     color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
