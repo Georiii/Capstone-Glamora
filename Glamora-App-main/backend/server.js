@@ -136,7 +136,47 @@ app.use((err, req, res, next) => {
 const mongoUri = 'mongodb+srv://2260086:0v2FuF3KYSV9Z2zV@glamoraapp.qje3nri.mongodb.net/?retryWrites=true&w=majority&appName=GlamoraApp';
 
 mongoose.connect(mongoUri)
-  .then(() => console.log('✅ MongoDB Atlas connected!'))
+  .then(async () => {
+    console.log('✅ MongoDB Atlas connected!');
+    console.log('📊 Database:', mongoose.connection.db.databaseName);
+    
+    // Auto-migrate marketplace items without status field
+    try {
+      const MarketplaceItem = require('./models/MarketplaceItem');
+      const itemsWithoutStatus = await MarketplaceItem.countDocuments({
+        $or: [
+          { status: { $exists: false } },
+          { status: null },
+          { status: '' }
+        ]
+      });
+      
+      if (itemsWithoutStatus > 0) {
+        console.log(`⚠️  Found ${itemsWithoutStatus} marketplace items without status field`);
+        console.log('🔄 Auto-migrating items to status: Pending...');
+        
+        const result = await MarketplaceItem.updateMany(
+          {
+            $or: [
+              { status: { $exists: false } },
+              { status: null },
+              { status: '' }
+            ]
+          },
+          {
+            $set: { status: 'Pending' }
+          }
+        );
+        
+        console.log(`✅ Auto-migrated ${result.modifiedCount} items to status 'Pending'`);
+      } else {
+        console.log('✅ All marketplace items have status field');
+      }
+    } catch (migrationError) {
+      console.error('⚠️  Migration warning (non-critical):', migrationError.message);
+      // Don't crash server if migration fails
+    }
+  })
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Health check endpoint

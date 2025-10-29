@@ -145,10 +145,22 @@ router.post('/marketplace', auth, async (req, res) => {
     console.log('✅ Marketplace item created:', item._id);
     console.log('📊 Item status:', item.status);
     console.log('📊 Item saved to collection: marketplaceitems');
+    console.log('📊 Full item data:', JSON.stringify({
+      _id: item._id,
+      name: item.name,
+      status: item.status,
+      userId: item.userId,
+      createdAt: item.createdAt
+    }, null, 2));
     
-    // Verify item was saved correctly
+    // Verify item was saved correctly by querying the database directly
     const savedItem = await MarketplaceItem.findById(item._id);
-    console.log('🔍 Verification - Saved item status:', savedItem ? savedItem.status : 'NOT FOUND');
+    if (savedItem) {
+      console.log('🔍 Verification - Saved item status:', savedItem.status);
+      console.log('🔍 Verification - Saved item has status field:', savedItem.status !== undefined && savedItem.status !== null);
+    } else {
+      console.error('❌ Verification FAILED - Item NOT FOUND in database!');
+    }
     
     res.status(201).json({ 
       message: 'Your item is pending review. It will be visible once approved by the admin.', 
