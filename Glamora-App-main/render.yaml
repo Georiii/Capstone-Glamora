@@ -4,9 +4,9 @@ services:
     env: node
     buildCommand: npm install
     startCommand: npm start
-    rootDir: .
+    rootDir: backend
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: 5000
