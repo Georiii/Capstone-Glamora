@@ -50,7 +50,7 @@ class ContentModerationManager {
 
             adminSocket.on('marketplace:item:created', (data) => {
                 console.log('📢 New marketplace item:', data);
-                if (this.currentView === 'pending') this.renderPendingModeration();
+                if (this.currentView === 'pending') this.renderPendingPosts();
             });
 
             adminSocket.on('marketplace:item:approved', (data) => {
@@ -513,11 +513,29 @@ class ContentModerationManager {
     }
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+// Initialize content moderation manager when DOM is loaded
+function initContentModeration() {
+    if (!window.contentModeration) {
+        console.log('🚀 Initializing Content Moderation Manager...');
         window.contentModeration = new ContentModerationManager();
-    });
-} else {
-    window.contentModeration = new ContentModerationManager();
+    } else {
+        console.log('⚠️ Content Moderation Manager already initialized');
+    }
 }
 
+// Try initialization when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initContentModeration);
+} else {
+    // DOM is already loaded (common on Netlify with cached pages)
+    console.log('📄 DOM already loaded, initializing immediately...');
+    initContentModeration();
+}
+
+// Fallback: Also try after a short delay (for slow-loading scripts on Netlify)
+setTimeout(() => {
+    if (!window.contentModeration) {
+        console.log('⏰ Fallback initialization after delay...');
+        initContentModeration();
+    }
+}, 500);
