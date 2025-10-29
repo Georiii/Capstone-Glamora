@@ -163,9 +163,10 @@ router.post('/marketplace', auth, async (req, res) => {
       userName: user.name || '',
       userEmail: user.email || '',
       userProfilePicture: user.profilePicture?.url || '', // Include seller's profile picture
+      status: 'Pending',
     });
     await item.save();
-    res.status(201).json({ message: 'Marketplace item posted', item });
+    res.status(201).json({ message: 'Marketplace item posted and pending review', item });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -175,8 +176,21 @@ router.post('/marketplace', auth, async (req, res) => {
 router.get('/marketplace', async (req, res) => {
   try {
     const search = req.query.search || '';
-    const query = search ? { name: { $regex: search, $options: 'i' } } : {};
-    const items = await MarketplaceItem.find(query).sort({ createdAt: -1 }).populate('userId', 'profilePicture');
+    const status = req.query.status || 'Approved';
+    // Show only approved items by default. Treat documents without status as Approved for backward compatibility.
+    const baseStatusFilter = status === 'all' ? {} : {
+      $or: [
+        { status: status },
+        ...(status === 'Approved' ? [{ status: { $exists: false } }] : [])
+      ]
+    };
+
+    const textFilter = search ? { name: { $regex: search, $options: 'i' } } : {};
+    const query = { ...baseStatusFilter, ...textFilter };
+
+    const items = await MarketplaceItem.find(query)
+      .sort({ createdAt: -1 })
+      .populate('userId', 'profilePicture');
     
     // Update each item with the latest profile picture from the user
     const itemsWithUpdatedPictures = items.map(item => {
@@ -198,8 +212,81 @@ router.get('/marketplace', async (req, res) => {
 // GET /api/marketplace/user - list marketplace items for current user
 router.get('/marketplace/user', auth, async (req, res) => {
   try {
+    // Return all items for the current user with their moderation status
     const items = await MarketplaceItem.find({ userId: req.userId }).sort({ createdAt: -1 });
     res.json({ items });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// --- Admin Moderation Endpoints ---
+// Simple admin check using user role; if not admin, 403
+async function requireAdmin(req, res, next) {
+  try {
+    const user = await User.findById(req.userId);
+    if (user && user.role === 'admin') return next();
+    return res.status(403).json({ message: 'Admin access required' });
+  } catch (e) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// List pending items for moderation
+router.get('/marketplace/moderation/pending', auth, requireAdmin, async (req, res) => {
+  try {
+    const items = await MarketplaceItem.find({ status: 'Pending' }).sort({ createdAt: -1 });
+    res.json({ items });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Approve an item
+router.put('/marketplace/:id/approve', auth, requireAdmin, async (req, res) => {
+  try {
+    const item = await MarketplaceItem.findByIdAndUpdate(
+      req.params.id,
+      { status: 'Approved', approvedAt: new Date(), rejectionReason: null },
+      { new: true }
+    );
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+    res.json({ message: 'Item approved', item });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Reject an item and notify user via Chat (if admin exists)
+router.put('/marketplace/:id/reject', auth, requireAdmin, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const item = await MarketplaceItem.findByIdAndUpdate(
+      req.params.id,
+      { status: 'Rejected', rejectedAt: new Date(), rejectionReason: reason || 'Not specified' },
+      { new: true }
+    );
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+
+    // Attempt to send a system message to the seller
+    try {
+      const ChatMessage = require('../models/Chat');
+      const adminUser = await User.findOne({ role: 'admin' });
+      if (adminUser) {
+        await ChatMessage.create({
+          senderId: adminUser._id,
+          receiverId: item.userId,
+          text: `Your marketplace post "${item.name}" was rejected. Reason: ${reason || 'Not specified'}. Please review the community guidelines and submit again.`,
+          timestamp: new Date(),
+          read: false
+        });
+      }
+    } catch (notifyErr) {
+      // Do not fail the request if messaging fails
+      console.warn('Moderation notification failed:', notifyErr?.message);
+    }
+
+    res.json({ message: 'Item rejected', item });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }

@@ -191,4 +191,25 @@ router.put('/mark-read/:userId', auth, async (req, res) => {
   }
 });
 
+// DELETE /api/chat/conversations/:userId - Delete conversation with a user
+router.delete('/conversations/:userId', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.userId;
+
+    // Delete all messages between the two users
+    const result = await ChatMessage.deleteMany({
+      $or: [
+        { senderId: currentUserId, receiverId: userId },
+        { senderId: userId, receiverId: currentUserId },
+      ],
+    });
+
+    return res.json({ message: 'Conversation deleted', deletedCount: result.deletedCount });
+  } catch (err) {
+    console.error('Error deleting conversation:', err);
+    res.status(500).json({ message: 'Failed to delete conversation.', error: err.message });
+  }
+});
+
 module.exports = router; 
