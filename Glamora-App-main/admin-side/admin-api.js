@@ -1,12 +1,12 @@
 // Admin API Backend Routes
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../GlamoraApp/backend/models/User');
-const Report = require('../GlamoraApp/backend/models/Report');
-const MarketplaceItem = require('../GlamoraApp/backend/models/MarketplaceItem');
-const WardrobeItem = require('../GlamoraApp/backend/models/WardrobeItem');
-const ChatMessage = require('../GlamoraApp/backend/models/Chat');
-const { JWT_SECRET } = require('../GlamoraApp/backend/config/database');
+const User = require('../backend/models/User');
+const Report = require('../backend/models/Report');
+const MarketplaceItem = require('../backend/models/MarketplaceItem');
+const WardrobeItem = require('../backend/models/WardrobeItem');
+const ChatMessage = require('../backend/models/Chat');
+const { JWT_SECRET } = require('../backend/config/database');
 
 const router = express.Router();
 
@@ -45,13 +45,23 @@ router.post('/login', async (req, res) => {
             let adminUser = await User.findOne({ email: 'admin@glamora.com' });
             
             if (!adminUser) {
+                const bcrypt = require('bcrypt');
+                const hashedPassword = await bcrypt.hash('admin123', 10);
+                
                 adminUser = new User({
                     name: 'Admin',
+                    username: 'admin',
                     email: 'admin@glamora.com',
-                    password: 'hashed_password', // In production, hash this
+                    passwordHash: hashedPassword,
                     role: 'admin',
                     isActive: true
                 });
+                await adminUser.save();
+            }
+
+            // Ensure admin user has role set
+            if (adminUser.role !== 'admin') {
+                adminUser.role = 'admin';
                 await adminUser.save();
             }
 
@@ -68,7 +78,7 @@ router.post('/login', async (req, res) => {
                     id: adminUser._id,
                     name: adminUser.name,
                     email: adminUser.email,
-                    role: adminUser.role
+                    role: adminUser.role || 'admin'
                 }
             });
         } else {
@@ -86,8 +96,13 @@ router.get('/metrics', adminAuth, async (req, res) => {
         const totalUsers = await User.countDocuments({ role: 'user' });
         const activeUsers = await User.countDocuments({ role: 'user', isActive: true });
         const totalReports = await Report.countDocuments();
-        const activeListings = await MarketplaceItem.countDocuments({ status: 'active' });
-        const pendingPosts = await MarketplaceItem.countDocuments({ status: 'pending' });
+        const activeListings = await MarketplaceItem.countDocuments({ 
+            $or: [
+                { status: 'Approved' },
+                { status: { $exists: false } }
+            ]
+        });
+        const pendingPosts = await MarketplaceItem.countDocuments({ status: 'Pending' });
 
         res.json({
             totalUsers,
@@ -308,6 +323,29 @@ router.put('/marketplace/:id/reject', adminAuth, async (req, res) => {
         item.rejectedAt = new Date();
 
         await item.save();
+
+        // Automatically send rejection message to the user
+        try {
+            // Find admin user to send as sender
+            const adminUser = await User.findOne({ role: 'admin' });
+            if (adminUser && item.userId) {
+                const rejectionMessage = `Your marketplace post "${item.name}" has been rejected due to a violation of our posting policy. ${reason ? `Reason: ${reason}` : 'Please review our community guidelines and try again.'}`;
+                
+                const systemMessage = new ChatMessage({
+                    senderId: adminUser._id,
+                    receiverId: item.userId,
+                    text: rejectionMessage,
+                    timestamp: new Date(),
+                    read: false
+                });
+                
+                await systemMessage.save();
+                console.log('✅ Rejection message sent to user:', item.userId);
+            }
+        } catch (msgError) {
+            // Don't fail the rejection if message sending fails
+            console.error('⚠️ Failed to send rejection message:', msgError);
+        }
 
         res.json({ message: 'Item rejected successfully', item });
     } catch (error) {

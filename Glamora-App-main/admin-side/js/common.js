@@ -1,7 +1,17 @@
 // Common JavaScript functionality shared across all pages
 
-// API Configuration - Backend runs on port 5000
-const API_BASE_URL = 'http://localhost:5000';
+// API Configuration - Dynamically detect environment
+const getApiBaseUrl = () => {
+  // If running on Netlify (production), use Render backend
+  if (window.location.hostname.includes('netlify.app') || window.location.hostname.includes('glamoraapp')) {
+    return 'https://glamora-g5my.onrender.com';
+  }
+  // For local development, use localhost
+  return 'http://localhost:5000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+console.log('🔗 Admin API Base URL:', API_BASE_URL);
 
 // API Helper Functions
 const api = {
@@ -12,7 +22,7 @@ const api = {
         // If no token or token is placeholder, login as admin
         if (!token || token === 'admin_token_placeholder') {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/auth/admin/login`, {
+                const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
