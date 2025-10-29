@@ -155,23 +155,27 @@ router.post('/marketplace', auth, async (req, res) => {
 });
 
 // GET /api/wardrobe/marketplace - Get approved marketplace items
+// Returns ALL approved items visible to EVERYONE (no userId filter)
 router.get('/marketplace', async (req, res) => {
   try {
-    console.log('📦 Fetching marketplace items...');
+    console.log('📦 Fetching marketplace items (public feed - all users)...');
     const search = req.query.search || '';
     const query = search ? { name: { $regex: search, $options: 'i' } } : {};
     
-    // Only show 'Approved' items or items without a status (legacy items)
+    // Only show 'Approved' items or items without a status (legacy items from before moderation)
+    // NO userId filter - these items are visible to ALL registered users
     query.$or = [
       { status: 'Approved' },
-      { status: { $exists: false } }
+      { status: { $exists: false } } // Legacy items posted before approval system
     ];
     
     const items = await MarketplaceItem.find(query)
       .sort({ createdAt: -1 })
-      .populate('userId', 'profilePicture');
+      .populate('userId', 'profilePicture name email');
     
-    console.log(`✅ Found ${items.length} marketplace items`);
+    console.log(`✅ Found ${items.length} approved marketplace items (visible to all users)`);
+    console.log(`📊 Status breakdown: Approved=${items.filter(i => i.status === 'Approved').length}, Legacy=${items.filter(i => !i.status).length}`);
+    
     res.json({ items });
   } catch (err) {
     console.error('❌ Error fetching marketplace items:', err);

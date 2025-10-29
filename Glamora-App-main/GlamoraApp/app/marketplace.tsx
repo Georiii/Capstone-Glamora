@@ -49,10 +49,15 @@ export default function Marketplace() {
         console.error('JSON parse error');
         throw new Error('Invalid server response. Please try again.');
       }
-      const publicItems: MarketplaceItem[] = data.items || [];
+      // Public feed: All approved items (visible to everyone)
+      // Backend already filters to show only 'Approved' items or items without status (legacy items)
+      const publicItems: MarketplaceItem[] = (data.items || []).filter(item => {
+        // Additional frontend safety: Only show approved items or items without status
+        return !item.status || item.status === 'Approved';
+      });
 
-      // 2) User's own items (includes Pending) – merge for owner-only visibility of pending posts
-      //    This keeps public moderation intact while letting the poster see their own pending items.
+      // Merge user's own Pending items so they can see their pending posts
+      // This ensures moderation flow while letting users track their submissions
       try {
         const token = await (await import('@react-native-async-storage/async-storage')).default.getItem('token');
         if (token) {
@@ -61,22 +66,34 @@ export default function Marketplace() {
           });
           if (meResp.ok) {
             const meData = await meResp.json();
-            const myItems: MarketplaceItem[] = meData.items || [];
+            const myItems: MarketplaceItem[] = (meData.items || []).filter(item => {
+              // Only include pending/rejected items from user (they already see approved via publicItems)
+              return item.status === 'Pending' || item.status === 'Rejected';
+            });
 
-            // Merge unique by _id; keep public first to preserve ordering
-            const map = new Map<string, MarketplaceItem>();
-            for (const it of publicItems) map.set(it._id, it);
-            for (const it of myItems) if (!map.has(it._id)) map.set(it._id, it);
-            setItems(Array.from(map.values()));
+            // Merge: All public approved items + user's own pending/rejected items
+            const itemMap = new Map<string, MarketplaceItem>();
+            // First, add all public approved items (visible to everyone)
+            for (const it of publicItems) {
+              itemMap.set(it._id, it);
+            }
+            // Then, add user's own pending/rejected items (only visible to them)
+            for (const it of myItems) {
+              if (!itemMap.has(it._id)) {
+                itemMap.set(it._id, it);
+              }
+            }
+            setItems(Array.from(itemMap.values()));
           } else {
-            // Fallback to public items only
+            // Fallback: Show all public approved items
             setItems(publicItems);
           }
         } else {
+          // No token: Show all public approved items only
           setItems(publicItems);
         }
       } catch {
-        // If anything fails in secondary call, still show public items
+        // On error: Show all public approved items
         setItems(publicItems);
       }
       setLoading(false);
