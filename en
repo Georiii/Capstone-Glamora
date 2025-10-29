@@ -1,0 +1,47 @@
+[1mdiff --git a/Glamora-App-main/admin-side/js/content-moderation.js b/Glamora-App-main/admin-side/js/content-moderation.js[m
+[1mindex 12ac575..70ed9a3 100644[m
+[1m--- a/Glamora-App-main/admin-side/js/content-moderation.js[m
+[1m+++ b/Glamora-App-main/admin-side/js/content-moderation.js[m
+[36m@@ -50,7 +50,7 @@[m [mclass ContentModerationManager {[m
+ [m
+             adminSocket.on('marketplace:item:created', (data) => {[m
+                 console.log('📢 New marketplace item:', data);[m
+[31m-                if (this.currentView === 'pending') this.renderPendingModeration();[m
+[32m+[m[32m                if (this.currentView === 'pending') this.renderPendingPosts();[m
+             });[m
+ [m
+             adminSocket.on('marketplace:item:approved', (data) => {[m
+[36m@@ -513,11 +513,29 @@[m [mclass ContentModerationManager {[m
+     }[m
+ }[m
+ [m
+[31m-if (document.readyState === 'loading') {[m
+[31m-    document.addEventListener('DOMContentLoaded', () => {[m
+[32m+[m[32m// Initialize content moderation manager when DOM is loaded[m
+[32m+[m[32mfunction initContentModeration() {[m
+[32m+[m[32m    if (!window.contentModeration) {[m
+[32m+[m[32m        console.log('🚀 Initializing Content Moderation Manager...');[m
+         window.contentModeration = new ContentModerationManager();[m
+[31m-    });[m
+[32m+[m[32m    } else {[m
+[32m+[m[32m        console.log('⚠️ Content Moderation Manager already initialized');[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m// Try initialization when DOM is ready[m
+[32m+[m[32mif (document.readyState === 'loading') {[m
+[32m+[m[32m    document.addEventListener('DOMContentLoaded', initContentModeration);[m
+ } else {[m
+[31m-    window.contentModeration = new ContentModerationManager();[m
+[32m+[m[32m    // DOM is already loaded (common on Netlify with cached pages)[m
+[32m+[m[32m    console.log('📄 DOM already loaded, initializing immediately...');[m
+[32m+[m[32m    initContentModeration();[m
+ }[m
+ [m
+[32m+[m[32m// Fallback: Also try after a short delay (for slow-loading scripts on Netlify)[m
+[32m+[m[32msetTimeout(() => {[m
+[32m+[m[32m    if (!window.contentModeration) {[m
+[32m+[m[32m        console.log('⏰ Fallback initialization after delay...');[m
+[32m+[m[32m        initContentModeration();[m
+[32m+[m[32m    }[m
+[32m+[m[32m}, 500);[m

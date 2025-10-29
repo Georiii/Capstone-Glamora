@@ -1,0 +1,121 @@
+ Glamora-App-main/.gitignore                        |  123 [32m+[m[31m-[m
+ Glamora-App-main/.gitmodules                       |    2 [31m-[m
+ Glamora-App-main/.netlify/state.json               |    5 [31m-[m
+ Glamora-App-main/.netlify_version.txt              |    2 [31m-[m
+ Glamora-App-main/.netlifyrc                        |   10 [31m-[m
+ Glamora-App-main/ACTUAL_BUGS_FOUND.md              |  539 [31m-----[m
+ Glamora-App-main/ADMIN_DASHBOARD_INTEGRATION.md    |  347 [31m---[m
+ Glamora-App-main/AUDIT_SUMMARY_QUICK_REFERENCE.md  |  343 [31m---[m
+ Glamora-App-main/CRITICAL_FIXES_REQUIRED.md        |  510 [31m-----[m
+ Glamora-App-main/FIXES_APPLIED.md                  |  145 [31m--[m
+ Glamora-App-main/Glamora-App-main                  |    1 [32m+[m
+ Glamora-App-main/GlamoraApp/android/.gitignore     |   16 [31m-[m
+ .../GlamoraApp/android/app/build.gradle            |  177 [31m--[m
+ .../GlamoraApp/android/app/debug.keystore          |  Bin [31m2257[m -> [32m0[m bytes
+ .../GlamoraApp/android/app/proguard-rules.pro      |   14 [31m-[m
+ .../android/app/src/debug/AndroidManifest.xml      |    7 [31m-[m
+ .../android/app/src/main/AndroidManifest.xml       |   32 [31m-[m
+ .../src/main/java/com/glamora/app/MainActivity.kt  |   65 [31m-[m
+ .../main/java/com/glamora/app/MainApplication.kt   |   57 [31m-[m
+ .../main/res/drawable-hdpi/splashscreen_logo.png   |  Bin [31m20754[m -> [32m0[m bytes
+ .../main/res/drawable-mdpi/splashscreen_logo.png   |  Bin [31m12863[m -> [32m0[m bytes
+ .../main/res/drawable-xhdpi/splashscreen_logo.png  |  Bin [31m29081[m -> [32m0[m bytes
+ .../main/res/drawable-xxhdpi/splashscreen_logo.png |  Bin [31m47123[m -> [32m0[m bytes
+ .../res/drawable-xxxhdpi/splashscreen_logo.png     |  Bin [31m66529[m -> [32m0[m bytes
+ .../main/res/drawable/ic_launcher_background.xml   |    6 [31m-[m
+ .../main/res/drawable/rn_edit_text_material.xml    |   37 [31m-[m
+ .../app/src/main/res/mipmap-hdpi/ic_launcher.webp  |  Bin [31m3056[m -> [32m0[m bytes
+ .../main/res/mipmap-hdpi/ic_launcher_round.webp    |  Bin [31m5024[m -> [32m0[m bytes
+ .../app/src/main/res/mipmap-mdpi/ic_launcher.webp  |  Bin [31m2096[m -> [32m0[m bytes
+ .../main/res/mipmap-mdpi/ic_launcher_round.webp    |  Bin [31m2858[m -> [32m0[m bytes
+ .../app/src/main/res/mipmap-xhdpi/ic_launcher.webp |  Bin [31m4569[m -> [32m0[m bytes
+ .../main/res/mipmap-xhdpi/ic_launcher_round.webp   |  Bin [31m7098[m -> [32m0[m bytes
+ .../src/main/res/mipmap-xxhdpi/ic_launcher.webp    |  Bin [31m6464[m -> [32m0[m bytes
+ .../main/res/mipmap-xxhdpi/ic_launcher_round.webp  |  Bin [31m10676[m -> [32m0[m bytes
+ .../src/main/res/mipmap-xxxhdpi/ic_launcher.webp   |  Bin [31m9250[m -> [32m0[m bytes
+ .../main/res/mipmap-xxxhdpi/ic_launcher_round.webp |  Bin [31m15523[m -> [32m0[m bytes
+ .../app/src/main/res/values-night/colors.xml       |    1 [31m-[m
+ .../android/app/src/main/res/values/colors.xml     |    5 [31m-[m
+ .../android/app/src/main/res/values/strings.xml    |    3 [31m-[m
+ .../android/app/src/main/res/values/styles.xml     |   13 [31m-[m
+ .../src/main/res/xml/network_security_config.xml   |   14 [32m+[m
+ Glamora-App-main/GlamoraApp/android/build.gradle   |   37 [31m-[m
+ .../build/generated/autolinking/autolinking.json   |    1 [32m+[m
+ .../build/generated/autolinking/package.json.sha   |    1 [32m+[m
+ .../build/generated/autolinking/yarn.lock.sha      |    1 [32m+[m
+ .../GlamoraApp/android/gradle.properties           |   59 [31m-[m
+ .../android/gradle/wrapper/gradle-wrapper.jar      |  Bin [31m43583[m -> [32m0[m bytes
+ .../gradle/wrapper/gradle-wrapper.properties       |    7 [31m-[m
+ Glamora-App-main/GlamoraApp/android/gradlew        |  251 [31m---[m
+ Glamora-App-main/GlamoraApp/android/gradlew.bat    |   94 [31m-[m
+ .../GlamoraApp/android/settings.gradle             |   39 [31m-[m
+ Glamora-App-main/GlamoraApp/app.config.js          |    8 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/_layout.tsx        |   67 [32m+[m[31m-[m
+ .../GlamoraApp/app/accessories-category.tsx        |   10 [32m+[m[31m-[m
+ .../GlamoraApp/app/bottoms-category.tsx            |   10 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/category.tsx       |  277 [32m++[m[31m-[m
+ .../GlamoraApp/app/combine-outfits.tsx             |   26 [32m+[m[31m-[m
+ .../GlamoraApp/app/contexts/AuthContext.tsx        |  255 [31m---[m
+ .../GlamoraApp/app/contexts/SocketContext.tsx      |   42 [32m+[m[31m-[m
+ .../GlamoraApp/app/contexts/UserContext.tsx        |   13 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/index.tsx          |  146 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/item-detail.tsx    |   41 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/login.tsx          |   61 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/marketplace.tsx    |  297 [32m++[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/message-box.tsx    |   15 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/message-user.tsx   |  160 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/outfit-details.tsx |    4 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/profile.tsx        |   12 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/register.tsx       |  264 [32m+[m[31m--[m
+ Glamora-App-main/GlamoraApp/app/scannedclothes.tsx |   21 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/security.tsx       |  128 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/settings.tsx       |   11 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/shoes-category.tsx |   12 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/app/wardrobe.tsx       |   14 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/babel.config.js        |   17 [31m-[m
+ .../GlamoraApp/backend/models/MarketplaceItem.js   |    8 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/backend/models/User.js |   11 [31m-[m
+ .../GlamoraApp/backend/routes/admin-bridge.js      |  118 [32m++[m
+ .../GlamoraApp/backend/routes/admin.js             |  729 [31m-------[m
+ Glamora-App-main/GlamoraApp/backend/routes/auth.js |   38 [31m-[m
+ Glamora-App-main/GlamoraApp/backend/routes/chat.js |   21 [32m+[m
+ .../GlamoraApp/backend/routes/report.js            |   12 [31m-[m
+ .../GlamoraApp/backend/routes/wardrobe.js          |  117 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/backend/server.js      |   61 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/config/api.ts          |   18 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/metro.config.js        |   55 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/package-lock.json      | 2241 [32m+++++++++++[m[31m---------[m
+ Glamora-App-main/GlamoraApp/package.json           |   32 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/tsconfig.json          |    4 [32m+[m[31m-[m
+ Glamora-App-main/GlamoraApp/utils/apiCache.ts      |  185 [31m--[m
+ .../GlamoraApp/utils/passwordValidation.ts         |   81 [31m-[m
+ Glamora-App-main/GlamoraApp/utils/storage.ts       |  100 [31m-[m
+ Glamora-App-main/HYBRID_RECOMMENDATION_PLAN.md     |  280 [31m---[m
+ Glamora-App-main/MARKETPLACE_FIX_DIAGNOSTIC.md     |  141 [31m--[m
+ Glamora-App-main/NETLIFY_DEPLOYMENT_GUIDE.md       |  212 [31m--[m
+ Glamora-App-main/PERMANENT_FIX.md                  |   96 [31m-[m
+ Glamora-App-main/SKIP_SUBMODULES.md                |   31 [31m-[m
+ Glamora-App-main/START-MARKETPLACE.bat             |   17 [31m-[m
+ Glamora-App-main/SYSTEM_AUDIT_REPORT.md            |  633 [31m------[m
+ Glamora-App-main/admin-side/admin-api.js           |  143 [32m+[m[31m-[m
+ Glamora-App-main/admin-side/analytics.html         |    4 [32m+[m[31m-[m
+ .../admin-side/content-moderation.html             |   37 [32m+[m[31m-[m
+ .../admin-side/css/content-moderation.css          |  341 [32m+[m[31m--[m
+ Glamora-App-main/admin-side/img/avatar.svg         |    5 [31m-[m
+ Glamora-App-main/admin-side/index.html             |   62 [32m+[m[31m-[m
+ Glamora-App-main/admin-side/js/analytics.js        |   85 [32m+[m[31m-[m
+ Glamora-App-main/admin-side/js/common.js           |  535 [32m+++[m[31m--[m
+ .../admin-side/js/content-moderation.js            |  992 [32m+++++[m[31m----[m
+ Glamora-App-main/admin-side/js/login.js            |  127 [32m+[m[31m-[m
+ Glamora-App-main/admin-side/js/user-management.js  |  208 [32m+[m[31m-[m
+ Glamora-App-main/admin-side/user-management.html   |    6 [32m+[m[31m-[m
+ Glamora-App-main/app.json                          |   50 [31m-[m
+ Glamora-App-main/backend/models/MarketplaceItem.js |    9 [32m+[m[31m-[m
+ Glamora-App-main/backend/models/User.js            |    2 [32m+[m
+ Glamora-App-main/backend/routes/wardrobe-simple.js |  215 [32m+[m[31m-[m
+ Glamora-App-main/backend/routes/wardrobe.js        |   31 [32m+[m[31m-[m
+ Glamora-App-main/backend/server.js                 |   27 [32m+[m[31m-[m
+ Glamora-App-main/eas.json                          |   30 [31m-[m
+ Glamora-App-main/netlify.toml                      |    7 [32m+[m[31m-[m
+ Glamora-App-main/test-admin-api.html               |   65 [31m-[m
+ 120 files changed, 3714 insertions(+), 9383 deletions(-)
