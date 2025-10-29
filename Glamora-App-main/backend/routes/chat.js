@@ -191,4 +191,33 @@ router.put('/mark-read/:userId', auth, async (req, res) => {
   }
 });
 
+// DELETE /api/chat/conversations/:userId - Delete entire conversation with a user
+router.delete('/conversations/:userId', auth, async (req, res) => {
+  try {
+    const { userId } = req.params; // The other user's ID
+    const currentUserId = req.userId; // The current authenticated user's ID
+
+    console.log(`🗑️ Deleting conversation between ${currentUserId} and ${userId}`);
+
+    // Delete all messages where either user is sender/receiver
+    const deleteResult = await ChatMessage.deleteMany({
+      $or: [
+        { senderId: currentUserId, receiverId: userId },
+        { senderId: userId, receiverId: currentUserId }
+      ]
+    });
+
+    if (deleteResult.deletedCount === 0) {
+      console.log('⚠️ No messages found to delete');
+      return res.status(404).json({ message: 'No conversation found to delete.' });
+    }
+
+    console.log(`✅ Deleted ${deleteResult.deletedCount} messages`);
+    res.json({ message: 'Conversation deleted successfully.', deletedCount: deleteResult.deletedCount });
+  } catch (err) {
+    console.error('❌ Error deleting conversation:', err);
+    res.status(500).json({ message: 'Failed to delete conversation.', error: err.message });
+  }
+});
+
 module.exports = router; 

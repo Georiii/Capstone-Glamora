@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
@@ -26,12 +26,8 @@ export default function Marketplace() {
   const fetchMarketplaceItems = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('🛒 Fetching marketplace items...');
-      console.log('🔗 API endpoint:', API_ENDPOINTS.marketplaceSearch(searchQuery));
       // 1) Public feed (Approved + legacy)
       const response = await fetch(API_ENDPOINTS.marketplaceSearch(searchQuery));
-      
-      console.log('📊 Response status:', response.status);
       
       if (!response.ok) {
         let errorMessage = 'Failed to fetch marketplace items.';
@@ -55,12 +51,10 @@ export default function Marketplace() {
       }
       // Public feed: All approved items (visible to everyone)
       // Backend already filters to show only 'Approved' items or items without status (legacy items)
-      console.log(`📦 Total items from backend: ${data.items?.length || 0}`);
       const publicItems: MarketplaceItem[] = (data.items || []).filter((item: MarketplaceItem) => {
         // Additional frontend safety: Only show approved items or items without status
         return !item.status || item.status === 'Approved';
       });
-      console.log(`✅ Public approved items: ${publicItems.length}`);
 
       // Merge user's own Pending items so they can see their pending posts
       // This ensures moderation flow while letting users track their submissions
@@ -84,15 +78,12 @@ export default function Marketplace() {
               itemMap.set(it._id, it);
             }
             // Then, add user's own pending/rejected items (only visible to them)
-            console.log(`👤 User's own pending/rejected items: ${myItems.length}`);
             for (const it of myItems) {
               if (!itemMap.has(it._id)) {
                 itemMap.set(it._id, it);
               }
             }
-            const finalItems = Array.from(itemMap.values());
-            console.log(`✅ Total items to display: ${finalItems.length} (${publicItems.length} public + ${myItems.length} user's own)`);
-            setItems(finalItems);
+            setItems(Array.from(itemMap.values()));
           } else {
             // Fallback: Show all public approved items
             setItems(publicItems);
@@ -119,6 +110,13 @@ export default function Marketplace() {
   useEffect(() => {
     fetchMarketplaceItems();
   }, [fetchMarketplaceItems]);
+
+  // Refresh marketplace when screen comes into focus (for real-time updates after approval)
+  useFocusEffect(
+    useCallback(() => {
+      fetchMarketplaceItems();
+    }, [fetchMarketplaceItems])
+  );
 
   return (
     <View style={styles.container}>

@@ -142,23 +142,11 @@ router.post('/marketplace', auth, async (req, res) => {
     });
     
     await item.save();
-    console.log('✅ Marketplace item created:', item._id);
-    console.log('📊 Item status:', item.status);
-    console.log('📊 Item saved to collection: marketplaceitems');
-    console.log('📊 Full item data:', JSON.stringify({
-      _id: item._id,
-      name: item.name,
-      status: item.status,
-      userId: item.userId,
-      createdAt: item.createdAt
-    }, null, 2));
+    console.log(`✅ Marketplace item created: ${item._id} (status: ${item.status})`);
     
-    // Verify item was saved correctly by querying the database directly
+    // Verify item was saved correctly
     const savedItem = await MarketplaceItem.findById(item._id);
-    if (savedItem) {
-      console.log('🔍 Verification - Saved item status:', savedItem.status);
-      console.log('🔍 Verification - Saved item has status field:', savedItem.status !== undefined && savedItem.status !== null);
-    } else {
+    if (!savedItem) {
       console.error('❌ Verification FAILED - Item NOT FOUND in database!');
     }
     

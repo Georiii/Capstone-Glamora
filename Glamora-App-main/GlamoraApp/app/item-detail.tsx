@@ -183,13 +183,21 @@ export default function ItemDetail() {
       console.log('✅ Item posted to marketplace successfully!');
       console.log('🧭 Navigating to marketplace...');
       
-      // Navigate immediately without Alert
-      setTimeout(() => {
-        console.log('🧭 Navigating to marketplace now...');
-        router.push('/marketplace');
-      }, 500);
-      
-      Alert.alert('Success', 'Item posted to marketplace successfully!');
+      // Show alert about pending review, then navigate
+      Alert.alert(
+        'Pending Review', 
+        'Your item has been submitted for admin approval. It will be visible in the marketplace once approved.',
+        [{ 
+          text: 'OK', 
+          onPress: () => {
+            // Navigate to marketplace after user acknowledges
+            setTimeout(() => {
+              console.log('🧭 Navigating to marketplace now...');
+              router.push('/marketplace');
+            }, 300);
+          }
+        }]
+      );
     } catch (error: any) {
       console.error('Error posting to marketplace:', error);
       console.error('Error message:', error.message);
