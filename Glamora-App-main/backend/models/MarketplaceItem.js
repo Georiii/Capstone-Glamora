@@ -14,6 +14,8 @@ const marketplaceItemSchema = new mongoose.Schema({
   approvedAt: { type: Date },
   rejectedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
+}, {
+  collection: 'marketplaceitems' // Explicitly set collection name
 });
 
 module.exports = mongoose.model('MarketplaceItem', marketplaceItemSchema); 

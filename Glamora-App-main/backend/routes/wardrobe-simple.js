@@ -143,6 +143,13 @@ router.post('/marketplace', auth, async (req, res) => {
     
     await item.save();
     console.log('✅ Marketplace item created:', item._id);
+    console.log('📊 Item status:', item.status);
+    console.log('📊 Item saved to collection: marketplaceitems');
+    
+    // Verify item was saved correctly
+    const savedItem = await MarketplaceItem.findById(item._id);
+    console.log('🔍 Verification - Saved item status:', savedItem ? savedItem.status : 'NOT FOUND');
+    
     res.status(201).json({ 
       message: 'Your item is pending review. It will be visible once approved by the admin.', 
       item,
@@ -160,21 +167,39 @@ router.get('/marketplace', async (req, res) => {
   try {
     console.log('📦 Fetching marketplace items (public feed - all users)...');
     const search = req.query.search || '';
-    const query = search ? { name: { $regex: search, $options: 'i' } } : {};
     
-    // Only show 'Approved' items or items without a status (legacy items from before moderation)
-    // NO userId filter - these items are visible to ALL registered users
-    query.$or = [
-      { status: 'Approved' },
-      { status: { $exists: false } } // Legacy items posted before approval system
-    ];
+    // First, check total count in collection
+    const totalCount = await MarketplaceItem.countDocuments({});
+    console.log(`📊 Total items in marketplaceitems collection: ${totalCount}`);
     
+    // Check status breakdown
+    const pendingCount = await MarketplaceItem.countDocuments({ status: 'Pending' });
+    const approvedCount = await MarketplaceItem.countDocuments({ status: 'Approved' });
+    const rejectedCount = await MarketplaceItem.countDocuments({ status: 'Rejected' });
+    const noStatusCount = await MarketplaceItem.countDocuments({ status: { $exists: false } });
+    console.log(`📊 Status breakdown: Pending=${pendingCount}, Approved=${approvedCount}, Rejected=${rejectedCount}, NoStatus=${noStatusCount}`);
+    
+    // Build query: Approved items OR items without status (legacy items)
+    // Must combine with search filter if provided
+    const statusFilter = {
+      $or: [
+        { status: 'Approved' },
+        { status: { $exists: false } } // Legacy items posted before approval system
+      ]
+    };
+    
+    // Combine search with status filter
+    const query = search 
+      ? { $and: [{ name: { $regex: search, $options: 'i' } }, statusFilter] }
+      : statusFilter;
+    
+    console.log('🔍 Query:', JSON.stringify(query));
     const items = await MarketplaceItem.find(query)
       .sort({ createdAt: -1 })
       .populate('userId', 'profilePicture name email');
     
     console.log(`✅ Found ${items.length} approved marketplace items (visible to all users)`);
-    console.log(`📊 Status breakdown: Approved=${items.filter(i => i.status === 'Approved').length}, Legacy=${items.filter(i => !i.status).length}`);
+    console.log(`📊 Returned items breakdown: Approved=${items.filter(i => i.status === 'Approved').length}, Legacy=${items.filter(i => !i.status).length}`);
     
     res.json({ items });
   } catch (err) {
@@ -187,10 +212,22 @@ router.get('/marketplace', async (req, res) => {
 router.get('/marketplace/user', auth, async (req, res) => {
   try {
     console.log('📦 Fetching user marketplace items...');
+    console.log('👤 User ID:', req.userId);
+    
     const items = await MarketplaceItem.find({ userId: req.userId })
       .sort({ createdAt: -1 });
     
     console.log(`✅ Found ${items.length} items for user`);
+    
+    // Log status breakdown for debugging
+    const statusBreakdown = {
+      pending: items.filter(i => i.status === 'Pending').length,
+      approved: items.filter(i => i.status === 'Approved').length,
+      rejected: items.filter(i => i.status === 'Rejected').length,
+      noStatus: items.filter(i => !i.status).length
+    };
+    console.log(`📊 User items status breakdown:`, statusBreakdown);
+    
     res.json({ items });
   } catch (err) {
     console.error('❌ Error fetching user marketplace items:', err);

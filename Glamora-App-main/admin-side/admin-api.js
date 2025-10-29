@@ -307,11 +307,36 @@ router.put('/reports/:id', adminAuth, async (req, res) => {
 router.get('/marketplace/pending', adminAuth, async (req, res) => {
     try {
         console.log('📋 Fetching pending marketplace items for admin...');
+        
+        // First check total count
+        const totalCount = await MarketplaceItem.countDocuments({});
+        console.log(`📊 Total items in marketplaceitems collection: ${totalCount}`);
+        
+        // Check all statuses for debugging
+        const pendingCount = await MarketplaceItem.countDocuments({ status: 'Pending' });
+        const approvedCount = await MarketplaceItem.countDocuments({ status: 'Approved' });
+        const rejectedCount = await MarketplaceItem.countDocuments({ status: 'Rejected' });
+        const noStatusCount = await MarketplaceItem.countDocuments({ status: { $exists: false } });
+        console.log(`📊 Status breakdown: Pending=${pendingCount}, Approved=${approvedCount}, Rejected=${rejectedCount}, NoStatus=${noStatusCount}`);
+        
+        // Try finding pending items
         const pendingItems = await MarketplaceItem.find({ status: 'Pending' })
             .populate('userId', 'name email profilePicture')
             .sort({ createdAt: -1 });
 
-        console.log(`✅ Found ${pendingItems.length} pending items`);
+        console.log(`✅ Query result: Found ${pendingItems.length} pending items`);
+        
+        // If no pending items found but total count > 0, check what statuses exist
+        if (pendingItems.length === 0 && totalCount > 0) {
+            console.log('⚠️ No pending items found, but collection has items. Checking sample items...');
+            const sampleItems = await MarketplaceItem.find({}).limit(5).select('name status createdAt');
+            console.log('📋 Sample items:', sampleItems.map(item => ({
+                name: item.name,
+                status: item.status || 'NO STATUS',
+                createdAt: item.createdAt
+            })));
+        }
+
         res.json({ items: pendingItems });
     } catch (error) {
         console.error('❌ Get pending items error:', error);
