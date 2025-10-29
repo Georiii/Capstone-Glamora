@@ -94,6 +94,92 @@
     transform: scale(1.1);
 }
 
+/* Simple Post Item List View - Matches First Screenshot Design */
+.post-item-simple {
+    background: white;
+    border-radius: 8px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border: 1px solid #e0e0e0;
+    transition: box-shadow 0.2s ease;
+}
+
+.post-item-simple:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.post-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.post-type-label {
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+    margin: 0;
+}
+
+.view-post-link {
+    color: #007AFF;
+    text-decoration: none;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    display: inline-block;
+}
+
+.view-post-link:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.post-item-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.action-icon-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    background-color: transparent;
+}
+
+.approve-icon-btn {
+    color: #27ae60;
+    background-color: transparent;
+}
+
+.approve-icon-btn:hover {
+    background-color: rgba(39, 174, 96, 0.1);
+    transform: scale(1.1);
+}
+
+.disapprove-icon-btn {
+    color: #e74c3c;
+    background-color: transparent;
+}
+
+.disapprove-icon-btn:hover {
+    background-color: rgba(231, 76, 60, 0.1);
+    transform: scale(1.1);
+}
+
 .reports-btn {
     background-color: #6c757d;
     color: white;
@@ -643,6 +729,107 @@
 
 .modal-body {
     padding: 30px;
+}
+
+/* Post Detail Modal Styles - Matches Second Screenshot Design */
+.post-detail-content {
+    padding: 10px 0;
+}
+
+.post-detail-layout {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+.post-detail-image-container {
+    flex-shrink: 0;
+}
+
+.post-detail-image {
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.post-detail-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.post-detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.post-detail-label {
+    font-size: 14px;
+    color: #666;
+    font-weight: normal;
+    text-transform: capitalize;
+}
+
+.post-detail-value {
+    font-size: 16px;
+    color: #333;
+    font-weight: normal;
+}
+
+.post-detail-name {
+    font-weight: 600;
+    color: #000;
+    font-size: 18px;
+}
+
+.post-detail-price {
+    font-weight: 600;
+    color: #000;
+    font-size: 18px;
+}
+
+.post-detail-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.approve-btn-detail,
+.disapprove-btn-detail {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    flex: 1;
+    max-width: 180px;
+    background-color: #e8e8e8;
+}
+
+.approve-btn-detail {
+    color: #27ae60;
+}
+
+.approve-btn-detail:hover {
+    background-color: #d0d0d0;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.disapprove-btn-detail {
+    color: #e74c3c;
+}
+
+.disapprove-btn-detail:hover {
+    background-color: #d0d0d0;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .modal-body p {
