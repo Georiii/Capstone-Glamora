@@ -226,57 +226,31 @@ router.post('/request-email-change', auth, async (req, res) => {
       return res.status(409).json({ message: 'Email already in use by another account.' });
     }
     
-    // Rate limiting check
-    const rateLimitKey = userId.toString();
-    const now = Date.now();
-    const userRateLimit = emailChangeRateLimit.get(rateLimitKey);
+    // Store old email for notification
+    const oldEmail = user.email;
     
-    if (userRateLimit) {
-      const timeSinceLastRequest = now - userRateLimit.lastRequest;
-      if (timeSinceLastRequest < RATE_LIMIT_WINDOW) {
-        const waitTime = Math.ceil((RATE_LIMIT_WINDOW - timeSinceLastRequest) / 1000);
-        return res.status(429).json({ 
-          message: `Please wait ${waitTime} seconds before requesting another email change.`,
-          retryAfter: waitTime
-        });
-      }
-    }
+    // Update email immediately after password verification
+    user.email = newEmail.toLowerCase();
+    await user.save();
     
-    // Update rate limit
-    emailChangeRateLimit.set(rateLimitKey, {
-      lastRequest: now,
-      count: (userRateLimit?.count || 0) + 1
-    });
+    console.log(`✅ Email updated for user ${user._id}: ${oldEmail} -> ${newEmail}`);
     
-    // Generate JWT token for email confirmation
-    const emailChangeToken = jwt.sign(
-      { 
-        userId: user._id.toString(),
-        newEmail: newEmail.toLowerCase(),
-        type: 'email-change'
-      },
-      JWT_SECRET,
-      { expiresIn: '15m' } // 15 minutes expiration
-    );
-    
-    // Send confirmation email to current email address
+    // Send success notification to new email (optional)
     try {
-      await sendEmailChangeConfirmation(user, newEmail, emailChangeToken);
-      console.log(`✅ Email change confirmation sent to ${user.email} for new email: ${newEmail}`);
-      
-      res.status(200).json({ 
-        message: 'Confirmation email sent to your current email address. Please check your inbox and click the confirmation link.',
-        currentEmail: user.email
-      });
+      await sendEmailChangeSuccess(user, oldEmail);
+      console.log(`✅ Email change success notification sent to ${newEmail}`);
     } catch (emailError) {
-      console.error('❌ Error sending confirmation email:', emailError);
-      // Remove rate limit entry on error
-      emailChangeRateLimit.delete(rateLimitKey);
-      return res.status(500).json({ 
-        message: 'Failed to send confirmation email. Please try again later.',
-        error: process.env.NODE_ENV === 'development' ? emailError.message : undefined
-      });
+      console.error('⚠️ Email updated but failed to send success notification:', emailError);
+      // Don't fail the request if success email fails
     }
+    
+    res.status(200).json({ 
+      message: 'Email successfully updated.',
+      user: {
+        _id: user._id,
+        email: user.email
+      }
+    });
   } catch (err) {
     console.error('Error requesting email change:', err);
     res.status(500).json({ message: 'Failed to process email change request.', error: err.message });

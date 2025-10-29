@@ -16,12 +16,14 @@ export default function Security() {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showEmailChange, setShowEmailChange] = useState(false);
   const [newEmail, setNewEmail] = useState('');
+  const [emailCurrentPassword, setEmailCurrentPassword] = useState('');
   const [loading, setLoading] = useState(false);
   
   // Password visibility states - separate for each field
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showEmailCurrentPassword, setShowEmailCurrentPassword] = useState(false);
 
   useEffect(() => {
     loadUserInfo();
@@ -54,6 +56,11 @@ export default function Security() {
       return;
     }
 
+    if (!emailCurrentPassword) {
+      Alert.alert('Error', 'Please enter your current password');
+      return;
+    }
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail)) {
@@ -81,33 +88,51 @@ export default function Security() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ newEmail: newEmail.trim() })
+        body: JSON.stringify({ 
+          newEmail: newEmail.trim(),
+          currentPassword: emailCurrentPassword
+        })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 429) {
-          Alert.alert(
-            'Rate Limit Exceeded',
-            data.message || 'Please wait before requesting another email change.',
-            [{ text: 'OK' }]
-          );
+        if (response.status === 401) {
+          Alert.alert('Error', 'Current password is incorrect. Please try again.');
+        } else if (response.status === 409) {
+          Alert.alert('Error', 'This email is already in use by another account.');
         } else {
-          Alert.alert('Error', data.message || 'Failed to request email change');
+          Alert.alert('Error', data.message || 'Failed to change email');
         }
         return;
       }
 
+      // Email changed successfully - update local state and storage
+      setEmail(data.user.email || newEmail.trim());
+      setOriginalEmail(data.user.email || newEmail.trim());
+      
+      // Update AsyncStorage
+      try {
+        const userStr = await AsyncStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          user.email = data.user.email || newEmail.trim();
+          await AsyncStorage.setItem('user', JSON.stringify(user));
+        }
+      } catch (storageError) {
+        console.error('Error updating user in storage:', storageError);
+      }
+
       Alert.alert(
-        'Confirmation Email Sent',
-        `A confirmation email has been sent to ${data.currentEmail || email}. Please check your inbox and click the confirmation link to complete the email change.`,
+        'Success',
+        'Email successfully updated!',
         [
           {
             text: 'OK',
             onPress: () => {
               setShowEmailChange(false);
               setNewEmail('');
+              setEmailCurrentPassword('');
             }
           }
         ]
@@ -223,6 +248,29 @@ export default function Security() {
           
           {showEmailChange ? (
             <View style={styles.emailChangeForm}>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Current password"
+                  placeholderTextColor="#999"
+                  secureTextEntry={!showEmailCurrentPassword}
+                  value={emailCurrentPassword}
+                  onChangeText={setEmailCurrentPassword}
+                  editable={!loading}
+                />
+                {emailCurrentPassword.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowEmailCurrentPassword(!showEmailCurrentPassword)}
+                  >
+                    <Ionicons
+                      name={showEmailCurrentPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color="#666"
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
               <TextInput
                 style={styles.emailInput}
                 placeholder="New email address"
@@ -240,6 +288,7 @@ export default function Security() {
                   onPress={() => {
                     setShowEmailChange(false);
                     setNewEmail('');
+                    setEmailCurrentPassword('');
                   }}
                   disabled={loading}
                 >
