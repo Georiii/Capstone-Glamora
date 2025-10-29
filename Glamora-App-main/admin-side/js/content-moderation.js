@@ -81,10 +81,13 @@ class ContentModerationManager {
         container.innerHTML = '<div style="text-align: center; padding: 20px;">Loading pending items...</div>';
 
         try {
+            console.log('📋 Rendering pending posts...');
             const items = await api.getPendingMarketplaceItems();
+            console.log(`📊 Found ${items.length} pending items`);
             
             if (items.length === 0) {
                 container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">No pending items for moderation</div>';
+                console.log('ℹ️ No pending items found - displaying empty state');
                 return;
             }
 
@@ -110,8 +113,15 @@ class ContentModerationManager {
                 container.appendChild(postElement);
             });
         } catch (error) {
-            console.error('Error loading pending items:', error);
-            container.innerHTML = '<div style="text-align: center; padding: 20px; color: red;">Error loading pending items. Please try again.</div>';
+            console.error('❌ Error loading pending items:', error);
+            const errorMessage = error.message || 'Unknown error occurred';
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: red;">
+                    <p><strong>Error loading pending items</strong></p>
+                    <p style="font-size: 14px; margin-top: 8px;">${errorMessage}</p>
+                    <p style="font-size: 12px; margin-top: 8px; color: #666;">Check the browser console for more details.</p>
+                </div>
+            `;
         }
     }
 

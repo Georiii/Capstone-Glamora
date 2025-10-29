@@ -13,23 +13,51 @@ const router = express.Router();
 // Admin Authentication Middleware
 const adminAuth = async (req, res, next) => {
     try {
-        const token = req.header('Authorization')?.replace('Bearer ', '');
+        const authHeader = req.header('Authorization');
+        console.log('🔐 Admin auth - Authorization header:', authHeader ? 'Present' : 'Missing');
+        
+        if (!authHeader) {
+            console.log('❌ No Authorization header');
+            return res.status(401).json({ message: 'No token provided' });
+        }
+        
+        // Handle both "Bearer token" and just "token" formats
+        const token = authHeader.startsWith('Bearer ') 
+            ? authHeader.replace('Bearer ', '')
+            : authHeader;
         
         if (!token) {
+            console.log('❌ No token in header');
             return res.status(401).json({ message: 'No token provided' });
         }
 
+        console.log('🔑 Verifying token...');
         const decoded = jwt.verify(token, JWT_SECRET);
+        console.log('✅ Token verified, userId:', decoded.userId);
         
         // Check if user is admin
         const user = await User.findById(decoded.userId);
-        if (!user || user.role !== 'admin') {
+        if (!user) {
+            console.log('❌ User not found:', decoded.userId);
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        if (user.role !== 'admin') {
+            console.log('❌ User is not admin. Role:', user.role);
             return res.status(403).json({ message: 'Admin access required' });
         }
 
+        console.log('✅ Admin authenticated:', user.email);
         req.adminId = decoded.userId;
         next();
     } catch (error) {
+        console.error('❌ Admin auth error:', error.message);
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ message: 'Invalid token' });
+        }
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ message: 'Token expired' });
+        }
         res.status(401).json({ message: 'Invalid token' });
     }
 };
@@ -278,14 +306,16 @@ router.put('/reports/:id', adminAuth, async (req, res) => {
 
 router.get('/marketplace/pending', adminAuth, async (req, res) => {
     try {
+        console.log('📋 Fetching pending marketplace items for admin...');
         const pendingItems = await MarketplaceItem.find({ status: 'Pending' })
             .populate('userId', 'name email profilePicture')
             .sort({ createdAt: -1 });
 
+        console.log(`✅ Found ${pendingItems.length} pending items`);
         res.json({ items: pendingItems });
     } catch (error) {
-        console.error('Get pending items error:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('❌ Get pending items error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 

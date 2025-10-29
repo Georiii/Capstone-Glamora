@@ -54,9 +54,17 @@ const api = {
     // Make authenticated API requests
     request: async (endpoint, options = {}) => {
         const url = `${API_BASE_URL}${endpoint}`;
+        console.log(`🌐 Making API request to: ${url}`);
         
         // Get authentication token
         const token = await api.getAuthToken();
+        
+        if (!token) {
+            console.error('❌ No admin token available');
+            throw new Error('Authentication required. Please login.');
+        }
+        
+        console.log(`🔑 Using admin token (first 20 chars): ${token.substring(0, 20)}...`);
         
         const defaultOptions = {
             headers: {
@@ -71,29 +79,42 @@ const api = {
         }
 
         try {
+            console.log(`📤 Request config:`, { method: config.method || 'GET', url, hasBody: !!config.body });
             const response = await fetch(url, config);
+            console.log(`📥 Response status: ${response.status} ${response.statusText}`);
+            
             const data = await response.json();
+            console.log(`📥 Response data:`, data);
             
             if (!response.ok) {
                 // If token is invalid, clear it and retry
                 if (response.status === 401 && localStorage.getItem('adminToken')) {
-                    console.log('Token expired or invalid, refreshing...');
+                    console.log('🔄 Token expired or invalid, refreshing...');
                     localStorage.removeItem('adminToken');
                     const newToken = await api.getAuthToken();
+                    if (!newToken) {
+                        throw new Error('Failed to refresh authentication token');
+                    }
                     config.headers['Authorization'] = `Bearer ${newToken}`;
                     const retryResponse = await fetch(url, config);
                     const retryData = await retryResponse.json();
                     if (!retryResponse.ok) {
-                        throw new Error(retryData.message || 'API request failed');
+                        console.error('❌ Retry failed:', retryData);
+                        throw new Error(retryData.message || 'API request failed after retry');
                     }
+                    console.log('✅ Retry successful');
                     return retryData;
                 }
-                throw new Error(data.message || 'API request failed');
+                console.error('❌ API request failed:', data);
+                throw new Error(data.message || `API request failed: ${response.status}`);
             }
             
             return data;
         } catch (error) {
-            console.error('API request failed:', error);
+            console.error('❌ API request error:', error);
+            if (error.message) {
+                console.error('Error message:', error.message);
+            }
             throw error;
         }
     },
@@ -143,10 +164,13 @@ const api = {
     // Get pending marketplace items for moderation
     getPendingMarketplaceItems: async () => {
         try {
+            console.log('🔍 Fetching pending marketplace items from:', `${API_BASE_URL}/api/admin/marketplace/pending`);
             const data = await api.request('/api/admin/marketplace/pending');
+            console.log('✅ Pending items response:', data);
             return data.items || [];
         } catch (error) {
-            console.error('Failed to fetch pending items:', error);
+            console.error('❌ Failed to fetch pending items:', error);
+            console.error('Error details:', error.message, error.stack);
             throw error;
         }
     },
