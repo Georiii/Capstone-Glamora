@@ -69,8 +69,23 @@ class ContentModerationManager {
 
     async loadContentModeration() {
         console.log('🔄 Loading content moderation...');
+        console.log('🌐 Environment:', window.location.hostname);
+        console.log('🔗 API Base URL:', typeof api !== 'undefined' ? (await api.getAuthToken() ? 'Available' : 'Not available') : 'API not loaded');
+        
         // Ensure pending view is visible
         this.showView('pending');
+        
+        // Add a small delay to ensure DOM is ready (especially for Netlify)
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Double-check container exists
+        const container = document.getElementById('pendingPosts');
+        if (!container) {
+            console.error('❌ Container #pendingPosts STILL not found in DOM after delay!');
+            console.error('Available IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id));
+            return;
+        }
+        
         await this.renderPendingPosts();
         await this.renderReportsTable();
         this.checkIntegrationStatus();
@@ -107,13 +122,19 @@ class ContentModerationManager {
         const container = document.getElementById('pendingPosts');
         if (!container) {
             console.error('❌ Container #pendingPosts not found in DOM');
+            console.error('Current URL:', window.location.href);
+            console.error('Available elements with IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id).join(', '));
             return;
         }
         
+        console.log('✅ Container found, setting loading state...');
         container.innerHTML = '<div style="text-align: center; padding: 20px;">Loading pending items...</div>';
 
         try {
             console.log('📦 Fetching pending marketplace items...');
+            console.log('🌐 Current hostname:', window.location.hostname);
+            console.log('🔗 API should be:', window.location.hostname.includes('netlify.app') ? 'Render backend' : 'Render backend');
+            
             const items = await api.getPendingMarketplaceItems();
             console.log('✅ Received items:', items);
             console.log('📊 Items count:', items?.length || 0);
@@ -635,6 +656,28 @@ class ContentModerationManager {
 }
 
 // Initialize content moderation manager when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.contentModeration = new ContentModerationManager();
-});
+function initContentModeration() {
+    if (!window.contentModeration) {
+        console.log('🚀 Initializing Content Moderation Manager...');
+        window.contentModeration = new ContentModerationManager();
+    } else {
+        console.log('⚠️ Content Moderation Manager already initialized');
+    }
+}
+
+// Try initialization when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initContentModeration);
+} else {
+    // DOM is already loaded (common on Netlify with cached pages)
+    console.log('📄 DOM already loaded, initializing immediately...');
+    initContentModeration();
+}
+
+// Fallback: Also try after a short delay (for slow-loading scripts on Netlify)
+setTimeout(() => {
+    if (!window.contentModeration) {
+        console.log('⏰ Fallback initialization after delay...');
+        initContentModeration();
+    }
+}, 500);
