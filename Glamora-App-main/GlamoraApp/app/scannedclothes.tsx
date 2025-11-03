@@ -257,14 +257,33 @@ export default function ScannedClothes() {
 
       if (!response.ok) {
         let errorMessage = 'Failed to save item.';
+        let errorData: any = {};
         try {
-          const errorData = await response.json();
+          errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
         } catch {
           const textResponse = await response.text();
           console.error('Non-JSON response:', textResponse);
           errorMessage = `Server error: ${response.status}`;
         }
+        
+        // Check if it's a subscription limit error
+        if (response.status === 403 && errorData.limitReached) {
+          Alert.alert(
+            'Storage Limit Reached',
+            errorMessage,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Subscribe to PLUS',
+                onPress: () => router.push('/premium'),
+                style: 'default'
+              }
+            ]
+          );
+          return;
+        }
+        
         throw new Error(errorMessage);
       }
 

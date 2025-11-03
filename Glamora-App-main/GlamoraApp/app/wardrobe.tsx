@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function Wardrobe() {
+  const pathname = usePathname();
+  const isWardrobeRoute = pathname === '/wardrobe' || pathname.startsWith('/category') || 
+    pathname === '/bottoms-category' || pathname === '/shoes-category' || pathname === '/accessories-category';
   const categories = [
     { name: 'Tops', icon: require('../assets/tops-icon.png'), route: '/category' as const, defaultType: 'T-shirt', subcategories: [
       { name: 'T-shirt', type: 'T-shirt' },
@@ -44,8 +47,7 @@ export default function Wardrobe() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.gCircle}><Text style={styles.gText}>G</Text></View>
+      <View style={styles.headerContainer}>
         <Text style={styles.headerText}>GLAMORA</Text>
       </View>
       {/* Cabinet background and categories */}
@@ -81,19 +83,19 @@ export default function Wardrobe() {
       {/* Bottom Navigation */}
       <View style={styles.navigation}>
         <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="shirt" size={24} color="#333" />
-          <Text style={[styles.navText, styles.activeText]}>Wardrobe</Text>
+          <Ionicons name="shirt" size={24} color={isWardrobeRoute ? '#000' : '#B0B0B0'} />
+          <Text style={[styles.navText, isWardrobeRoute && styles.activeText]}>Wardrobe</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/scan')}>
-          <Ionicons name="camera" size={24} color="#666" />
+          <Ionicons name="camera" size={24} color="#B0B0B0" />
           <Text style={styles.navText}>Scan</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/marketplace')}>
-          <Ionicons name="cart" size={24} color="#333" />
-          <Text style={[styles.navText, styles.activeText]}>Market</Text>
+          <Ionicons name="cart" size={24} color="#B0B0B0" />
+          <Text style={styles.navText}>Market</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
-          <Ionicons name="person" size={24} color="#666" />
+          <Ionicons name="person" size={24} color="#B0B0B0" />
           <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -107,31 +109,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4C2C2',
     paddingBottom: 90, // Add extra space for the fixed footer
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerContainer: {
+    width: '100%',
+    alignItems: 'center',     
+    justifyContent: 'center', 
     paddingTop: 40,
     paddingBottom: 16,
-    paddingHorizontal: 24,
-    backgroundColor: '#F4C2C2',
+    backgroundColor: '#FEE8D6',
+    position: 'relative',
   },
-  gCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#4B2E2B',
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  gText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#4B2E2B',
-    fontFamily: 'serif',
-  },
+
   logo: {
     width: 40,
     height: 40,
@@ -144,6 +131,8 @@ const styles = StyleSheet.create({
     color: '#4B2E2B',
     fontFamily: 'serif',
     letterSpacing: 1,
+    textAlign: 'center',
+    width: '100%',            
   },
   cabinetContainer: {
     flex: 1,
@@ -173,7 +162,7 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: 120, // Slightly smaller to fit better inside cabinet
     height: 120, // Slightly smaller to fit better inside cabinet
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.36)',
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -199,7 +188,7 @@ const styles = StyleSheet.create({
   },
   navigation: {
     flexDirection: 'row',
-    backgroundColor: '#F5F2EF',
+    backgroundColor: '#FEE8D6',
     paddingVertical: 15,
     paddingHorizontal: 20,
     justifyContent: 'space-around',

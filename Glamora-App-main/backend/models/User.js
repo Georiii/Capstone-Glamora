@@ -44,6 +44,16 @@ const userSchema = new mongoose.Schema({
     measurementLastUpdated: { type: Date }
   },
   
+  // Subscription/Premium
+  subscription: {
+    isSubscribed: { type: Boolean, default: false },
+    subscriptionType: { type: String, enum: ['free', 'plus'], default: 'free' },
+    subscribedAt: { type: Date },
+    expiresAt: { type: Date },
+    lastOutfitSuggestionDate: { type: Date },
+    dailyOutfitSuggestionsCount: { type: Number, default: 0 }
+  },
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

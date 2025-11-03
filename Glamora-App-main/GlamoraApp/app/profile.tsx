@@ -1,6 +1,6 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
@@ -28,6 +28,7 @@ interface Outfit {
 
 export default function Profile() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useUser();
   const [name, setName] = useState('Name');
   const [email, setEmail] = useState('Email');
@@ -114,11 +115,12 @@ export default function Profile() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.gCircle}><Text style={styles.gText}>G</Text></View>
           <Text style={styles.headerText}>GLAMORA</Text>
         </View>
         <View style={styles.headerRight}>
-          <Ionicons name="trophy-outline" size={28} color="#B8860B" style={{ marginRight: 16 }} />
+          <TouchableOpacity onPress={() => router.push('/premium')} style={{ marginRight: 16 }}>
+            <Ionicons name="trophy-outline" size={28} color="#B8860B" />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/settings')}>
           <Ionicons name="settings-outline" size={28} color="#4B2E2B" />
           </TouchableOpacity>
@@ -217,20 +219,20 @@ export default function Profile() {
       {/* Footer Navigation */}
       <View style={styles.navigation}>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/wardrobe')}>
-          <Ionicons name="shirt" size={24} color="#333" />
+          <Ionicons name="shirt" size={24} color="#B0B0B0" />
           <Text style={styles.navText}>Wardrobe</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/scan')}>
-          <Ionicons name="camera" size={24} color="#666" />
+          <Ionicons name="camera" size={24} color="#B0B0B0" />
           <Text style={styles.navText}>Scan</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/marketplace')}>
-          <Ionicons name="cart" size={24} color="#666" />
+          <Ionicons name="cart" size={24} color="#B0B0B0" />
           <Text style={styles.navText}>Market</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
-          <Ionicons name="person" size={24} color="#333" />
-          <Text style={[styles.navText, styles.activeText]}>Profile</Text>
+          <Ionicons name="person" size={24} color={pathname === '/profile' ? '#000' : '#B0B0B0'} />
+          <Text style={[styles.navText, pathname === '/profile' && styles.activeText]}>Profile</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -241,14 +243,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F4C2C2', paddingBottom: 90 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 40, paddingBottom: 10, paddingHorizontal: 20, backgroundColor: '#F8ECE6',
+    paddingTop: 40, paddingBottom: 10, paddingHorizontal: 20, backgroundColor: '#FEE8D6',
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  gCircle: {
-    width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: '#4B2E2B', backgroundColor: '#fff',
-    justifyContent: 'center', alignItems: 'center', marginRight: 10,
-  },
-  gText: { fontSize: 20, fontWeight: 'bold', color: '#4B2E2B', fontFamily: 'serif' },
+
   headerText: { fontSize: 24, fontWeight: 'bold', color: '#4B2E2B', fontFamily: 'serif', letterSpacing: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
   profileInfo: {
@@ -268,7 +266,7 @@ const styles = StyleSheet.create({
   dataHistorySection: { marginHorizontal: 20, marginTop: 10 },
   dataHistoryTitle: { fontSize: 18, fontWeight: 'bold', color: '#222', marginBottom: 8 },
   recentHistoryBox: {
-    backgroundColor: '#F8E3D6', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#E5D1C0',
+    backgroundColor: '#F8E3D6', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#FEE8D6',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -284,7 +282,7 @@ const styles = StyleSheet.create({
   historyDate: { fontSize: 14, color: '#222', flex: 1 },
   historyOutfit: { fontSize: 14, color: '#222', flex: 1, textAlign: 'center' },
   navigation: {
-    flexDirection: 'row', backgroundColor: '#F5F2EF', paddingVertical: 18, paddingHorizontal: 20,
+    flexDirection: 'row', backgroundColor: '#FEE8D6', paddingVertical: 18, paddingHorizontal: 20,
     justifyContent: 'space-around', borderTopLeftRadius: 20, borderTopRightRadius: 20, shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 5, position: 'absolute',
     left: 0, right: 0, bottom: 0, zIndex: 100,
@@ -295,7 +293,7 @@ const styles = StyleSheet.create({
   measurementSummary: {
     marginHorizontal: 20,
     marginTop: 10,
-    backgroundColor: '#F8E3D6',
+    backgroundColor: '#FEE8D6',
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,

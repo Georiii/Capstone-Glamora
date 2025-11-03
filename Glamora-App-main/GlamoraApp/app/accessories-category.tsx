@@ -1,13 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, usePathname } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 
 export default function AccessoriesCategory() {
   const router = useRouter();
+  const pathname = usePathname();
   const params = useLocalSearchParams();
+  const isWardrobeRoute = pathname === '/wardrobe' || pathname.startsWith('/category') || 
+    pathname === '/bottoms-category' || pathname === '/shoes-category' || pathname === '/accessories-category';
   const categoryType = params.type || 'Accessories';
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,8 +94,7 @@ export default function AccessoriesCategory() {
     return (
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.gCircle}><Text style={styles.gText}>G</Text></View>
+        <View style={styles.headerContainer}>
           <Text style={styles.headerText}>GLAMORA</Text>
         </View>
         <Text style={styles.categoryTitle}>CATEGORY</Text>
@@ -111,19 +113,19 @@ export default function AccessoriesCategory() {
         {/* Bottom Navigation (reuse from wardrobe) */}
         <View style={styles.navigation}>
           <TouchableOpacity style={styles.navItem} onPress={() => router.push('/wardrobe')}>
-            <Ionicons name="shirt" size={24} color="#333" />
-            <Text style={[styles.navText, styles.activeText]}>Wardrobe</Text>
+            <Ionicons name="shirt" size={24} color={isWardrobeRoute ? '#000' : '#B0B0B0'} />
+            <Text style={[styles.navText, isWardrobeRoute && styles.activeText]}>Wardrobe</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => router.push('/scan')}>
-            <Ionicons name="camera" size={24} color="#666" />
+            <Ionicons name="camera" size={24} color="#B0B0B0" />
             <Text style={styles.navText}>Scan</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => router.push('/marketplace')}>
-            <Ionicons name="cart" size={24} color="#666" />
+            <Ionicons name="cart" size={24} color="#B0B0B0" />
             <Text style={styles.navText}>Market</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
-            <Ionicons name="person" size={24} color="#666" />
+            <Ionicons name="person" size={24} color="#B0B0B0" />
             <Text style={styles.navText}>Profile</Text>
           </TouchableOpacity>
         </View>
@@ -133,7 +135,7 @@ export default function AccessoriesCategory() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => router.back()} style={{ position: 'absolute', left: 20, top: 55, zIndex: 2 }}>
           <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
@@ -187,32 +189,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4C2C2',
     paddingBottom: 90, // Add extra space for the fixed footer
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerContainer: {
+    width: '100%',
+    alignItems: 'center',     
+    justifyContent: 'center', 
     paddingTop: 40,
     paddingBottom: 16,
-    paddingHorizontal: 24,
-    backgroundColor: '#F4C2C2',
-    justifyContent: 'flex-start',
+    backgroundColor: '#FEE8D6',
+    position: 'relative',
   },
-  gCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#4B2E2B',
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  gText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#4B2E2B',
-    fontFamily: 'serif',
-  },
+  
   logo: {
     width: 40,
     height: 40,
@@ -225,6 +211,8 @@ const styles = StyleSheet.create({
     color: '#4B2E2B',
     fontFamily: 'serif',
     letterSpacing: 1,
+    textAlign: 'center',
+    width: '100%',            
   },
   categoryTitle: {
     fontSize: 20,
@@ -263,7 +251,7 @@ const styles = StyleSheet.create({
   },
   navigation: {
     flexDirection: 'row',
-    backgroundColor: '#F5F2EF',
+    backgroundColor: '#FEE8D6',
     paddingVertical: 15,
     paddingHorizontal: 20,
     justifyContent: 'space-around',

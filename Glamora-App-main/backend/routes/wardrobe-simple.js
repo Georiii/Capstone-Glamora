@@ -51,6 +51,33 @@ router.post('/add', auth, async (req, res) => {
       return res.status(400).json({ message: 'imageUrl and clothName are required.' });
     }
 
+    // Check subscription status for limits
+    const User = require('../models/User');
+    const user = await User.findById(req.userId);
+    const isSubscribed = user?.subscription?.isSubscribed || false;
+    const ITEMS_PER_SUBCATEGORY_LIMIT = 5;
+
+    // If not subscribed, check limit per subcategory
+    if (!isSubscribed && category) {
+      const itemsInCategory = await WardrobeItem.countDocuments({
+        userId: req.userId,
+        $or: [
+          { category: category },
+          { categories: { $in: [category] } }
+        ]
+      });
+
+      if (itemsInCategory >= ITEMS_PER_SUBCATEGORY_LIMIT) {
+        return res.status(403).json({
+          message: `Free plan limit reached! You can store up to ${ITEMS_PER_SUBCATEGORY_LIMIT} items per subcategory. Subscribe to Glamora PLUS for unlimited storage.`,
+          limitReached: true,
+          currentCount: itemsInCategory,
+          limit: ITEMS_PER_SUBCATEGORY_LIMIT,
+          category: category
+        });
+      }
+    }
+
     console.log('💾 Creating WardrobeItem...');
     const item = new WardrobeItem({
       userId: req.userId,

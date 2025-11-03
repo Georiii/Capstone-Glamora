@@ -7,12 +7,11 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/logo.png')} style={styles.logo} />
+      <Image source={require('../assets/glamoralogo.png')} style={styles.logo} />
       <Text style={styles.text}>WELCOME TO GLAMORA</Text>
-      <Text style={styles.subtext}>Choose your outfit</Text>
 
       <TouchableOpacity style={styles.button} onPress={() => router.push('/login')}>
-        <Text style={styles.buttonText}>GET STARTED</Text>
+        <Text style={styles.buttonText}>CHOOSE YOUR OUTFIT</Text>
       </TouchableOpacity>
     </View>
   );
@@ -40,13 +39,7 @@ const styles = StyleSheet.create({
     color: 'white',
     letterSpacing: 2,
   },
-  subtext: {
-    fontSize: 28,
-    fontFamily: 'PlayfairDisplay-Medium',
-    marginBottom: 40,
-    color: 'white',
-    opacity: 0.9,
-  },
+
   button: {
     backgroundColor: '#FDD6A5',
     paddingVertical: 18,
@@ -62,7 +55,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: 'black',
-    fontSize: 28,
+    fontSize: 16.5,
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 1,

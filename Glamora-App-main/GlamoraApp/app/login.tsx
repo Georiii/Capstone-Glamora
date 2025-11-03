@@ -137,64 +137,68 @@ Technical details: ${healthError.message}`);
 
         <Text style={styles.text}>Login to your{"\n"}Account</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="white"
-          value={email}
-          onChangeText={setEmail}
-          editable={!loading}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        <View style={styles.passwordContainer}>
+        {/* 🔲 New Container for the Inputs + Button */}
+        <View style={styles.loginBox}>
           <TextInput
-            style={styles.passwordInput}
-            placeholder="Password"
-            placeholderTextColor="white"
-            secureTextEntry={!isPasswordVisible}
-            value={password}
-            onChangeText={setPassword}
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="black"
+            value={email}
+            onChangeText={setEmail}
             editable={!loading}
-            autoComplete="off"
-            autoCorrect={false}
-            spellCheck={false}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
-          
-          {/* Password Visibility Toggle Icon */}
-          {password.length > 0 && (
-            <TouchableOpacity
-              style={styles.passwordToggleIcon}
-              onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-              activeOpacity={0.6}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons
-                name={isPasswordVisible ? "eye-off" : "eye"}
-                size={22}
-                color="#000000"
-              />
-            </TouchableOpacity>
-          )}
+
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Password"
+              placeholderTextColor="black"
+              secureTextEntry={!isPasswordVisible}
+              value={password}
+              onChangeText={setPassword}
+              editable={!loading}
+              autoComplete="off"
+              autoCorrect={false}
+              spellCheck={false}
+            />
+            
+            {/* Password Visibility Toggle Icon */}
+            {password.length > 0 && (
+              <TouchableOpacity
+                style={styles.passwordToggleIcon}
+                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                activeOpacity={0.6}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons
+                  name={isPasswordVisible ? "eye-off" : "eye"}
+                  size={22}
+                  color="#000000"
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Error Message */}
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
+
+          <TouchableOpacity 
+            style={styles.loginButton} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.loginButtonText}>{loading ? 'Logging In...' : 'Login'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push('/forgotpass')}>
+            <Text style={styles.forgotPassword}>Forgot Password?</Text>
+          </TouchableOpacity>
         </View>
-
-        {/* Error Message */}
-        {errorMessage ? (
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        ) : null}
-
-        <TouchableOpacity 
-          style={styles.loginButton} 
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          <Text style={styles.loginButtonText}>{loading ? 'Logging In...' : 'Login'}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => router.push('/forgotpass')}>
-          <Text style={styles.forgotPassword}>Forgot Password?</Text>
-        </TouchableOpacity>
+        {/* End Container */}
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don&apos;t have an account? </Text>
@@ -222,11 +226,11 @@ const styles = StyleSheet.create({
   },
 
   logo: {
-    width: 60,
-    height: 60,
+    width: 100,
+    height: 100,
     resizeMode: 'contain',
     position: 'absolute',
-    top: 40,
+    top: 10,
     right: 10,
   },
 
@@ -239,6 +243,22 @@ const styles = StyleSheet.create({
     lineHeight: 42,
     textAlign: 'center',
     letterSpacing: 1,
+  },
+
+ 
+  loginBox: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: 'rgba(255, 255, 255, 0.36)',
+    borderRadius: 20,
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 6,
   },
 
   input: {
@@ -311,7 +331,7 @@ const styles = StyleSheet.create({
   },
 
   forgotPassword: {
-    color: 'white',
+    color: 'blue',
     fontSize: 13,
     textAlign: 'center',
     alignSelf: 'center',
@@ -333,10 +353,11 @@ const styles = StyleSheet.create({
   },
 
   signUpText: {
-    color: '#F88379',
+    color: 'blue',
     fontSize: 13,
     textDecorationLine: 'underline',
   },
+
   errorText: {
     color: '#FF6B6B',
     fontSize: 14,

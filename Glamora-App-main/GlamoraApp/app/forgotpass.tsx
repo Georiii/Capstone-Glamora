@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   loginText: {
-    color: '#F88379',
+    color: 'blue',
     fontSize: 13,
     textDecorationLine: 'underline',
   },

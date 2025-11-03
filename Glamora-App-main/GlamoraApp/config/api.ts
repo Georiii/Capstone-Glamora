@@ -100,6 +100,10 @@ export const API_ENDPOINTS = {
     current: (location: string) => `${API_BASE_URL}/api/weather/current?location=${encodeURIComponent(location)}`,
     forecast: (location: string, days: number = 1) => `${API_BASE_URL}/api/weather/forecast?location=${encodeURIComponent(location)}&days=${days}`,
   },
+
+  // Subscription/Premium
+  subscriptionStatus: `${API_BASE_URL}/api/subscription/status`,
+  subscribe: `${API_BASE_URL}/api/subscription/subscribe`,
 };
 
 // Helper function to get full URL for any endpoint
