@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, StatusBar, Dimensions } from 'react-native';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,16 +9,32 @@ const { width } = Dimensions.get('window');
 
 export default function Scan() {
   const [image, setImage] = useState<string | null>(null);
+  const [facing] = useState<CameraType>('back');
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<any>(null);
   const router = useRouter();
 
-  const pickImage = async (): Promise<void> => {
-    let result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    });
-    if (!result.canceled && result.assets.length > 0) {
-      setImage(result.assets[0].uri);
-      router.push({ pathname: '/scannedclothes', params: { imageUri: result.assets[0].uri } });
+  useEffect(() => {
+    if (permission && !permission.granted) {
+      requestPermission();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permission]);
+
+  const takePicture = async (): Promise<void> => {
+    if (cameraRef.current && permission?.granted) {
+      try {
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 1,
+          base64: false,
+        });
+        if (photo) {
+          setImage(photo.uri);
+          router.push({ pathname: '/scannedclothes', params: { imageUri: photo.uri } });
+        }
+      } catch (error) {
+        console.error('Error taking picture:', error);
+      }
     }
   };
 
@@ -51,8 +68,13 @@ export default function Scan() {
       <View style={styles.cameraContainer}>
         {image ? (
           <Image source={{ uri: image }} style={styles.preview} resizeMode="cover" />
-        ) : (
+        ) : permission?.granted ? (
           <View style={styles.cameraPlaceholder}>
+            <CameraView
+              style={StyleSheet.absoluteFillObject}
+              facing={facing}
+              ref={cameraRef}
+            />
             <View style={styles.scanFrame}>
               <View style={styles.cornerTopLeft} />
               <View style={styles.cornerTopRight} />
@@ -61,6 +83,12 @@ export default function Scan() {
             </View>
             <Text style={styles.instructionText}>
               Position clothing item within the frame
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.cameraPlaceholder}>
+            <Text style={styles.instructionText}>
+              No access to camera
             </Text>
           </View>
         )}
@@ -72,7 +100,7 @@ export default function Scan() {
           <Text style={styles.galleryText}>Gallery</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.captureButton} onPress={pickImage}>
+        <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
           <View style={styles.captureButtonInner}>
             <Ionicons name="camera" size={32} color="#fff" />
           </View>

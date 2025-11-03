@@ -19,7 +19,15 @@ module.exports = {
           ResetPassword: 'reset-password',
         },
       },
-    }
+    },
+    plugins: [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera."
+        }
+      ]
+    ]
     // ... rest of your expo config
   }
 };
