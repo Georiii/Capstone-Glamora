@@ -285,11 +285,11 @@ const styles = StyleSheet.create({
     minHeight: '100%',
   },
   logo: {
-    width: 60,
-    height: 60,
+    width: 100,
+    height: 100,
     position: 'absolute',
-    top: 50,
-    right: 15,
+    top: 10,
+    right: 5,
   },
   header: {
     fontSize: 26,

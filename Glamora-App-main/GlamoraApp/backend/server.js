@@ -147,7 +147,7 @@ if (adminRoutes) {
   app.use('/api/admin', adminRoutes);
 }
 
-// Password reset redirect page
+// Password reset redirect page - Smart redirect without UI
 app.get('/reset-password-redirect', (req, res) => {
   const { token } = req.query;
   
@@ -155,7 +155,7 @@ app.get('/reset-password-redirect', (req, res) => {
     return res.status(400).send('Invalid reset link: No token provided');
   }
   
-  // HTML page that redirects to the app
+  // HTML page that auto-redirects to app or web
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -164,78 +164,15 @@ app.get('/reset-password-redirect', (req, res) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Glamora - Reset Password</title>
       <style>
-        * {
+        body {
           margin: 0;
           padding: 0;
-          box-sizing: border-box;
-        }
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
           background: linear-gradient(135deg, #F4C2C2 0%, #FFE8C8 100%);
-          min-height: 100vh;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 20px;
-        }
-        .container {
-          background: white;
-          border-radius: 20px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-          padding: 40px;
-          max-width: 500px;
-          width: 100%;
-          text-align: center;
-        }
-        .logo {
-          font-size: 48px;
-          margin-bottom: 20px;
-        }
-        h1 {
-          color: #4B2E2B;
-          margin-bottom: 20px;
-          font-size: 28px;
-        }
-        p {
-          color: #666;
-          line-height: 1.6;
-          margin-bottom: 15px;
-        }
-        .button {
-          display: inline-block;
-          background-color: #FFE8C8;
-          color: #4B2E2B;
-          padding: 15px 40px;
-          border-radius: 25px;
-          text-decoration: none;
-          font-weight: bold;
-          margin: 20px 0;
-          transition: all 0.3s ease;
-          border: 2px solid #4B2E2B;
-        }
-        .button:hover {
-          background-color: #ffd9a8;
-          transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        .instructions {
-          background-color: #f9f9f9;
-          padding: 20px;
-          border-radius: 10px;
-          margin: 20px 0;
-          text-align: left;
-        }
-        .instructions h3 {
-          color: #4B2E2B;
-          margin-bottom: 10px;
-          font-size: 16px;
-        }
-        .instructions ol {
-          margin-left: 20px;
-          color: #666;
-        }
-        .instructions li {
-          margin: 8px 0;
+          min-height: 100vh;
         }
         .spinner {
           border: 4px solid #f3f3f3;
@@ -244,60 +181,32 @@ app.get('/reset-password-redirect', (req, res) => {
           width: 40px;
           height: 40px;
           animation: spin 1s linear infinite;
-          margin: 20px auto;
         }
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
-        .status {
-          margin: 20px 0;
-          padding: 15px;
-          border-radius: 10px;
-          font-weight: bold;
-        }
-        .status.success {
-          background-color: #d4edda;
-          color: #155724;
-        }
-        .status.error {
-          background-color: #f8d7da;
-          color: #721c24;
-        }
       </style>
     </head>
     <body>
-      <div class="container">
-        <div class="logo">🌟</div>
-        <h1>Glamora Password Reset</h1>
-        <p>Click the button below to open the Glamora app and reset your password.</p>
-        
-        <a href="glamora://reset-password?token=${token}" class="button" id="openAppBtn">
-          Open Glamora App
-        </a>
-        
-        <div class="instructions">
-          <h3>📱 Instructions:</h3>
-          <ol>
-            <li>Make sure the Glamora app is installed and running on your device</li>
-            <li>Click the "Open Glamora App" button above</li>
-            <li>If prompted, allow the browser to open the app</li>
-            <li>Enter your new password in the app</li>
-          </ol>
-        </div>
-        
-        <p style="font-size: 14px; color: #999; margin-top: 20px;">
-          This link will expire in 1 hour for security reasons.
-        </p>
-        
-        <div id="status"></div>
-      </div>
+      <div class="spinner"></div>
       
       <script>
-        // Automatically try to open the app
+        const token = '${token}';
+        const appLink = 'glamora://reset-password?token=' + token;
+        const webLink = 'https://glamora-g5my.onrender.com/reset-password?token=' + token;
+        let attemptedApp = false;
+        
+        // Try to open Glamora app first
+        window.location.href = appLink;
+        attemptedApp = true;
+        
+        // If the app isn't installed, fallback to web app after short delay
         setTimeout(() => {
-          window.location.href = 'http://localhost:8081/reset-password?token=${token}';
-        }, 500);
+          if (attemptedApp) {
+            window.location.href = webLink;
+          }
+        }, 2000);
       </script>
     </body>
     </html>

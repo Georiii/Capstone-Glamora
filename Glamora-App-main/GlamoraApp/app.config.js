@@ -10,6 +10,15 @@ module.exports = {
       eas: {
         projectId: "c50f9159-c5f3-4e50-a191-518ab1dc07ce"
       }
+    },
+    scheme: "glamora",
+    linking: {
+      prefixes: ['glamora://', 'https://glamora-g5my.onrender.com'],
+      config: {
+        screens: {
+          ResetPassword: 'reset-password',
+        },
+      },
     }
     // ... rest of your expo config
   }
