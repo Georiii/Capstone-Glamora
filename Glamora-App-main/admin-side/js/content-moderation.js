@@ -16,10 +16,14 @@ class ContentModerationManager {
 
     startAutoRefresh() {
         // Auto-refresh pending items every 30 seconds if on pending view
+        // Auto-refresh reports every 30 seconds if on reports view
         this.refreshInterval = setInterval(async () => {
             if (this.currentView === 'pending') {
                 console.log('🔄 Auto-refreshing pending items...');
                 await this.renderPendingPosts();
+            } else if (this.currentView === 'reports') {
+                console.log('🔄 Auto-refreshing reports...');
+                await this.renderReportsTable();
             }
         }, 30000); // Refresh every 30 seconds
     }
@@ -371,7 +375,7 @@ class ContentModerationManager {
                     <td>
                         <div class="report-reason">${report.reason}</div>
                     </td>
-                    <td>${report.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'No date'}</td>
+                    <td>${report.createdAt ? new Date(report.createdAt).toLocaleDateString() : (report.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'No date')}</td>
                     <td>
                         <button class="view-details-btn" onclick="contentModeration.viewReport('${report._id}')">
                             View Details
@@ -619,6 +623,8 @@ class ContentModerationManager {
         this.currentView = 'reports';
         this.showView('reports');
         await this.renderReportsTable();
+        // Restart auto-refresh when switching to reports view
+        this.startAutoRefresh();
     }
 
     async switchToPending() {
@@ -647,10 +653,10 @@ class ContentModerationManager {
             // It's called separately in loadContentModeration and switchToPending
         } else if (viewName === 'reports' && reportsView) {
             reportsView.style.display = 'block';
-            this.stopAutoRefresh(); // Stop auto-refresh when viewing reports
+            // Don't stop auto-refresh for reports - we want real-time updates
         } else if (viewName === 'reportDetail' && reportDetailView) {
             reportDetailView.style.display = 'block';
-            this.stopAutoRefresh(); // Stop auto-refresh when viewing report details
+            this.stopAutoRefresh(); // Stop auto-refresh when viewing report details (static view)
         }
     }
 }

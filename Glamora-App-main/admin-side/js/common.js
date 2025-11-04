@@ -153,14 +153,14 @@ const api = {
     // Fetch reports from backend
     getReports: async () => {
         try {
-            const data = await api.request('/api/report/list');
+            const data = await api.request('/api/admin/reports?limit=1000');
             console.log('Fetched reports from API:', data);
             // API returns { reports: [...] }, so extract the reports array
             return Array.isArray(data.reports) ? data.reports : [];
         } catch (error) {
-            console.error('Failed to fetch reports from API, using mock data:', error);
-            // Fallback to mock data if API fails
-            return mockData.reports;
+            console.error('Failed to fetch reports from API:', error);
+            // Don't use mock data - return empty array instead
+            return [];
         }
     },
 
@@ -192,7 +192,7 @@ const api = {
     // Restrict user account
     restrictUser: async (reportId, restrictionDuration, restrictionReason) => {
         try {
-            const data = await api.request(`/api/report/${reportId}/restrict`, {
+            const data = await api.request(`/api/admin/reports/${reportId}/restrict`, {
                 method: 'PUT',
                 body: {
                     restrictionDuration,
@@ -378,28 +378,79 @@ class AdminUtils {
         }, duration);
     }
 
-    static checkAuthentication() {
+    static async checkAuthentication() {
         const token = localStorage.getItem('adminToken');
-        if (!token) {
+        if (!token || token === 'mock-token') {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUser');
             window.location.href = 'login.html';
             return false;
         }
-        return true;
+
+        // Validate token by trying to fetch a protected endpoint
+        try {
+            await api.request('/api/admin/metrics');
+            // If successful, token is valid
+            return true;
+        } catch (error) {
+            // Token invalid or expired, redirect to login
+            console.error('Authentication check failed:', error);
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUser');
+            window.location.href = 'login.html';
+            return false;
+        }
     }
 
     static handleLogout() {
         localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
         window.location.href = 'login.html';
     }
 
-    static updateMetrics() {
+    static async updateMetrics() {
         const totalUsersEl = document.getElementById('totalUsers');
         const reportsTodayEl = document.getElementById('reportsToday');
         const activeListingEl = document.getElementById('activeListing');
 
-        if (totalUsersEl) totalUsersEl.textContent = mockData.users.length;
-        if (reportsTodayEl) reportsTodayEl.textContent = mockData.reports.length;
-        if (activeListingEl) activeListingEl.textContent = mockData.posts.length;
+        // Show loading state
+        if (totalUsersEl) totalUsersEl.textContent = '...';
+        if (reportsTodayEl) reportsTodayEl.textContent = '...';
+        if (activeListingEl) activeListingEl.textContent = '...';
+
+        try {
+            // Fetch metrics from backend
+            const metrics = await api.request('/api/admin/metrics');
+            
+            // Update UI with real data
+            if (totalUsersEl) totalUsersEl.textContent = metrics.totalUsers || 0;
+            
+            // Calculate reports today (reports created today)
+            if (reportsTodayEl) {
+                try {
+                    const reports = await api.request('/api/admin/reports?limit=1000');
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const reportsToday = reports.reports ? reports.reports.filter(report => {
+                        const reportDate = new Date(report.createdAt || report.timestamp);
+                        reportDate.setHours(0, 0, 0, 0);
+                        return reportDate.getTime() === today.getTime();
+                    }).length : 0;
+                    reportsTodayEl.textContent = reportsToday;
+                } catch (err) {
+                    console.error('Error fetching reports today:', err);
+                    reportsTodayEl.textContent = metrics.totalReports || 0;
+                }
+            }
+            
+            if (activeListingEl) activeListingEl.textContent = metrics.activeListings || metrics.pendingPosts || 0;
+        } catch (error) {
+            console.error('Error updating metrics:', error);
+            // Show error state
+            if (totalUsersEl) totalUsersEl.textContent = 'Error';
+            if (reportsTodayEl) reportsTodayEl.textContent = 'Error';
+            if (activeListingEl) activeListingEl.textContent = 'Error';
+        }
     }
 
     static setupModalHandlers() {
@@ -429,13 +480,28 @@ class AdminUtils {
 }
 
 // Initialize common functionality when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Only run on dashboard pages (not login)
     if (!window.location.pathname.includes('login.html')) {
-        AdminUtils.checkAuthentication();
-        AdminUtils.updateMetrics();
+        // Check authentication first, redirect if invalid
+        const isAuthenticated = await AdminUtils.checkAuthentication();
+        if (!isAuthenticated) {
+            return; // Will redirect to login
+        }
+
+        // Update metrics asynchronously
+        AdminUtils.updateMetrics().catch(err => {
+            console.error('Failed to load initial metrics:', err);
+        });
         AdminUtils.setupModalHandlers();
         AdminUtils.setupLogoutHandler();
+
+        // Set up auto-refresh for metrics every 10 seconds
+        setInterval(() => {
+            AdminUtils.updateMetrics().catch(err => {
+                console.error('Failed to refresh metrics:', err);
+            });
+        }, 10000);
     }
 });
 
