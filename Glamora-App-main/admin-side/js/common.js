@@ -333,10 +333,21 @@ class AdminUtils {
 
     static checkAuthentication() {
         const token = localStorage.getItem('adminToken');
-        if (!token || token === 'mock-token' || token.includes('mock')) {
-            window.location.href = 'login.html';
+        
+        // Check if we're already on the login page to prevent redirect loops
+        if (window.location.pathname.includes('login.html')) {
             return false;
         }
+        
+        // If no token or token is mock/placeholder, redirect to login
+        if (!token || token === 'mock-token' || token.includes('mock') || token === 'admin_token_placeholder') {
+            // Only redirect if not already on login page
+            if (!window.location.pathname.includes('login.html')) {
+                window.location.href = 'login.html';
+            }
+            return false;
+        }
+        
         return true;
     }
 
@@ -422,15 +433,26 @@ class AdminUtils {
 document.addEventListener('DOMContentLoaded', async () => {
     // Only run on dashboard pages (not login)
     if (!window.location.pathname.includes('login.html')) {
-        if (AdminUtils.checkAuthentication()) {
-            await AdminUtils.updateMetrics();
-            AdminUtils.setupModalHandlers();
-            AdminUtils.setupLogoutHandler();
-            
-            // Auto-refresh metrics every 5 seconds
-            setInterval(async () => {
+        // Check authentication before proceeding
+        const isAuthenticated = AdminUtils.checkAuthentication();
+        
+        if (isAuthenticated) {
+            // Only initialize dashboard if authenticated
+            try {
                 await AdminUtils.updateMetrics();
-            }, 5000);
+                AdminUtils.setupModalHandlers();
+                AdminUtils.setupLogoutHandler();
+                
+                // Auto-refresh metrics every 5 seconds
+                setInterval(async () => {
+                    await AdminUtils.updateMetrics();
+                }, 5000);
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                // If there's an error, don't redirect - just log it
+                // The authentication check already happened, so we're good
+            }
         }
+        // If not authenticated, checkAuthentication() already handled the redirect
     }
 });
