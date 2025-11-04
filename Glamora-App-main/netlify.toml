@@ -1,10 +1,18 @@
 [build]
-  base = ""
+  base = "Glamora-App-main"
   publish = "admin-side"
   command = ""
+  
+[build.environment]
+  NETLIFY_SKIP_CACHE = "1"
+  # Ensure JS served with correct MIME and no caching issues
+  NODE_VERSION = "18"
+
+# Disable Git submodules to prevent deployment errors
+[git]
+  submodules = false
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
