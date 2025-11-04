@@ -42,15 +42,43 @@ class UserManagementManager {
         }
 
         try {
+            console.log('📡 Fetching users from API...');
             const data = await api.request('/api/admin/users?page=1&limit=50');
+            console.log('✅ Users API response:', data);
+            
             this.users = data.users || [];
+            console.log(`✅ Loaded ${this.users.length} users`);
+            
+            if (this.users.length === 0) {
+                console.warn('⚠️ No users returned from API');
+            }
+            
             this.renderUsersTable(this.users);
         } catch (error) {
-            console.error('Error loading users:', error);
+            console.error('❌ Error loading users:', error);
+            const errorMessage = error.message || 'Failed to load users';
+            
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: red;">Error loading users. Please try again.</td></tr>';
+                let errorText = 'Error loading users. ';
+                if (error.needsLogin) {
+                    errorText += 'Please log in and try again.';
+                } else if (error.isConnectionError) {
+                    errorText += 'Cannot connect to server.';
+                } else {
+                    errorText += errorMessage;
+                }
+                
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: red;">${errorText}</td></tr>`;
             }
-            AdminUtils.showMessage('Failed to load users. Please check your connection.', 'error');
+            
+            AdminUtils.showMessage(errorMessage, 'error');
+            
+            // Redirect to login if authentication is required
+            if (error.needsLogin || error.status === 401) {
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            }
         }
     }
 

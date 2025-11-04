@@ -41,7 +41,9 @@ class AnalyticsManager {
         ctx.style.opacity = '0.3';
 
         try {
+            console.log('📊 Fetching analytics from API...');
             const data = await api.request('/api/admin/analytics');
+            console.log('✅ Analytics API response:', data);
             this.analyticsData = data;
             
             // Remove loading indicator
@@ -51,14 +53,24 @@ class AnalyticsManager {
             
             this.renderChart(data);
         } catch (error) {
-            console.error('Error loading analytics:', error);
+            console.error('❌ Error loading analytics:', error);
             const loading = document.getElementById('analyticsLoading');
             if (loading) {
-                loading.textContent = 'Error loading analytics data. Please try again.';
+                const errorMessage = error.needsLogin 
+                    ? 'Authentication required. Redirecting to login...' 
+                    : (error.message || 'Error loading analytics data. Please try again.');
+                loading.textContent = errorMessage;
                 loading.style.color = 'red';
             }
             ctx.style.opacity = '1';
-            AdminUtils.showMessage('Failed to load analytics data', 'error');
+            AdminUtils.showMessage(error.message || 'Failed to load analytics data', 'error');
+            
+            // Redirect to login if authentication is required
+            if (error.needsLogin || error.status === 401) {
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            }
         }
     }
 

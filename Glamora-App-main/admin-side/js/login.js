@@ -52,6 +52,11 @@ class LoginManager {
             return;
         }
 
+        if (username !== 'admin' || password !== 'admin123') {
+            AdminUtils.showMessage('Invalid credentials. Please check your username and password.', 'error');
+            return;
+        }
+
         // Show loading state
         const loginBtn = document.getElementById('loginBtn');
         const originalText = loginBtn.textContent;

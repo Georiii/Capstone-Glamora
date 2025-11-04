@@ -27,8 +27,9 @@ const api = {
     getAuthToken: async () => {
         let token = localStorage.getItem('adminToken');
         
-        // If no token or token is placeholder, login as admin
-        if (!token || token === 'admin_token_placeholder') {
+        // If no token or token is placeholder/mock, try to login
+        if (!token || token === 'admin_token_placeholder' || token === 'mock-token') {
+            console.log('🔐 No valid token found, attempting auto-login...');
             try {
                 const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
                     method: 'POST',
@@ -43,17 +44,25 @@ const api = {
                 
                 if (response.ok) {
                     const data = await response.json();
-                    token = data.token;
-                    localStorage.setItem('adminToken', token);
-                    console.log('Admin login successful');
+                    if (data.token) {
+                        token = data.token;
+                        localStorage.setItem('adminToken', token);
+                        console.log('✅ Admin auto-login successful');
+                    } else {
+                        console.error('❌ Admin login response missing token');
+                        return null;
+                    }
                 } else {
-                    console.error('Admin login failed');
+                    const errorData = await response.json().catch(() => ({ message: 'Login failed' }));
+                    console.error('❌ Admin auto-login failed:', response.status, errorData.message);
                     return null;
                 }
             } catch (error) {
-                console.error('Admin login error:', error);
+                console.error('❌ Admin auto-login error:', error.message);
                 return null;
             }
+        } else {
+            console.log('✅ Using existing token');
         }
         
         return token;
@@ -67,8 +76,11 @@ const api = {
         // Get authentication token
         let token = await api.getAuthToken();
         if (!token) {
-            console.error('❌ No admin token available');
-            throw new Error('Authentication failed: No admin token');
+            console.error('❌ No admin token available - authentication required');
+            const error = new Error('Authentication failed: Please log in to continue');
+            error.status = 401;
+            error.needsLogin = true;
+            throw error;
         }
         console.log('🔑 Using admin token:', token.substring(0, 20) + '...');
         
@@ -419,8 +431,10 @@ class AdminUtils {
         if (activeListingEl) activeListingEl.textContent = '...';
 
         try {
+            console.log('📊 Fetching metrics from API...');
             // Fetch metrics from backend
             const metrics = await api.request('/api/admin/metrics');
+            console.log('✅ Metrics API response:', metrics);
             
             // Update UI with real data
             if (totalUsersEl) totalUsersEl.textContent = metrics.totalUsers || 0;
@@ -445,11 +459,21 @@ class AdminUtils {
             
             if (activeListingEl) activeListingEl.textContent = metrics.activeListings || metrics.pendingPosts || 0;
         } catch (error) {
-            console.error('Error updating metrics:', error);
+            console.error('❌ Error updating metrics:', error);
+            const errorMessage = error.message || 'Failed to load metrics';
+            
             // Show error state
-            if (totalUsersEl) totalUsersEl.textContent = 'Error';
-            if (reportsTodayEl) reportsTodayEl.textContent = 'Error';
-            if (activeListingEl) activeListingEl.textContent = 'Error';
+            if (totalUsersEl) totalUsersEl.textContent = error.needsLogin ? 'Login' : 'Error';
+            if (reportsTodayEl) reportsTodayEl.textContent = error.needsLogin ? 'Required' : 'Error';
+            if (activeListingEl) activeListingEl.textContent = error.needsLogin ? 'Required' : 'Error';
+            
+            // Redirect to login if authentication is required
+            if (error.needsLogin || error.status === 401) {
+                console.log('🔄 Redirecting to login page...');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            }
         }
     }
 
