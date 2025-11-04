@@ -5,7 +5,7 @@
 # Build configuration
 [build]
   base = "Glamora-App-main"
-  publish = "Glamora-App-main/admin-side"
+  publish = "admin-side"
   command = "echo 'Deploying static admin-side files'"
 
 # Node.js version
