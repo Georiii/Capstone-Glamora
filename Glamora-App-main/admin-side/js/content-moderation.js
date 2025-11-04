@@ -15,13 +15,21 @@ class ContentModerationManager {
     }
 
     startAutoRefresh() {
-        // Auto-refresh pending items every 30 seconds if on pending view
+        // Clear any existing interval
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+        }
+        
+        // Auto-refresh pending items and reports every 5 seconds
         this.refreshInterval = setInterval(async () => {
             if (this.currentView === 'pending') {
-                console.log('🔄 Auto-refreshing pending items...');
                 await this.renderPendingPosts();
+            } else if (this.currentView === 'reports') {
+                await this.renderReportsTable();
             }
-        }, 30000); // Refresh every 30 seconds
+            // Also refresh metrics
+            await AdminUtils.updateMetrics();
+        }, 5000); // Refresh every 5 seconds
     }
 
     stopAutoRefresh() {
@@ -317,14 +325,17 @@ class ContentModerationManager {
     }
 
 
-    restrictUser(userId) {
-        const user = mockData.users.find(u => u.id === userId);
-        if (!user) return;
-
-        user.status = 'inactive';
-        AdminUtils.updateMetrics();
-        document.getElementById('reportModal').style.display = 'none';
-        AdminUtils.showMessage('User restricted successfully', 'success');
+    async restrictUser(reportId, restrictionDuration, restrictionReason) {
+        try {
+            await api.restrictUser(reportId, restrictionDuration, restrictionReason);
+            AdminUtils.showMessage('User restricted successfully', 'success');
+            document.getElementById('reportModal').style.display = 'none';
+            await AdminUtils.updateMetrics();
+            await this.renderReportsTable(); // Refresh reports table
+        } catch (error) {
+            console.error('Error restricting user:', error);
+            AdminUtils.showMessage('Failed to restrict user', 'error');
+        }
     }
 
 
@@ -343,7 +354,6 @@ class ContentModerationManager {
 
         try {
             const reports = await api.getReports();
-            console.log('Reports from API:', reports);
             
             if (reports.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No reports found</td></tr>';
@@ -353,15 +363,17 @@ class ContentModerationManager {
             tbody.innerHTML = '';
 
             reports.forEach(report => {
-                console.log('Processing report:', report);
                 const row = document.createElement('tr');
-                const userName = report.reportedUserId?.name || 'Unknown User';
-                const userEmail = report.reportedUserId?.email || 'No email';
+                // Backend populates reportedUserId with name and email
+                const reportedUser = report.reportedUserId || {};
+                const userName = reportedUser.name || 'Unknown User';
+                const userEmail = reportedUser.email || 'No email';
+                const reportDate = report.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'No date';
                 
                 row.innerHTML = `
                     <td>
                         <div class="report-user">
-                            <div class="report-avatar">${userName.charAt(0)}</div>
+                            <div class="report-avatar">${userName.charAt(0).toUpperCase()}</div>
                             <div>
                                 <div class="user-name">${userName}</div>
                                 <div class="user-email">${userEmail}</div>
@@ -369,9 +381,9 @@ class ContentModerationManager {
                         </div>
                     </td>
                     <td>
-                        <div class="report-reason">${report.reason}</div>
+                        <div class="report-reason">${report.reason || 'No reason provided'}</div>
                     </td>
-                    <td>${report.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'No date'}</td>
+                    <td>${reportDate}</td>
                     <td>
                         <button class="view-details-btn" onclick="contentModeration.viewReport('${report._id}')">
                             View Details
@@ -381,8 +393,12 @@ class ContentModerationManager {
                 tbody.appendChild(row);
             });
         } catch (error) {
-            console.error('Error loading reports:', error);
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">Error loading reports</td></tr>';
+            console.error('❌ Error loading reports:', error);
+            if (error.isConnectionError) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #888;">Cannot connect to backend server</td></tr>';
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">Error loading reports</td></tr>';
+            }
         }
     }
 

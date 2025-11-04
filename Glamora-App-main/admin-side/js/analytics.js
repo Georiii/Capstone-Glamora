@@ -3,12 +3,36 @@
 class AnalyticsManager {
     constructor() {
         this.analyticsChart = null;
+        this.refreshInterval = null; // Auto-refresh interval
+        this.currentPeriod = '6months';
         this.init();
     }
 
     init() {
         this.setupEventListeners();
         this.loadAnalytics();
+        this.startAutoRefresh();
+    }
+
+    startAutoRefresh() {
+        // Clear any existing interval
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+        }
+        
+        // Auto-refresh analytics every 5 seconds
+        this.refreshInterval = setInterval(async () => {
+            await this.loadAnalytics();
+            // Also refresh metrics
+            await AdminUtils.updateMetrics();
+        }, 5000); // Refresh every 5 seconds
+    }
+
+    stopAutoRefresh() {
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+            this.refreshInterval = null;
+        }
     }
 
     setupEventListeners() {
@@ -19,11 +43,27 @@ class AnalyticsManager {
         }
     }
 
-    loadAnalytics() {
-        this.renderChart();
+    async loadAnalytics() {
+        try {
+            const analyticsData = await api.getAnalytics(this.currentPeriod);
+            this.renderChart(analyticsData);
+        } catch (error) {
+            console.error('❌ Error loading analytics:', error);
+            // Render empty chart on error
+            this.renderChart({
+                userRegistrations: [],
+                marketplaceActivity: [],
+                reportsOverTime: [],
+                topCategories: [],
+                period: this.currentPeriod
+            });
+            if (error.isConnectionError) {
+                AdminUtils.showMessage('Cannot connect to backend server', 'error');
+            }
+        }
     }
 
-    renderChart() {
+    renderChart(analyticsData) {
         const ctx = document.getElementById('analyticsChart');
         if (!ctx) return;
         
@@ -32,21 +72,57 @@ class AnalyticsManager {
             this.analyticsChart.destroy();
         }
 
+        // Transform backend data into chart format
+        const months = [];
+        const userLogins = [];
+        const outfitGeneration = [];
+
+        // Process user registrations data
+        if (analyticsData.userRegistrations && analyticsData.userRegistrations.length > 0) {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            analyticsData.userRegistrations.forEach(item => {
+                const monthIndex = item._id.month - 1;
+                const monthName = monthNames[monthIndex] || `Month ${item._id.month}`;
+                months.push(monthName);
+                userLogins.push(item.count || 0);
+            });
+
+            // Process marketplace activity
+            if (analyticsData.marketplaceActivity && analyticsData.marketplaceActivity.length > 0) {
+                analyticsData.marketplaceActivity.forEach(item => {
+                    const monthIndex = item._id.month - 1;
+                    outfitGeneration.push(item.count || 0);
+                });
+            } else {
+                // Fill with zeros if no marketplace activity
+                userLogins.forEach(() => outfitGeneration.push(0));
+            }
+        }
+
+        // If no data, use empty arrays
+        if (months.length === 0) {
+            months.push('No Data');
+            userLogins.push(0);
+            outfitGeneration.push(0);
+        }
+
         this.analyticsChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: mockData.analytics.months,
+                labels: months,
                 datasets: [
                     {
                         label: 'User login',
-                        data: mockData.analytics.userLogins,
+                        data: userLogins,
                         backgroundColor: '#3498db',
                         borderColor: '#2980b9',
                         borderWidth: 1
                     },
                     {
                         label: 'no. of times they generate',
-                        data: mockData.analytics.outfitGeneration,
+                        data: outfitGeneration,
                         backgroundColor: '#2ecc71',
                         borderColor: '#27ae60',
                         borderWidth: 1
@@ -93,16 +169,21 @@ class AnalyticsManager {
         });
     }
 
-    generateReport() {
+    async generateReport() {
         AdminUtils.showMessage('Generating report...', 'info');
         
-        // Simulate report generation
-        setTimeout(() => {
+        try {
+            // Fetch current metrics and analytics
+            const metrics = await api.getMetrics();
+            const analytics = await api.getAnalytics(this.currentPeriod);
+            const users = await api.getUsers({ limit: 1000 });
+            const reports = await api.getReports();
+
             const reportData = {
-                totalUsers: mockData.users.length,
-                activeUsers: mockData.users.filter(u => u.status === 'active').length,
-                totalReports: mockData.reports.length,
-                pendingPosts: mockData.posts.length,
+                totalUsers: metrics.totalUsers || 0,
+                activeUsers: users.users.filter(u => u.isActive !== false).length,
+                totalReports: metrics.totalReports || 0,
+                pendingPosts: metrics.pendingPosts || 0,
                 date: new Date().toLocaleDateString()
             };
 
@@ -115,6 +196,11 @@ SUMMARY:
 - Active Users: ${reportData.activeUsers}
 - Total Reports: ${reportData.totalReports}
 - Pending Posts: ${reportData.pendingPosts}
+
+ANALYTICS:
+- User Registrations: ${analytics.userRegistrations?.length || 0} months tracked
+- Marketplace Activity: ${analytics.marketplaceActivity?.length || 0} months tracked
+- Reports Over Time: ${analytics.reportsOverTime?.length || 0} months tracked
 
 RECOMMENDATIONS:
 - Review pending posts for content moderation
@@ -134,7 +220,10 @@ RECOMMENDATIONS:
             window.URL.revokeObjectURL(url);
 
             AdminUtils.showMessage('Report generated and downloaded successfully', 'success');
-        }, 2000);
+        } catch (error) {
+            console.error('❌ Error generating report:', error);
+            AdminUtils.showMessage('Failed to generate report', 'error');
+        }
     }
 }
 
