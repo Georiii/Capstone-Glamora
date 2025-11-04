@@ -47,13 +47,9 @@ class LoginManager {
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;
 
+        // Only validate that fields are not empty - let backend validate credentials
         if (!username || !password) {
             AdminUtils.showMessage('Please enter both username and password', 'error');
-            return;
-        }
-
-        if (username !== 'admin' || password !== 'admin123') {
-            AdminUtils.showMessage('Invalid credentials. Please check your username and password.', 'error');
             return;
         }
 

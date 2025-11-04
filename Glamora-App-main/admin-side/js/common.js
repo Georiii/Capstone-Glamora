@@ -29,7 +29,7 @@ const api = {
         
         // If no token or token is placeholder/mock, try to login
         if (!token || token === 'admin_token_placeholder' || token === 'mock-token') {
-            console.log('🔐 No valid token found, attempting auto-login...');
+            // Silently attempt auto-login (don't log unless it fails)
             try {
                 const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
                     method: 'POST',
@@ -47,23 +47,22 @@ const api = {
                     if (data.token) {
                         token = data.token;
                         localStorage.setItem('adminToken', token);
-                        console.log('✅ Admin auto-login successful');
+                        // Only log on success if debugging is needed
+                        // console.log('✅ Admin auto-login successful');
                     } else {
-                        console.error('❌ Admin login response missing token');
+                        // Silent failure - will be handled by caller
                         return null;
                     }
                 } else {
-                    const errorData = await response.json().catch(() => ({ message: 'Login failed' }));
-                    console.error('❌ Admin auto-login failed:', response.status, errorData.message);
+                    // Silent failure - will be handled by caller
                     return null;
                 }
             } catch (error) {
-                console.error('❌ Admin auto-login error:', error.message);
+                // Silent failure - will be handled by caller
                 return null;
             }
-        } else {
-            console.log('✅ Using existing token');
         }
+        // Token exists - no need to log
         
         return token;
     },
@@ -71,18 +70,20 @@ const api = {
     // Make authenticated API requests
     request: async (endpoint, options = {}) => {
         const url = `${API_BASE_URL}${endpoint}`;
-        console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
+        // Reduced logging - only log for debugging if needed
+        // console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
         
         // Get authentication token
         let token = await api.getAuthToken();
         if (!token) {
-            console.error('❌ No admin token available - authentication required');
             const error = new Error('Authentication failed: Please log in to continue');
             error.status = 401;
             error.needsLogin = true;
+            error.silent = true; // Mark as silent to avoid double logging
             throw error;
         }
-        console.log('🔑 Using admin token:', token.substring(0, 20) + '...');
+        // Reduced logging - token is valid
+        // console.log('🔑 Using admin token:', token.substring(0, 20) + '...');
         
         const defaultOptions = {
             headers: {
@@ -106,7 +107,8 @@ const api = {
             });
             
             clearTimeout(timeoutId);
-            console.log(`📥 Response status: ${response.status} ${response.statusText}`);
+            // Reduced logging - only log errors
+            // console.log(`📥 Response status: ${response.status} ${response.statusText}`);
             
             if (!response.ok) {
                 let errorData;
@@ -116,7 +118,11 @@ const api = {
                     const text = await response.text();
                     errorData = { message: text || `HTTP error! status: ${response.status}` };
                 }
-                console.error('❌ API Error Response:', errorData);
+                
+                // Only log non-401 errors (401 will be handled silently with retry)
+                if (response.status !== 401) {
+                    console.error('❌ API Error Response:', errorData);
+                }
                 
                 // If token is invalid, clear it and retry
                 if (response.status === 401 && localStorage.getItem('adminToken')) {
@@ -133,7 +139,7 @@ const api = {
                             error.response = retryData;
                             throw error;
                         }
-                        console.log('✅ Retry successful');
+                        // Retry successful - no need to log
                         return retryData;
                     }
                 }
@@ -146,7 +152,8 @@ const api = {
             }
             
             const data = await response.json();
-            console.log('✅ API Response data:', data);
+            // Reduced logging - only log for debugging
+            // console.log('✅ API Response data:', data);
             return data;
         } catch (error) {
             // Handle network/connection errors gracefully
@@ -155,9 +162,14 @@ const api = {
                 const friendlyError = new Error('Cannot connect to backend server. Please ensure the server is running.');
                 friendlyError.isConnectionError = true;
                 friendlyError.originalError = error;
+                // Don't log connection errors as errors - they're expected if server is down
+                console.warn(`⚠️ Connection error for ${endpoint}:`, error.message);
                 throw friendlyError;
             }
-            console.error(`❌ API request failed for ${endpoint}:`, error);
+            // Only log errors that aren't already logged or are unexpected
+            if (!error.silent) {
+                console.error(`❌ API request failed for ${endpoint}:`, error.message);
+            }
             throw error;
         }
     },
@@ -431,10 +443,8 @@ class AdminUtils {
         if (activeListingEl) activeListingEl.textContent = '...';
 
         try {
-            console.log('📊 Fetching metrics from API...');
             // Fetch metrics from backend
             const metrics = await api.request('/api/admin/metrics');
-            console.log('✅ Metrics API response:', metrics);
             
             // Update UI with real data
             if (totalUsersEl) totalUsersEl.textContent = metrics.totalUsers || 0;

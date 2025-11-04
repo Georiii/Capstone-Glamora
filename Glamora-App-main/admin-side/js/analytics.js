@@ -41,9 +41,7 @@ class AnalyticsManager {
         ctx.style.opacity = '0.3';
 
         try {
-            console.log('📊 Fetching analytics from API...');
             const data = await api.request('/api/admin/analytics');
-            console.log('✅ Analytics API response:', data);
             this.analyticsData = data;
             
             // Remove loading indicator

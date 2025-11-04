@@ -42,16 +42,9 @@ class UserManagementManager {
         }
 
         try {
-            console.log('📡 Fetching users from API...');
             const data = await api.request('/api/admin/users?page=1&limit=50');
-            console.log('✅ Users API response:', data);
             
             this.users = data.users || [];
-            console.log(`✅ Loaded ${this.users.length} users`);
-            
-            if (this.users.length === 0) {
-                console.warn('⚠️ No users returned from API');
-            }
             
             this.renderUsersTable(this.users);
         } catch (error) {
