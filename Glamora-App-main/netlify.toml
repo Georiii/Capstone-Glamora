@@ -1,3 +1,6 @@
+[git]
+  submodules = false
+
 [build]
   base = ""
   publish = "admin-side"
