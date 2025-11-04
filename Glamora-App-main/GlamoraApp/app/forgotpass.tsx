@@ -1,7 +1,9 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, TouchableWithoutFeedback, Keyboard, Dimensions, Platform } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+
+const { width, height } = Dimensions.get('window');
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -70,37 +72,51 @@ export default function ForgotPassword() {
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-      <Text style={styles.header}>Forgot Password</Text>
-      <Text style={styles.subtext}>Enter your email to receive a reset link</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="white"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TouchableOpacity 
-        style={[styles.resetButton, isLoading && styles.resetButtonDisabled]} 
-        onPress={handleReset}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#000" />
-        ) : (
-          <Text style={styles.resetButtonText}>Send Reset Link</Text>
-        )}
-      </TouchableOpacity>
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Remember your password? </Text>
-        <TouchableOpacity onPress={() => router.push('/login')}>
-          <Text style={styles.loginText}>Login</Text>
-        </TouchableOpacity>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          <Text style={styles.header}>Forgot Password</Text>
+          <Text style={styles.subtext}>Enter your email to receive a reset link</Text>
+          
+          <View style={styles.loginBox}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="rgba(0,0,0,0.45)"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            
+            <TouchableOpacity 
+              style={[styles.resetButton, isLoading && styles.resetButtonDisabled]} 
+              onPress={handleReset}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <Text style={styles.resetButtonText}>Send Reset Link</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Remember your password? </Text>
+            <TouchableOpacity onPress={() => router.push('/login')}>
+              <Text style={styles.loginText}>Login</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -108,54 +124,88 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4C2C2',
-    padding: 20,
+    minHeight: height,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: Math.max(20, width * 0.05),
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: height,
+    paddingBottom: Math.max(40, height * 0.05),
   },
   logo: {
-    width: 60,
-    height: 60,
+    width: Math.min(100, width * 0.25),
+    height: Math.min(100, width * 0.25),
     position: 'absolute',
-    top: 50,
-    right: 15,
+    top: Platform.OS === 'web' ? 20 : 10,
+    right: Platform.OS === 'web' ? 20 : 10,
+    resizeMode: 'contain',
   },
   header: {
-    fontSize: 26,
+    fontSize: Math.min(36, width * 0.09),
     fontWeight: 'bold',
     color: 'white',
-    marginTop: 0,
+    marginTop: Platform.OS === 'web' ? 40 : 20,
     marginBottom: 10,
     textAlign: 'center',
+    letterSpacing: 1,
   },
   subtext: {
-    fontSize: 15,
+    fontSize: Math.min(15, width * 0.038),
     color: 'white',
-    marginBottom: 20,
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  loginBox: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: 'rgba(255, 255, 255, 0.36)',
+    borderRadius: 20,
+    paddingVertical: 30,
+    paddingHorizontal: Math.max(20, width * 0.05),
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 6,
   },
   input: {
-    width: 270,
-    height: 50,
-    borderRadius: 20,
-    paddingHorizontal: 20,
+    width: '100%',
+    maxWidth: 320,
+    height: Math.min(60, height * 0.075),
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderWidth: 2,
+    borderRadius: 25,
+    paddingHorizontal: 25,
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    marginTop: 12,
-    color: 'black',
+    marginTop: 20,
+    color: '#333',
+    fontSize: Math.min(18, width * 0.045),
+    alignSelf: 'center',
   },
   resetButton: {
-    width: 170,
-    height: 40,
+    width: Math.min(200, width * 0.5),
+    height: Math.min(55, height * 0.07),
     backgroundColor: '#FFE8C8',
-    borderRadius: 20,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 50,
     alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   resetButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: Math.min(20, width * 0.05),
+    fontWeight: '700',
     color: '#000',
     textDecorationLine: 'underline',
+    letterSpacing: 1,
   },
   resetButtonDisabled: {
     opacity: 0.6,
@@ -164,16 +214,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    bottom: 50,
+    marginTop: 30,
+    marginBottom: 20,
+    alignSelf: 'center',
   },
   footerText: {
     color: 'white',
-    fontSize: 13,
+    fontSize: Math.min(13, width * 0.033),
   },
   loginText: {
-    color: 'blue',
-    fontSize: 13,
+    color: '#2D6AFC',
+    fontSize: Math.min(13, width * 0.033),
     textDecorationLine: 'underline',
   },
 });

@@ -7,18 +7,22 @@ import {
   Image,
   Alert,
   TextInput,
-  KeyboardAvoidingView,
   ScrollView,
   Platform,
   Modal,
   Pressable,
   Animated,
   Easing,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../config/api';
+
+const { width, height } = Dimensions.get('window');
 
 export default function Register() {
   const router = useRouter();
@@ -147,12 +151,14 @@ export default function Register() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent} 
+          keyboardShouldPersistTaps="handled" 
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
         <View style={styles.logoContainer}>
           <Image source={require('../assets/logo.png')} style={styles.logo} />
         </View>
@@ -264,57 +270,231 @@ export default function Register() {
             </View>
           </View>
         </Modal>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4C2C2' },
-  scrollContent: { flexGrow: 1, padding: 20, alignItems: 'center', justifyContent: 'center', paddingBottom: 40 },
-  logoContainer: { position: 'absolute', top: 5, right: 5 },
-  logo: { width: 90, height: 90, resizeMode: 'contain' },
-  header: { fontSize: 28, fontWeight: '700', color: '#000', marginTop: 60, marginBottom: 18 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F4C2C2',
+    minHeight: height,
+  },
+  scrollContent: { 
+    flexGrow: 1, 
+    padding: Math.max(20, width * 0.05), 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    minHeight: height,
+    paddingBottom: Math.max(40, height * 0.05),
+  },
+  logoContainer: { 
+    position: 'absolute', 
+    top: Platform.OS === 'web' ? 20 : 5, 
+    right: Platform.OS === 'web' ? 20 : 5,
+  },
+  logo: { 
+    width: Math.min(90, width * 0.23), 
+    height: Math.min(90, width * 0.23), 
+    resizeMode: 'contain',
+  },
+  header: { 
+    fontSize: Math.min(28, width * 0.07), 
+    fontWeight: '700', 
+    color: 'white', 
+    marginTop: Platform.OS === 'web' ? 60 : 50, 
+    marginBottom: 18,
+    textAlign: 'center',
+  },
   card: {
-    width: '90%', maxWidth: 360, backgroundColor: '#F7DCDC', borderRadius: 18, padding: 18,
-    alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06, shadowRadius: 12, elevation: 6,
+    width: '100%', 
+    maxWidth: 360, 
+    backgroundColor: 'rgba(255, 255, 255, 0.36)', 
+    borderRadius: 20, 
+    padding: Math.max(18, width * 0.045),
+    alignItems: 'center', 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, 
+    shadowRadius: 5, 
+    elevation: 6,
   },
   input: {
-    width: '100%', height: 48, borderRadius: 8, paddingHorizontal: 14, backgroundColor: '#fff',
-    marginBottom: 12, color: '#333', fontSize: 15, borderWidth: 1, borderColor: '#D3C2C2',
+    width: '100%', 
+    height: Math.min(60, height * 0.075), 
+    borderRadius: 25, 
+    paddingHorizontal: 25, 
+    backgroundColor: 'rgba(255, 255, 255, 0.4)', 
+    marginBottom: 12, 
+    color: '#333', 
+    fontSize: Math.min(18, width * 0.045), 
+    borderWidth: 2, 
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
-  passwordContainer: { width: '100%', position: 'relative', marginBottom: 8 },
-  passwordInput: { marginBottom: 0 },
-  eyeIcon: { position: 'absolute', right: 12, top: 12 },
-  pwGuidelines: { width: '100%', marginTop: 6, marginBottom: 8 },
-  pwGuidelineHeader: { fontWeight: '600', marginBottom: 6, color: '#333' },
-  pwRules: { marginBottom: 8 },
-  pwRule: { fontSize: 12, color: '#555', marginBottom: 2 },
-  strengthRow: { flexDirection: 'row', alignItems: 'center', width: '100%', gap: 8 },
-  animatedStrengthBar: { height: 8, borderRadius: 6, backgroundColor: '#eee', marginRight: 6, alignSelf: 'flex-start' },
-  weakPasswordText: { color: '#F15A5A', fontSize: 12, fontWeight: '600', marginTop: 4 },
+  passwordContainer: { 
+    width: '100%', 
+    position: 'relative', 
+    marginBottom: 12,
+  },
+  passwordInput: { 
+    marginBottom: 0,
+    paddingRight: 55,
+  },
+  eyeIcon: { 
+    position: 'absolute', 
+    right: 18, 
+    top: '50%',
+    marginTop: -11,
+    padding: 6,
+    zIndex: 1,
+  },
+  pwGuidelines: { 
+    width: '100%', 
+    marginTop: 6, 
+    marginBottom: 8,
+  },
+  pwGuidelineHeader: { 
+    fontWeight: '600', 
+    marginBottom: 6, 
+    color: '#333',
+    fontSize: Math.min(14, width * 0.035),
+  },
+  pwRules: { 
+    marginBottom: 8,
+  },
+  pwRule: { 
+    fontSize: Math.min(12, width * 0.03), 
+    color: '#555', 
+    marginBottom: 2,
+  },
+  strengthRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    width: '100%', 
+    gap: 8,
+  },
+  animatedStrengthBar: { 
+    height: 8, 
+    borderRadius: 6, 
+    backgroundColor: '#eee', 
+    marginRight: 6, 
+    alignSelf: 'flex-start',
+  },
+  weakPasswordText: { 
+    color: '#F15A5A', 
+    fontSize: Math.min(12, width * 0.03), 
+    fontWeight: '600', 
+    marginTop: 4,
+  },
   signUpButton: {
-    width: '70%', height: 44, backgroundColor: '#FFE8C8', borderRadius: 22,
-    justifyContent: 'center', alignItems: 'center', marginTop: 12,
+    width: Math.min(200, width * 0.5), 
+    height: Math.min(55, height * 0.07), 
+    backgroundColor: '#FFE8C8', 
+    borderRadius: 25,
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  signUpButtonText: { fontSize: 16, fontWeight: '700', color: '#000', textDecorationLine: 'underline' },
-  termsRow: { width: '100%', flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingHorizontal: 4 },
+  signUpButtonText: { 
+    fontSize: Math.min(20, width * 0.05), 
+    fontWeight: '700', 
+    color: '#000', 
+    textDecorationLine: 'underline',
+    letterSpacing: 1,
+  },
+  termsRow: { 
+    width: '100%', 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginTop: 12, 
+    paddingHorizontal: 4,
+  },
   checkbox: {
-    width: 22, height: 22, borderRadius: 6, borderWidth: 1, borderColor: '#bdbdbd',
-    marginRight: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff',
+    width: 22, 
+    height: 22, 
+    borderRadius: 6, 
+    borderWidth: 1, 
+    borderColor: '#bdbdbd',
+    marginRight: 10, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: '#fff',
   },
-  checkboxChecked: { backgroundColor: '#F88379', borderColor: '#F88379' },
-  termsText: { flex: 1, color: '#333', fontSize: 13 },
-  termsLink: { color: '#2D6AFC', textDecorationLine: 'underline' },
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 18 },
-  footerText: { color: '#333', fontSize: 13 },
-  loginText: { color: '#2D6AFC', fontSize: 13, textDecorationLine: 'underline' },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalContainer: { width: '100%', maxWidth: 720, backgroundColor: '#fff', borderRadius: 12, padding: 18, maxHeight: '80%' },
-  modalHeader: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  modalScroll: { marginBottom: 12 },
-  modalText: { color: '#333', lineHeight: 20 },
-  modalClose: { alignSelf: 'flex-end', marginTop: 6, backgroundColor: '#F4C2C2', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  modalCloseText: { fontWeight: '700', color: '#222' },
+  checkboxChecked: { 
+    backgroundColor: '#F88379', 
+    borderColor: '#F88379',
+  },
+  termsText: { 
+    flex: 1, 
+    color: '#333', 
+    fontSize: Math.min(13, width * 0.033),
+  },
+  termsLink: { 
+    color: '#2D6AFC', 
+    textDecorationLine: 'underline',
+  },
+  footer: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginTop: 30,
+    marginBottom: 20,
+  },
+  footerText: { 
+    color: 'white', 
+    fontSize: Math.min(13, width * 0.033),
+  },
+  loginText: { 
+    color: '#2D6AFC', 
+    fontSize: Math.min(13, width * 0.033), 
+    textDecorationLine: 'underline',
+  },
+  modalBackdrop: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.45)', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 20,
+  },
+  modalContainer: { 
+    width: '100%', 
+    maxWidth: 720, 
+    backgroundColor: '#fff', 
+    borderRadius: 12, 
+    padding: 18, 
+    maxHeight: '80%',
+  },
+  modalHeader: { 
+    fontSize: Math.min(18, width * 0.045), 
+    fontWeight: '700', 
+    marginBottom: 8,
+  },
+  modalScroll: { 
+    marginBottom: 12,
+  },
+  modalText: { 
+    color: '#333', 
+    lineHeight: 20,
+    fontSize: Math.min(14, width * 0.035),
+  },
+  modalClose: { 
+    alignSelf: 'flex-end', 
+    marginTop: 6, 
+    backgroundColor: '#F4C2C2', 
+    paddingHorizontal: 14, 
+    paddingVertical: 8, 
+    borderRadius: 8,
+  },
+  modalCloseText: { 
+    fontWeight: '700', 
+    color: '#222',
+    fontSize: Math.min(14, width * 0.035),
+  },
 });

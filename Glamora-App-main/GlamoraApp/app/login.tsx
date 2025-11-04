@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Platform, TouchableWithoutFeedback, Keyboard, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS, getApiBaseUrl } from '../config/api';
+
+const { width, height } = Dimensions.get('window');
 
 // Remove Firebase imports and usage. Refactor login to use your backend API.
 
@@ -123,91 +125,90 @@ Technical details: ${healthError.message}`);
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <Image source={require('../assets/logo.png')} style={styles.logo} />
 
-        <Text style={styles.text}>Login to your{"\n"}Account</Text>
+          <Text style={styles.text}>Login to your{"\n"}Account</Text>
 
-        {/* 🔲 New Container for the Inputs + Button */}
-        <View style={styles.loginBox}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="black"
-            value={email}
-            onChangeText={setEmail}
-            editable={!loading}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          <View style={styles.passwordContainer}>
+          {/* 🔲 New Container for the Inputs + Button */}
+          <View style={styles.loginBox}>
             <TextInput
-              style={styles.passwordInput}
-              placeholder="Password"
-              placeholderTextColor="black"
-              secureTextEntry={!isPasswordVisible}
-              value={password}
-              onChangeText={setPassword}
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="rgba(0,0,0,0.45)"
+              value={email}
+              onChangeText={setEmail}
               editable={!loading}
-              autoComplete="off"
-              autoCorrect={false}
-              spellCheck={false}
+              keyboardType="email-address"
+              autoCapitalize="none"
             />
-            
-            {/* Password Visibility Toggle Icon */}
-            {password.length > 0 && (
-              <TouchableOpacity
-                style={styles.passwordToggleIcon}
-                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                activeOpacity={0.6}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Ionicons
-                  name={isPasswordVisible ? "eye-off" : "eye"}
-                  size={22}
-                  color="#000000"
-                />
-              </TouchableOpacity>
-            )}
+
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                placeholderTextColor="rgba(0,0,0,0.45)"
+                secureTextEntry={!isPasswordVisible}
+                value={password}
+                onChangeText={setPassword}
+                editable={!loading}
+                autoComplete="off"
+                autoCorrect={false}
+                spellCheck={false}
+              />
+              
+              {/* Password Visibility Toggle Icon */}
+              {password.length > 0 && (
+                <TouchableOpacity
+                  style={styles.passwordToggleIcon}
+                  onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                  activeOpacity={0.6}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Ionicons
+                    name={isPasswordVisible ? "eye-off" : "eye"}
+                    size={22}
+                    color="#6b6b6b"
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Error Message */}
+            {errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
+
+            <TouchableOpacity 
+              style={styles.loginButton} 
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              <Text style={styles.loginButtonText}>{loading ? 'Logging In...' : 'Login'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push('/forgotpass')}>
+              <Text style={styles.forgotPassword}>Forgot Password?</Text>
+            </TouchableOpacity>
           </View>
+          {/* End Container */}
 
-          {/* Error Message */}
-          {errorMessage ? (
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          ) : null}
-
-          <TouchableOpacity 
-            style={styles.loginButton} 
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            <Text style={styles.loginButtonText}>{loading ? 'Logging In...' : 'Login'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => router.push('/forgotpass')}>
-            <Text style={styles.forgotPassword}>Forgot Password?</Text>
-          </TouchableOpacity>
-        </View>
-        {/* End Container */}
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don&apos;t have an account? </Text>
-          <TouchableOpacity onPress={() => router.push('/register')}>
-            <Text style={styles.signUpText}>Sign up.</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+            <TouchableOpacity onPress={() => router.push('/register')}>
+              <Text style={styles.signUpText}>Sign up.</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -215,32 +216,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4C2C2',
+    minHeight: height,
   },
 
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
+    padding: Math.max(20, width * 0.05),
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '100%',
+    minHeight: height,
+    paddingBottom: Math.max(40, height * 0.05),
   },
 
   logo: {
-    width: 100,
-    height: 100,
+    width: Math.min(100, width * 0.25),
+    height: Math.min(100, width * 0.25),
     resizeMode: 'contain',
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: Platform.OS === 'web' ? 20 : 10,
+    right: Platform.OS === 'web' ? 20 : 10,
   },
 
   text: {
-    fontSize: 36,
+    fontSize: Math.min(36, width * 0.09),
     fontWeight: 'bold',
     color: 'white',
-    marginTop: 0,
+    marginTop: Platform.OS === 'web' ? 40 : 20,
     marginBottom: 30,
-    lineHeight: 42,
+    lineHeight: Math.min(42, width * 0.105),
     textAlign: 'center',
     letterSpacing: 1,
   },
@@ -252,7 +255,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.36)',
     borderRadius: 20,
     paddingVertical: 30,
-    paddingHorizontal: 20,
+    paddingHorizontal: Math.max(20, width * 0.05),
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -264,15 +267,15 @@ const styles = StyleSheet.create({
   input: {
     width: '100%',
     maxWidth: 320,
-    height: 60,
+    height: Math.min(60, height * 0.075),
     borderColor: 'rgba(255, 255, 255, 0.4)',
     borderWidth: 2,
     borderRadius: 25,
     paddingHorizontal: 25,
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
     marginTop: 20,
-    color: 'black',
-    fontSize: 18,
+    color: '#333',
+    fontSize: Math.min(18, width * 0.045),
     alignSelf: 'center',
   },
 
@@ -286,15 +289,15 @@ const styles = StyleSheet.create({
 
   passwordInput: {
     width: '100%',
-    height: 60,
+    height: Math.min(60, height * 0.075),
     borderColor: 'rgba(255, 255, 255, 0.4)',
     borderWidth: 2,
     borderRadius: 25,
     paddingHorizontal: 25,
     paddingRight: 55,
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    color: 'black',
-    fontSize: 18,
+    color: '#333',
+    fontSize: Math.min(18, width * 0.045),
   },
 
   passwordToggleIcon: {
@@ -307,8 +310,8 @@ const styles = StyleSheet.create({
   },
 
   loginButton: {
-    width: 200,
-    height: 55,
+    width: Math.min(200, width * 0.5),
+    height: Math.min(55, height * 0.07),
     backgroundColor: '#FFE8C8',
     borderRadius: 25,
     alignSelf: 'center',
@@ -323,7 +326,7 @@ const styles = StyleSheet.create({
   },
 
   loginButtonText: {
-    fontSize: 20,
+    fontSize: Math.min(20, width * 0.05),
     fontWeight: '700',
     color: '#000',
     textDecorationLine: 'underline',
@@ -331,36 +334,37 @@ const styles = StyleSheet.create({
   },
 
   forgotPassword: {
-    color: 'blue',
-    fontSize: 13,
+    color: '#2D6AFC',
+    fontSize: Math.min(13, width * 0.033),
     textAlign: 'center',
     alignSelf: 'center',
     marginTop: 10,
+    textDecorationLine: 'underline',
   },
 
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    bottom: 50,
+    marginTop: 30,
+    marginBottom: 20,
     alignSelf: 'center',
   },
 
   footerText: {
     color: 'white',
-    fontSize: 13,
+    fontSize: Math.min(13, width * 0.033),
   },
 
   signUpText: {
-    color: 'blue',
-    fontSize: 13,
+    color: '#2D6AFC',
+    fontSize: Math.min(13, width * 0.033),
     textDecorationLine: 'underline',
   },
 
   errorText: {
     color: '#FF6B6B',
-    fontSize: 14,
+    fontSize: Math.min(14, width * 0.035),
     textAlign: 'center',
     marginTop: 10,
     marginBottom: 10,
