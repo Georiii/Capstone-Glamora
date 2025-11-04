@@ -46,7 +46,7 @@ class LoginManager {
                 window.location.href = 'analytics.html';
             }, 1000);
         } else {
-            AdminUtils.showMessage('Invalid credentials. Use admin/admin123', 'error');
+            AdminUtils.showMessage('Invalid credentials.');
         }
     }
 }
