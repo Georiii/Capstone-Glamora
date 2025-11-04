@@ -13,7 +13,6 @@ import {
   Pressable,
   Animated,
   Easing,
-  TouchableWithoutFeedback,
   Keyboard,
   Dimensions,
 } from 'react-native';
@@ -151,7 +150,7 @@ export default function Register() {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <Pressable onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss} style={styles.containerWrapper}>
       <View style={styles.container}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
@@ -272,11 +271,14 @@ export default function Register() {
         </Modal>
         </ScrollView>
       </View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  containerWrapper: {
+    flex: 1,
+  },
   container: { 
     flex: 1, 
     backgroundColor: '#F4C2C2',

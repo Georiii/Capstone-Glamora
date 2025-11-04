@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Platform, TouchableWithoutFeedback, Keyboard, Dimensions } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Platform, Pressable, Keyboard, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS, getApiBaseUrl } from '../config/api';
 
@@ -125,7 +125,7 @@ Technical details: ${healthError.message}`);
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <Pressable onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss} style={styles.containerWrapper}>
       <View style={styles.container}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
@@ -208,11 +208,14 @@ Technical details: ${healthError.message}`);
           </View>
         </ScrollView>
       </View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  containerWrapper: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F4C2C2',

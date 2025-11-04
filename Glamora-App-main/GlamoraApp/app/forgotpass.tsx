@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, TouchableWithoutFeedback, Keyboard, Dimensions, Platform } from 'react-native';
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Pressable, Keyboard, Dimensions, Platform } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 
 const { width, height } = Dimensions.get('window');
@@ -72,7 +72,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <Pressable onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss} style={styles.containerWrapper}>
       <View style={styles.container}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
@@ -116,11 +116,14 @@ export default function ForgotPassword() {
           </View>
         </ScrollView>
       </View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  containerWrapper: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F4C2C2',

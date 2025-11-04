@@ -1,13 +1,19 @@
+# Disable Git submodules completely
 [git]
   submodules = false
 
+# Build configuration
 [build]
-  base = ""
-  publish = "admin-side"
-  command = ""
+  base = "Glamora-App-main"
+  publish = "Glamora-App-main/admin-side"
+  command = "echo 'Deploying static admin-side files'"
 
+# Node.js version
+[build.environment]
+  NODE_VERSION = "22"
+
+# SPA redirect rules
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
