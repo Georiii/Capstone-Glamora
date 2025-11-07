@@ -11,6 +11,11 @@ const reportSchema = new mongoose.Schema({
     ref: 'User', 
     required: true 
   },
+  marketplaceItemId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MarketplaceItem',
+    default: null
+  },
   reason: { 
     type: String, 
     required: true 

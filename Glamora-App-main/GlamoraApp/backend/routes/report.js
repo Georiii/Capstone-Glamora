@@ -24,7 +24,7 @@ function auth(req, res, next) {
 // POST /api/report - Submit a user report
 router.post('/', auth, async (req, res) => {
   try {
-    const { reportedUserId, reason } = req.body;
+    const { reportedUserId, reason, marketplaceItemId } = req.body;
     const reporterId = req.userId;
 
     if (!reportedUserId || !reason) {
@@ -56,6 +56,7 @@ router.post('/', auth, async (req, res) => {
     const report = new Report({
       reporterId,
       reportedUserId,
+      marketplaceItemId: marketplaceItemId || null,
       reason,
       timestamp: new Date(),
       status: 'pending'
