@@ -76,6 +76,9 @@ try {
   console.log('✅ All API routes loaded successfully');
 } catch (error) {
   console.error('⚠️ Error loading some routes:', error.message);
+  if (error.stack) {
+    console.error('🛠️ Route loading stack trace:', error.stack);
+  }
   console.log('🔧 Server will continue with basic functionality');
 }
 
