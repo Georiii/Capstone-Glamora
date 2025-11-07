@@ -6,10 +6,12 @@ const path = require('path');
 // Helper to resolve backend modules across different project layouts
 const resolveBackendModule = (relativePath) => {
     const candidatePaths = [
-        path.join(__dirname, '..', 'backend', relativePath),
+        // Prefer the GlamoraApp/backend path first since Render installs dependencies there
         path.join(__dirname, '..', 'GlamoraApp', 'backend', relativePath),
-        path.join(__dirname, '..', '..', 'backend', relativePath),
         path.join(__dirname, '..', '..', 'GlamoraApp', 'backend', relativePath),
+        // Fallback to legacy backend locations bundled in the repo
+        path.join(__dirname, '..', 'backend', relativePath),
+        path.join(__dirname, '..', '..', 'backend', relativePath),
     ];
 
     for (const candidate of candidatePaths) {

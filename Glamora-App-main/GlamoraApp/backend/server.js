@@ -131,6 +131,9 @@ try {
   adminRoutes = require('../../admin-side/admin-api');
 } catch (err) {
   console.log('ℹ️  Admin routes not available (admin-api.js not found). Admin dashboard will not be accessible.');
+  if (err && err.stack) {
+    console.log('🛠️  Admin route load error stack:', err.stack);
+  }
   adminRoutes = null;
 }
 
