@@ -1,7 +1,22 @@
 // Admin API Backend Routes
+const path = require('path');
+
+// Ensure admin-side can resolve dependencies installed under the backend service on Render
+const backendNodeModulesCandidates = [
+    path.join(__dirname, '..', 'GlamoraApp', 'backend', 'node_modules'),
+    path.join(__dirname, '..', '..', 'GlamoraApp', 'backend', 'node_modules'),
+    path.join(__dirname, '..', 'backend', 'node_modules'),
+    path.join(__dirname, '..', '..', 'backend', 'node_modules'),
+];
+
+for (const candidate of backendNodeModulesCandidates) {
+    if (!module.paths.includes(candidate)) {
+        module.paths.push(candidate);
+    }
+}
+
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const path = require('path');
 
 // Helper to resolve backend modules across different project layouts
 const resolveBackendModule = (relativePath) => {
