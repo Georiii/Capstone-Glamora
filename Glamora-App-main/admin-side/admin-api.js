@@ -1,12 +1,12 @@
 // Admin API Backend Routes
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../backend/models/User');
-const Report = require('../backend/models/Report');
-const MarketplaceItem = require('../backend/models/MarketplaceItem');
-const WardrobeItem = require('../backend/models/WardrobeItem');
-const ChatMessage = require('../backend/models/Chat');
-const { JWT_SECRET } = require('../backend/config/database');
+const User = require('../GlamoraApp/backend/models/User');
+const Report = require('../GlamoraApp/backend/models/Report');
+const MarketplaceItem = require('../GlamoraApp/backend/models/MarketplaceItem');
+const WardrobeItem = require('../GlamoraApp/backend/models/WardrobeItem');
+const ChatMessage = require('../GlamoraApp/backend/models/Chat');
+const { JWT_SECRET } = require('../GlamoraApp/backend/config/database');
 
 const router = express.Router();
 
@@ -45,23 +45,13 @@ router.post('/login', async (req, res) => {
             let adminUser = await User.findOne({ email: 'admin@glamora.com' });
             
             if (!adminUser) {
-                const bcrypt = require('bcrypt');
-                const hashedPassword = await bcrypt.hash('admin123', 10);
-                
                 adminUser = new User({
                     name: 'Admin',
-                    username: 'admin',
                     email: 'admin@glamora.com',
-                    passwordHash: hashedPassword,
+                    password: 'hashed_password', // In production, hash this
                     role: 'admin',
                     isActive: true
                 });
-                await adminUser.save();
-            }
-
-            // Ensure admin user has role set
-            if (adminUser.role !== 'admin') {
-                adminUser.role = 'admin';
                 await adminUser.save();
             }
 
@@ -78,7 +68,7 @@ router.post('/login', async (req, res) => {
                     id: adminUser._id,
                     name: adminUser.name,
                     email: adminUser.email,
-                    role: adminUser.role || 'admin'
+                    role: adminUser.role
                 }
             });
         } else {
@@ -96,13 +86,8 @@ router.get('/metrics', adminAuth, async (req, res) => {
         const totalUsers = await User.countDocuments({ role: 'user' });
         const activeUsers = await User.countDocuments({ role: 'user', isActive: true });
         const totalReports = await Report.countDocuments();
-        const activeListings = await MarketplaceItem.countDocuments({ 
-            $or: [
-                { status: 'Approved' },
-                { status: { $exists: false } }
-            ]
-        });
-        const pendingPosts = await MarketplaceItem.countDocuments({ status: 'Pending' });
+        const activeListings = await MarketplaceItem.countDocuments({ status: 'active' });
+        const pendingPosts = await MarketplaceItem.countDocuments({ status: 'pending' });
 
         res.json({
             totalUsers,
@@ -278,77 +263,39 @@ router.put('/reports/:id', adminAuth, async (req, res) => {
 
 router.get('/marketplace/pending', adminAuth, async (req, res) => {
     try {
-        console.log('📦 Fetching pending marketplace items for admin...');
-        
-        // Check total count first
-        const totalCount = await MarketplaceItem.countDocuments({});
-        console.log(`Total items in marketplaceitems collection: ${totalCount}`);
-        
-        // Try multiple query patterns to catch all pending items
-        // Some items might have status stored as string, some might have different casing
-        const pendingItems = await MarketplaceItem.find({
-            $or: [
-                { status: 'Pending' },
-                { status: 'pending' }, // lowercase
-                { status: 'PENDING' }  // uppercase
-            ]
-        })
-            .populate('userId', 'name email profilePicture')
+        const pendingItems = await MarketplaceItem.find({ status: 'pending' })
+            .populate('userId', 'name email')
             .sort({ createdAt: -1 });
-
-        console.log(`✅ Found ${pendingItems.length} pending items`);
-        
-        // Debug: If no items, check what statuses actually exist
-        if (pendingItems.length === 0 && totalCount > 0) {
-            const sampleItems = await MarketplaceItem.find({}).limit(10);
-            const statusBreakdown = {};
-            sampleItems.forEach(item => {
-                const status = item.status || 'NO_STATUS';
-                statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
-            });
-            console.log('📊 Status breakdown from sample:', statusBreakdown);
-        }
 
         res.json({ items: pendingItems });
     } catch (error) {
-        console.error('❌ Get pending items error:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Get pending items error:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 
 router.put('/marketplace/:id/approve', adminAuth, async (req, res) => {
     try {
-        const item = await MarketplaceItem.findById(req.params.id);
+        const item = await MarketplaceItem.findById(req.params.id).populate('userId');
         if (!item) {
             return res.status(404).json({ message: 'Item not found' });
         }
 
-        item.status = 'Approved';
+        item.status = 'active';
+        item.approvedBy = req.adminId;
         item.approvedAt = new Date();
-        item.rejectionReason = undefined;
 
         await item.save();
 
-        // Automatically send approval confirmation message to the user
-        try {
-            const adminUser = await User.findOne({ role: 'admin' });
-            if (adminUser && item.userId) {
-                const approvalMessage = `Your item "${item.name}" has been approved and is now visible in the marketplace.`;
-                
-                const systemMessage = new ChatMessage({
-                    senderId: adminUser._id,
-                    receiverId: item.userId,
-                    text: approvalMessage,
-                    timestamp: new Date(),
-                    read: false
-                });
-                
-                await systemMessage.save();
-                console.log('✅ Approval message sent to user:', item.userId);
-            }
-        } catch (msgError) {
-            // Don't fail the approval if message sending fails
-            console.error('⚠️ Failed to send approval message:', msgError);
+        // Emit real-time event to notify user
+        if (req.app.get('io')) {
+            req.app.get('io').emit('marketplace:item:approved', {
+                itemId: item._id,
+                userId: item.userId._id,
+                itemName: item.name,
+                timestamp: new Date()
+            });
+            console.log('✅ Emitted marketplace:item:approved event for:', item.name);
         }
 
         res.json({ message: 'Item approved successfully', item });
@@ -362,38 +309,28 @@ router.put('/marketplace/:id/reject', adminAuth, async (req, res) => {
     try {
         const { reason } = req.body;
         
-        const item = await MarketplaceItem.findById(req.params.id);
+        const item = await MarketplaceItem.findById(req.params.id).populate('userId');
         if (!item) {
             return res.status(404).json({ message: 'Item not found' });
         }
 
-        item.status = 'Rejected';
-        item.rejectionReason = reason || 'Not specified';
+        item.status = 'rejected';
+        item.rejectionReason = reason;
+        item.rejectedBy = req.adminId;
         item.rejectedAt = new Date();
 
         await item.save();
 
-        // Automatically send rejection message to the user
-        try {
-            // Find admin user to send as sender
-            const adminUser = await User.findOne({ role: 'admin' });
-            if (adminUser && item.userId) {
-                const rejectionMessage = `Your marketplace post "${item.name}" has been rejected due to a violation of our posting policy. ${reason ? `Reason: ${reason}` : 'Please review our community guidelines and try again.'}`;
-                
-                const systemMessage = new ChatMessage({
-                    senderId: adminUser._id,
-                    receiverId: item.userId,
-                    text: rejectionMessage,
-                    timestamp: new Date(),
-                    read: false
-                });
-                
-                await systemMessage.save();
-                console.log('✅ Rejection message sent to user:', item.userId);
-            }
-        } catch (msgError) {
-            // Don't fail the rejection if message sending fails
-            console.error('⚠️ Failed to send rejection message:', msgError);
+        // Emit real-time event to notify user
+        if (req.app.get('io')) {
+            req.app.get('io').emit('marketplace:item:rejected', {
+                itemId: item._id,
+                userId: item.userId._id,
+                itemName: item.name,
+                reason: reason,
+                timestamp: new Date()
+            });
+            console.log('✅ Emitted marketplace:item:rejected event for:', item.name);
         }
 
         res.json({ message: 'Item rejected successfully', item });

@@ -11,9 +11,3 @@
 # Node.js version
 [build.environment]
   NODE_VERSION = "22"
-
-# SPA redirect rules
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
