@@ -65,8 +65,8 @@ class LoginManager {
   async handleLogin() {
     if (this.loading) return;
 
-    const usernameInput = document.getElementById('admin');
-    const passwordInput = document.getElementById('admin123');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
     const loginBtn = document.getElementById('loginBtn');
 
     if (!usernameInput || !passwordInput) return;
