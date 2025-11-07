@@ -15,13 +15,19 @@ class ContentModerationManager {
     }
 
     startAutoRefresh() {
-        // Auto-refresh pending items every 30 seconds if on pending view
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+        }
+
         this.refreshInterval = setInterval(async () => {
             if (this.currentView === 'pending') {
-                console.log('🔄 Auto-refreshing pending items...');
                 await this.renderPendingPosts();
+            } else if (this.currentView === 'reports') {
+                await this.renderReportsTable();
             }
-        }, 30000); // Refresh every 30 seconds
+
+            await AdminUtils.updateMetrics();
+        }, 5000);
     }
 
     stopAutoRefresh() {
@@ -315,19 +321,6 @@ class ContentModerationManager {
             AdminUtils.showMessage('Failed to reject item', 'error');
         }
     }
-
-
-    restrictUser(userId) {
-        const user = mockData.users.find(u => u.id === userId);
-        if (!user) return;
-
-        user.status = 'inactive';
-        AdminUtils.updateMetrics();
-        document.getElementById('reportModal').style.display = 'none';
-        AdminUtils.showMessage('User restricted successfully', 'success');
-    }
-
-
     editGuidelines() {
         const newGuidelines = prompt('Enter new community guidelines:', 'Current guidelines...');
         if (newGuidelines) {
