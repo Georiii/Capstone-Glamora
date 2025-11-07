@@ -80,6 +80,67 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
     
+    const accountStatus = user.accountStatus || {};
+    if (accountStatus.isRestricted) {
+      const now = new Date();
+      const restrictionEndDate = accountStatus.restrictionEndDate ? new Date(accountStatus.restrictionEndDate) : null;
+
+      if (restrictionEndDate && restrictionEndDate <= now) {
+        user.accountStatus = {
+          isRestricted: false,
+          restrictionReason: null,
+          restrictionDuration: null,
+          restrictionStartDate: null,
+          restrictionEndDate: null,
+          restrictedBy: null
+        };
+        await user.save();
+      } else {
+        const restrictionDuration = accountStatus.restrictionDuration || 'a limited time';
+        let durationLabel = restrictionDuration;
+        switch (restrictionDuration) {
+          case '1 hour':
+            durationLabel = '1 hour';
+            break;
+          case '1 day':
+            durationLabel = '1 day';
+            break;
+          case '3 days':
+            durationLabel = '3 days';
+            break;
+          case '1 week':
+            durationLabel = '1 week';
+            break;
+          case '1 month':
+            durationLabel = '1 month';
+            break;
+          case 'permanent':
+            durationLabel = 'a permanent suspension';
+            break;
+          default:
+            durationLabel = restrictionDuration;
+        }
+
+        const reason = accountStatus.restrictionReason || 'unspecified reason';
+        const restrictionMessage = `Your account was suspended for ${durationLabel}. Reason of suspension: ${reason}. If you have concern please contact the customer service. Thank you!!`;
+
+        let daysRemaining = null;
+        if (restrictionEndDate) {
+          daysRemaining = Math.ceil((restrictionEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        }
+
+        return res.status(403).json({
+          message: 'Account restricted',
+          restrictionReason: reason,
+          restrictionDuration,
+          restrictionEndDate,
+          restrictionMessage,
+          durationLabel,
+          daysRemaining
+        });
+      }
+    }
+
     console.log('Password valid, generating token');
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
     console.log('Login successful for user:', user.email);

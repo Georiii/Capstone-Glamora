@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Platform, Pressable, Keyboard, Dimensions } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Platform, Pressable, Keyboard, Dimensions, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS, getApiBaseUrl } from '../config/api';
 
@@ -17,6 +17,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [restrictionModalVisible, setRestrictionModalVisible] = useState(false);
+  const [restrictionInfo, setRestrictionInfo] = useState<{ message: string; title: string } | null>(null);
 
   React.useEffect(() => {
     // Remove Firebase onAuthStateChanged usage.
@@ -81,6 +83,16 @@ Technical details: ${healthError.message}`);
           errorMessage = errorData.message || errorMessage;
           
           // Handle account restriction
+          if (response.status === 403 && errorData.restrictionMessage) {
+            setRestrictionInfo({
+              title: 'Account Restricted',
+              message: errorData.restrictionMessage,
+            });
+            setRestrictionModalVisible(true);
+            setLoading(false);
+            return;
+          }
+
           if (response.status === 403 && errorData.restrictionReason) {
             const daysRemaining = errorData.daysRemaining || 0;
             errorMessage = `Your account was suspended for ${errorData.restrictionReason}. ${daysRemaining} days remaining.`;
@@ -126,6 +138,17 @@ Technical details: ${healthError.message}`);
 
   return (
     <Pressable onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss} style={styles.containerWrapper}>
+      <Modal visible={restrictionModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.restrictionModal, { maxWidth: width * 0.85 }]}>
+            <Text style={styles.restrictionTitle}>{restrictionInfo?.title || 'Account Notice'}</Text>
+            <Text style={styles.restrictionMessage}>{restrictionInfo?.message ?? ''}</Text>
+            <TouchableOpacity style={styles.restrictionButton} onPress={() => setRestrictionModalVisible(false)}>
+              <Text style={styles.restrictionButtonText}>Okay</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <View style={styles.container}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
@@ -343,6 +366,60 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 10,
     textDecorationLine: 'underline',
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+
+  restrictionModal: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+
+  restrictionTitle: {
+    fontFamily: Platform.OS === 'android' ? 'sans-serif' : 'Arial',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2C3E50',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+
+  restrictionMessage: {
+    fontFamily: Platform.OS === 'android' ? 'sans-serif' : 'Arial',
+    fontSize: 12,
+    color: '#2C3E50',
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+
+  restrictionButton: {
+    alignSelf: 'center',
+    backgroundColor: '#4A90E2',
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    borderRadius: 20,
+  },
+
+  restrictionButtonText: {
+    fontFamily: Platform.OS === 'android' ? 'sans-serif-medium' : 'Arial',
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
   },
 
   footer: {

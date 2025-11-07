@@ -7,6 +7,14 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isActive: { type: Boolean, default: true },
+  accountStatus: {
+    isRestricted: { type: Boolean, default: false },
+    restrictionReason: { type: String, default: null },
+    restrictionDuration: { type: String, default: null },
+    restrictionStartDate: { type: Date, default: null },
+    restrictionEndDate: { type: Date, default: null },
+    restrictedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
+  },
   
   // Body Measurements
   bodyMeasurements: {

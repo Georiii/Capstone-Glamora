@@ -507,34 +507,31 @@ router.put('/reports/:id/restrict', adminAuth, async (req, res) => {
 
         const reportedUser = report.reportedUserId;
         const now = new Date();
-        
-        // Calculate restriction end date based on duration
-        let restrictionEndDate;
-        switch (restrictionDuration) {
-            case '1 day':
-                restrictionEndDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-                break;
-            case '10 days':
-                restrictionEndDate = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
-                break;
-            case '20 days':
-                restrictionEndDate = new Date(now.getTime() + 20 * 24 * 60 * 60 * 1000);
-                break;
-            case '1 month':
-                restrictionEndDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-                break;
-            default:
-                return res.status(400).json({ message: 'Invalid restriction duration.' });
+
+        const durationMap = {
+            '1 hour': { label: '1 hour', ms: 60 * 60 * 1000 },
+            '1 day': { label: '1 day', ms: 24 * 60 * 60 * 1000 },
+            '3 days': { label: '3 days', ms: 3 * 24 * 60 * 60 * 1000 },
+            '1 week': { label: '1 week', ms: 7 * 24 * 60 * 60 * 1000 },
+            '1 month': { label: '1 month', ms: 30 * 24 * 60 * 60 * 1000 },
+            'permanent': { label: 'permanent', ms: null }
+        };
+
+        const durationConfig = durationMap[restrictionDuration];
+        if (!durationConfig) {
+            return res.status(400).json({ message: 'Invalid restriction duration.' });
         }
+
+        const restrictionEndDate = durationConfig.ms === null ? null : new Date(now.getTime() + durationConfig.ms);
+        const readableDuration = restrictionDuration === 'permanent' ? 'a permanent suspension' : durationConfig.label;
 
         // Update user account status
         reportedUser.accountStatus = {
-            isActive: true,
             isRestricted: true,
-            restrictionReason: restrictionReason,
+            restrictionReason,
             restrictionStartDate: now,
-            restrictionEndDate: restrictionEndDate,
-            restrictionDuration: restrictionDuration,
+            restrictionEndDate,
+            restrictionDuration,
             restrictedBy: req.userId
         };
 
@@ -546,10 +543,40 @@ router.put('/reports/:id/restrict', adminAuth, async (req, res) => {
         report.adminNotes = `User restricted for ${restrictionDuration}. Reason: ${restrictionReason}`;
         await report.save();
 
+        // Send notification message to the user
+        try {
+            const adminUser = await User.findOne({ role: 'admin' });
+            const noticeMessage = `Your account was suspended for ${readableDuration}. Reason of suspension: ${restrictionReason}. If you have concern please contact the customer service. Thank you!!`;
+
+            if (adminUser) {
+                await ChatMessage.create({
+                    senderId: adminUser._id,
+                    receiverId: reportedUser._id,
+                    text: noticeMessage,
+                    timestamp: new Date(),
+                    read: false
+                });
+
+                const io = req.app?.get?.('io');
+                if (io) {
+                    io.to(`user_${reportedUser._id}`).emit('system:account-restriction', {
+                        userId: reportedUser._id,
+                        message: noticeMessage,
+                        restrictionDuration,
+                        restrictionEndDate,
+                        restrictionStartDate: now
+                    });
+                }
+            }
+        } catch (notifyError) {
+            console.error('Failed to notify user about restriction:', notifyError);
+        }
+
         res.json({ 
             message: 'User account restricted successfully.', 
-            restrictionEndDate: restrictionEndDate,
-            restrictionDuration: restrictionDuration
+            restrictionEndDate,
+            restrictionDuration,
+            restrictionMessage: `Restriction notice sent: ${readableDuration}.`
         });
     } catch (error) {
         console.error('Error restricting user:', error);
