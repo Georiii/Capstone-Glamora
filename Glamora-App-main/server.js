@@ -63,6 +63,7 @@ try {
   const outfitsRoutes = require('./backend/routes/outfits');
   const recommendationsRoutes = require('./backend/routes/recommendations');
   const reportRoutes = require('./backend/routes/report');
+  const adminRoutes = require('./admin-side/admin-api');
 
   app.use('/api/auth', authRoutes);
   app.use('/api/wardrobe', wardrobeRoutes);
@@ -70,6 +71,7 @@ try {
   app.use('/api/outfits', outfitsRoutes);
   app.use('/api/recommendations', recommendationsRoutes);
   app.use('/api/report', reportRoutes);
+  app.use('/api/admin', adminRoutes);
   
   console.log('✅ All API routes loaded successfully');
 } catch (error) {
