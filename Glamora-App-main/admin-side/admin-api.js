@@ -1,12 +1,37 @@
 // Admin API Backend Routes
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../GlamoraApp/backend/models/User');
-const Report = require('../GlamoraApp/backend/models/Report');
-const MarketplaceItem = require('../GlamoraApp/backend/models/MarketplaceItem');
-const WardrobeItem = require('../GlamoraApp/backend/models/WardrobeItem');
-const ChatMessage = require('../GlamoraApp/backend/models/Chat');
-const { JWT_SECRET } = require('../GlamoraApp/backend/config/database');
+const path = require('path');
+
+// Helper to resolve backend modules across different project layouts
+const resolveBackendModule = (relativePath) => {
+    const candidatePaths = [
+        path.join(__dirname, '..', 'backend', relativePath),
+        path.join(__dirname, '..', 'GlamoraApp', 'backend', relativePath),
+        path.join(__dirname, '..', '..', 'backend', relativePath),
+        path.join(__dirname, '..', '..', 'GlamoraApp', 'backend', relativePath),
+    ];
+
+    for (const candidate of candidatePaths) {
+        try {
+            return require(candidate);
+        } catch (error) {
+            const isMissingModule = error.code === 'MODULE_NOT_FOUND' && error.message.includes(candidate);
+            if (!isMissingModule) {
+                throw error;
+            }
+        }
+    }
+
+    throw new Error(`Unable to resolve backend module for path: ${relativePath}`);
+};
+
+const User = resolveBackendModule('models/User');
+const Report = resolveBackendModule('models/Report');
+const MarketplaceItem = resolveBackendModule('models/MarketplaceItem');
+const WardrobeItem = resolveBackendModule('models/WardrobeItem');
+const ChatMessage = resolveBackendModule('models/Chat');
+const { JWT_SECRET } = resolveBackendModule('config/database');
 
 const router = express.Router();
 
