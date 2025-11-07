@@ -470,7 +470,7 @@ class ContentModerationManager {
                     <p>Are you sure you want to restrict this account?</p>
                     <div class="modal-actions">
                         <button class="cancel-btn" onclick="this.closest('.modal').remove()">Cancel</button>
-                        <button class="confirm-btn" onclick="contentModeration.showDurationModal(${reportId})">Yes</button>
+                        <button class="confirm-btn" onclick="contentModeration.showDurationModal('${reportId}')">Yes</button>
                     </div>
                 </div>
             </div>
@@ -488,67 +488,102 @@ class ContentModerationManager {
         // Remove first modal
         document.querySelectorAll('.modal').forEach(modal => modal.remove());
 
-        // Second modal for duration selection
         const durationModal = document.createElement('div');
-        durationModal.className = 'modal';
+        durationModal.className = 'modal restriction-flow-modal';
+
+        const durationOptions = [
+            { label: '1 Hour', value: '1 hour' },
+            { label: '1 Day', value: '1 day' },
+            { label: '3 Days', value: '3 days' },
+            { label: '1 Week', value: '1 week' },
+            { label: '1 Month', value: '1 month' },
+            { label: 'Permanent', value: 'permanent' },
+        ];
+
+        const optionButtons = durationOptions.map((option, index) => `
+            <button type="button" class="duration-option ${index === 1 ? 'selected' : ''}" data-value="${option.value}">
+                ${option.label}
+            </button>
+        `).join('');
+
         durationModal.innerHTML = `
-            <div class="modal-content">
+            <div class="modal-content restriction-modal-content">
                 <div class="modal-header">
                     <h3>Select Restriction Duration</h3>
                     <span class="close">&times;</span>
                 </div>
                 <div class="modal-body">
                     <div class="restriction-options">
-                        <label>Restriction Duration:</label>
-                        <select id="restrictionDuration">
-                            <option value="1 day">1 day</option>
-                            <option value="10 days">10 days</option>
-                            <option value="20 days">20 days</option>
-                            <option value="1 month">1 month</option>
-                        </select>
-                        <label>Reason for Restriction:</label>
-                        <textarea id="restrictionReason" placeholder="Enter reason for restriction..."></textarea>
+                        <div class="duration-grid">
+                            ${optionButtons}
+                        </div>
+                        <label for="restrictionReason" class="restriction-label">Restriction Reason</label>
+                        <textarea id="restrictionReason" class="restriction-reason" placeholder="Write a message..."></textarea>
                     </div>
                     <div class="modal-actions">
-                        <button class="cancel-btn" onclick="this.closest('.modal').remove()">Cancel</button>
-                        <button class="confirm-btn" onclick="contentModeration.confirmRestriction(${reportId})">Confirm Restriction</button>
+                        <button class="cancel-btn" type="button">Cancel</button>
+                        <button class="confirm-btn" type="button">Confirm</button>
                     </div>
                 </div>
             </div>
         `;
+
         document.body.appendChild(durationModal);
         durationModal.style.display = 'block';
 
-        // Close modal functionality
-        durationModal.querySelector('.close').onclick = () => {
-            document.body.removeChild(durationModal);
+        const closeModal = () => {
+            if (durationModal.parentNode) {
+                durationModal.parentNode.removeChild(durationModal);
+            }
+        };
+
+        durationModal.querySelector('.close').onclick = closeModal;
+        durationModal.querySelector('.cancel-btn').onclick = closeModal;
+
+        durationModal.querySelectorAll('.duration-option').forEach((button) => {
+            button.addEventListener('click', () => {
+                durationModal.querySelectorAll('.duration-option').forEach((btn) => btn.classList.remove('selected'));
+                button.classList.add('selected');
+            });
+        });
+
+        durationModal.querySelector('.confirm-btn').onclick = () => {
+            const selectedButton = durationModal.querySelector('.duration-option.selected');
+            const reasonField = durationModal.querySelector('#restrictionReason');
+            const durationValue = selectedButton ? selectedButton.dataset.value : null;
+            const reasonValue = reasonField ? reasonField.value : '';
+
+            this.confirmRestriction(reportId, durationValue, reasonValue, durationModal);
         };
     }
 
-    async confirmRestriction(reportId) {
-        const duration = document.getElementById('restrictionDuration').value;
-        const reason = document.getElementById('restrictionReason').value;
+    async confirmRestriction(reportId, duration, reason, modalRef) {
+        if (!duration) {
+            alert('Please select a restriction duration');
+            return;
+        }
 
-        if (!reason.trim()) {
+        if (!reason || !reason.trim()) {
             alert('Please enter a reason for restriction');
             return;
         }
 
         try {
             console.log(`Restricting user for report ${reportId} for ${duration}. Reason: ${reason}`);
-            
+
             await api.restrictUser(reportId, duration, reason);
-            
+
             AdminUtils.showMessage(`User account restricted for ${duration}`, 'success');
-            
+
             // Close all modals
+            if (modalRef && modalRef.parentNode) {
+                modalRef.parentNode.removeChild(modalRef);
+            }
             document.querySelectorAll('.modal').forEach(modal => modal.remove());
-            
-            // If we're in report detail view, go back to reports table
+
             if (this.currentView === 'reportDetail') {
                 this.backToReports();
             } else {
-                // Refresh the reports table
                 this.renderReportsTable();
             }
         } catch (error) {
