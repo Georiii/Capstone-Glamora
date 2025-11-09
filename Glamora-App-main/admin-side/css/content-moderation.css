@@ -506,12 +506,7 @@
 /* Content View Management */
 .content-view {
     width: 100%;
-    display: block; /* Ensure content-view is visible by default */
-}
-
-/* Ensure pending view is visible */
-#pendingView {
-    display: block !important;
+    display: none;
 }
 
 /* Ensure pending posts container is visible */
