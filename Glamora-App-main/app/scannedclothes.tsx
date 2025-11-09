@@ -106,6 +106,32 @@ export default function ScannedClothes() {
       if (!imageUri) throw new Error('No image found');
       const token = await AsyncStorage.getItem('token');
       console.log('🔑 Token from AsyncStorage:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
+
+    let cloudinaryImageUrl = imageUri;
+    try {
+      const uploadResponse = await fetch(API_ENDPOINTS.uploadImage, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          imageUrl: imageUri,
+          folder: 'glamora/marketplace'
+        }),
+      });
+
+      if (uploadResponse.ok) {
+        const uploadResult = await uploadResponse.json();
+        cloudinaryImageUrl = uploadResult.imageUrl;
+        console.log('✅ Marketplace image uploaded to Cloudinary:', cloudinaryImageUrl);
+      } else {
+        const errorText = await uploadResponse.text();
+        console.log('⚠️ Cloudinary marketplace upload failed:', errorText);
+      }
+    } catch (uploadError) {
+      console.log('⚠️ Cloudinary upload error for marketplace item:', uploadError);
+    }
       
       const response = await fetch(API_ENDPOINTS.addMarketplaceItem, {
         method: 'POST',
@@ -114,7 +140,7 @@ export default function ScannedClothes() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          imageUrl: imageUri,
+        imageUrl: cloudinaryImageUrl,
           name: marketplaceName.trim(),
           description: marketplaceDescription.trim(),
           price: parseFloat(marketplacePrice),
@@ -143,7 +169,7 @@ export default function ScannedClothes() {
 
       setLoading(false);
       setMarketplaceModal(false);
-      Alert.alert('Success', 'Item posted to marketplace successfully!', [
+    Alert.alert('Pending Review', 'Your item has been submitted for admin approval. It will be visible in the marketplace once approved.', [
         {
           text: 'OK',
           onPress: () => router.push('/marketplace')

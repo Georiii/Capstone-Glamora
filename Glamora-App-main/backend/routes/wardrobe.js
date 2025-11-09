@@ -7,6 +7,8 @@ const User = require('../models/User');
 const MarketplaceItem = require('../models/MarketplaceItem');
 const cloudinary = require('../config/cloudinary');
 
+let legacyStatusNormalized = false;
+
 // Auth middleware
 function auth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -144,21 +146,38 @@ router.post('/marketplace', auth, async (req, res) => {
     const { imageUrl, name, description, price } = req.body;
     if (!imageUrl || !name || !price) return res.status(400).json({ message: 'Missing required fields' });
     
-    // Get user information from database
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    let finalImageUrl = imageUrl;
+    if (typeof imageUrl === 'string' && (imageUrl.startsWith('file://') || imageUrl.startsWith('data:') || !/^https?:\/\//i.test(imageUrl))) {
+      try {
+        const uploadResult = await cloudinary.uploader.upload(imageUrl, {
+          folder: 'glamora/marketplace',
+          transformation: [
+            { width: 400, height: 500, crop: 'fill' },
+            { quality: 'auto' }
+          ]
+        });
+        finalImageUrl = uploadResult.secure_url;
+      } catch (uploadErr) {
+        console.error('⚠️ Cloudinary upload failed for marketplace item, using original URL:', uploadErr?.message);
+      }
+    }
     
     const item = new MarketplaceItem({
-      imageUrl,
+      imageUrl: finalImageUrl,
       name,
       description,
       price,
       userId: req.userId,
       userName: user.name || '',
       userEmail: user.email || '',
+      userProfilePicture: user.profilePicture?.url || '',
+      status: 'Pending'
     });
     await item.save();
-    res.status(201).json({ message: 'Marketplace item posted', item });
+    res.status(201).json({ message: 'Marketplace item posted and pending review', item });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -168,8 +187,53 @@ router.post('/marketplace', auth, async (req, res) => {
 router.get('/marketplace', async (req, res) => {
   try {
     const search = req.query.search || '';
-    const query = search ? { name: { $regex: search, $options: 'i' } } : {};
-    const items = await MarketplaceItem.find(query).sort({ createdAt: -1 });
+
+    if (!legacyStatusNormalized) {
+      try {
+        const legacyResult = await MarketplaceItem.updateMany(
+          {
+            $or: [
+              { status: { $exists: false } },
+              { status: null },
+              { status: '' }
+            ]
+          },
+          { $set: { status: 'Approved' } }
+        );
+        if (legacyResult.modifiedCount) {
+          console.log(`🛠️ Normalized ${legacyResult.modifiedCount} legacy marketplace items to status='Approved'`);
+        }
+      } catch (legacyError) {
+        console.error('⚠️ Failed to normalize legacy marketplace items:', legacyError);
+      } finally {
+        legacyStatusNormalized = true;
+      }
+    }
+
+    const statusFilter = { status: 'Approved' };
+    const textFilter = search ? { name: { $regex: search, $options: 'i' } } : {};
+    const query = { ...statusFilter, ...textFilter };
+
+    const items = await MarketplaceItem.find(query).sort({ createdAt: -1 }).populate('userId', 'profilePicture name email');
+    const sanitizedItems = items.map(item => {
+      const obj = item.toObject();
+      if (item.userId?.profilePicture?.url) {
+        obj.userProfilePicture = item.userId.profilePicture.url;
+      }
+      delete obj.userId;
+      return obj;
+    });
+
+    res.json({ items: sanitizedItems });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/marketplace/user - list approved marketplace items for current user
+router.get('/marketplace/user', auth, async (req, res) => {
+  try {
+    const items = await MarketplaceItem.find({ userId: req.userId, status: 'Approved' }).sort({ createdAt: -1 });
     res.json({ items });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

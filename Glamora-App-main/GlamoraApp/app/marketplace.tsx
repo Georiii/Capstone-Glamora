@@ -3,6 +3,7 @@ import { useRouter, usePathname } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useSocket } from './contexts/SocketContext';
 
 interface MarketplaceItem {
   _id: string;
@@ -20,6 +21,7 @@ interface MarketplaceItem {
 export default function Marketplace() {
   const router = useRouter();
   const pathname = usePathname();
+  const { socket } = useSocket();
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,60 +53,9 @@ export default function Marketplace() {
         throw new Error('Invalid server response. Please try again.');
       }
       
-      // Public feed: Show ALL items returned from backend
-      // Backend already filters to show only Approved + Legacy items
-      // Don't filter here - trust backend to return correct items
-      // This ensures existing items (without status) are shown
       const publicItems: MarketplaceItem[] = data.items || [];
-      
-      console.log('📦 Received items from backend:', publicItems.length);
-      console.log('📊 Status breakdown:', {
-        approved: publicItems.filter(i => i.status === 'Approved').length,
-        legacy: publicItems.filter(i => !i.status || i.status === null).length,
-        pending: publicItems.filter(i => i.status === 'Pending').length,
-        rejected: publicItems.filter(i => i.status === 'Rejected').length
-      });
 
-      // 2) User's own items - merge for owner-only visibility of pending/rejected posts
-      //    This allows users to track their submissions without exposing pending items publicly
-      try {
-        const token = await (await import('@react-native-async-storage/async-storage')).default.getItem('token');
-        if (token) {
-          const meResp = await fetch(API_ENDPOINTS.getUserMarketplaceItems, {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          if (meResp.ok) {
-            const meData = await meResp.json();
-            // Only include pending/rejected items from user (they already see approved via publicItems)
-            const myItems: MarketplaceItem[] = (meData.items || []).filter((item: MarketplaceItem) => {
-              return item.status === 'Pending' || item.status === 'Rejected';
-            });
-
-            // Merge: All public approved items + user's own pending/rejected items
-            const itemMap = new Map<string, MarketplaceItem>();
-            // First, add all public approved items (visible to everyone, including existing 19 items)
-            for (const it of publicItems) {
-              itemMap.set(it._id, it);
-            }
-            // Then, add user's own pending/rejected items (only visible to them)
-            for (const it of myItems) {
-              if (!itemMap.has(it._id)) {
-                itemMap.set(it._id, it);
-              }
-            }
-            setItems(Array.from(itemMap.values()));
-          } else {
-            // Fallback: Show all public approved items only
-            setItems(publicItems);
-          }
-        } else {
-          // No token: Show all public approved items only (includes legacy items)
-          setItems(publicItems);
-        }
-      } catch {
-        // On error: Show all public approved items (includes legacy items)
-        setItems(publicItems);
-      }
+      setItems(publicItems);
       setLoading(false);
     } catch (error: any) {
       setLoading(false);
@@ -119,6 +70,24 @@ export default function Marketplace() {
   useEffect(() => {
     fetchMarketplaceItems();
   }, [fetchMarketplaceItems]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const refreshHandler = () => {
+      fetchMarketplaceItems();
+    };
+
+    socket.on('marketplace:item:approved', refreshHandler);
+    socket.on('marketplace:item:rejected', refreshHandler);
+    socket.on('system:account-notice', refreshHandler);
+
+    return () => {
+      socket.off('marketplace:item:approved', refreshHandler);
+      socket.off('marketplace:item:rejected', refreshHandler);
+      socket.off('system:account-notice', refreshHandler);
+    };
+  }, [socket, fetchMarketplaceItems]);
 
   return (
     <View style={styles.container}>

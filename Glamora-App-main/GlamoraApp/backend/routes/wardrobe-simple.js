@@ -6,6 +6,8 @@ const WardrobeItem = require('../models/WardrobeItem');
 const User = require('../models/User');
 const MarketplaceItem = require('../models/MarketplaceItem');
 
+let legacyStatusNormalized = false;
+
 // Auth middleware
 function auth(req, res, next) {
   console.log('🔐 Auth middleware called');

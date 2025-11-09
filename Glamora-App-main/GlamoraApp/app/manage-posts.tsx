@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useSocket } from './contexts/SocketContext';
 
 interface MarketplaceItem {
   _id: string;
@@ -11,10 +12,12 @@ interface MarketplaceItem {
   name: string;
   description: string;
   price: number;
+  status?: 'Pending' | 'Approved' | 'Rejected';
 }
 
 export default function ManagePosts() {
   const router = useRouter();
+  const { socket } = useSocket();
   const [posts, setPosts] = useState<MarketplaceItem[]>([]);
   const [selectedPosts, setSelectedPosts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,11 +30,7 @@ export default function ManagePosts() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  useEffect(() => {
-    loadUserPosts();
-  }, []);
-
-  const loadUserPosts = async () => {
+  const loadUserPosts = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
@@ -50,8 +49,9 @@ export default function ManagePosts() {
 
       if (response.ok) {
         const data = await response.json();
-        setPosts(data.items || []);
-        console.log('✅ Posts loaded successfully:', data.items?.length || 0);
+        const approvedItems = (data.items || []).filter((item: MarketplaceItem & { status?: string }) => item.status === 'Approved');
+        setPosts(approvedItems);
+        console.log('✅ Approved posts loaded successfully:', approvedItems.length);
       } else {
         console.error('❌ Failed to load posts, status:', response.status);
         const errorText = await response.text();
@@ -62,7 +62,26 @@ export default function ManagePosts() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUserPosts();
+  }, [loadUserPosts]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => {
+      loadUserPosts();
+    };
+    socket.on('marketplace:item:approved', handler);
+    socket.on('marketplace:item:rejected', handler);
+    socket.on('system:account-notice', handler);
+    return () => {
+      socket.off('marketplace:item:approved', handler);
+      socket.off('marketplace:item:rejected', handler);
+      socket.off('system:account-notice', handler);
+    };
+  }, [socket, loadUserPosts]);
 
   const togglePostSelection = (postId: string) => {
     setSelectedPosts(prev => 

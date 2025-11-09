@@ -128,8 +128,8 @@ router.get('/metrics', adminAuth, async (req, res) => {
         const totalUsers = await User.countDocuments({ role: 'user' });
         const activeUsers = await User.countDocuments({ role: 'user', isActive: true });
         const totalReports = await Report.countDocuments();
-        const activeListings = await MarketplaceItem.countDocuments({ status: 'active' });
-        const pendingPosts = await MarketplaceItem.countDocuments({ status: 'pending' });
+        const activeListings = await MarketplaceItem.countDocuments({ status: 'Approved' });
+        const pendingPosts = await MarketplaceItem.countDocuments({ status: 'Pending' });
 
         res.json({
             totalUsers,
@@ -305,7 +305,7 @@ router.put('/reports/:id', adminAuth, async (req, res) => {
 
 router.get('/marketplace/pending', adminAuth, async (req, res) => {
     try {
-        const pendingItems = await MarketplaceItem.find({ status: 'pending' })
+        const pendingItems = await MarketplaceItem.find({ status: 'Pending' })
             .populate('userId', 'name email')
             .sort({ createdAt: -1 });
 
@@ -323,9 +323,12 @@ router.put('/marketplace/:id/approve', adminAuth, async (req, res) => {
             return res.status(404).json({ message: 'Item not found' });
         }
 
-        item.status = 'active';
+        const adminUser = await User.findById(req.adminId) || await User.findOne({ role: 'admin' });
+
+        item.status = 'Approved';
         item.approvedBy = req.adminId;
         item.approvedAt = new Date();
+        item.rejectionReason = null;
 
         await item.save();
 
@@ -338,6 +341,32 @@ router.put('/marketplace/:id/approve', adminAuth, async (req, res) => {
                 timestamp: new Date()
             });
             console.log('✅ Emitted marketplace:item:approved event for:', item.name);
+        }
+
+        // Send approval message to user
+        try {
+            const senderId = adminUser?._id;
+            if (senderId) {
+                await ChatMessage.create({
+                    senderId,
+                    receiverId: item.userId._id,
+                    text: `Your marketplace item "${item.name}" has been approved and is now live in the marketplace.`,
+                    timestamp: new Date(),
+                    read: false
+                });
+
+                const io = req.app.get('io');
+                if (io) {
+                    io.to(`user_${item.userId._id}`).emit('system:account-notice', {
+                        type: 'marketplace:approved',
+                        message: `Your marketplace item "${item.name}" has been approved and is now live in the marketplace.`,
+                        itemId: item._id,
+                        timestamp: new Date()
+                    });
+                }
+            }
+        } catch (messagingError) {
+            console.error('⚠️ Failed to send approval notification:', messagingError);
         }
 
         res.json({ message: 'Item approved successfully', item });
@@ -356,7 +385,9 @@ router.put('/marketplace/:id/reject', adminAuth, async (req, res) => {
             return res.status(404).json({ message: 'Item not found' });
         }
 
-        item.status = 'rejected';
+        const adminUser = await User.findById(req.adminId) || await User.findOne({ role: 'admin' });
+
+        item.status = 'Rejected';
         item.rejectionReason = reason;
         item.rejectedBy = req.adminId;
         item.rejectedAt = new Date();
@@ -373,6 +404,33 @@ router.put('/marketplace/:id/reject', adminAuth, async (req, res) => {
                 timestamp: new Date()
             });
             console.log('✅ Emitted marketplace:item:rejected event for:', item.name);
+        }
+
+        // Send rejection message to user
+        try {
+            const senderId = adminUser?._id;
+            if (senderId) {
+                const rejectionMessage = `Your marketplace item "${item.name}" was rejected${reason ? `. Reason: ${reason}` : ''}. Please review the community guidelines and resubmit.`;
+                await ChatMessage.create({
+                    senderId,
+                    receiverId: item.userId._id,
+                    text: rejectionMessage,
+                    timestamp: new Date(),
+                    read: false
+                });
+
+                const io = req.app.get('io');
+                if (io) {
+                    io.to(`user_${item.userId._id}`).emit('system:account-notice', {
+                        type: 'marketplace:rejected',
+                        message: rejectionMessage,
+                        itemId: item._id,
+                        timestamp: new Date()
+                    });
+                }
+            }
+        } catch (messagingError) {
+            console.error('⚠️ Failed to send rejection notification:', messagingError);
         }
 
         res.json({ message: 'Item rejected successfully', item });

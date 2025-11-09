@@ -5,6 +5,9 @@ const { JWT_SECRET } = require('../config/database');
 const WardrobeItem = require('../models/WardrobeItem');
 const User = require('../models/User');
 const MarketplaceItem = require('../models/MarketplaceItem');
+const cloudinary = require('../config/cloudinary');
+
+let legacyStatusNormalized = false;
 
 // Auth middleware
 function auth(req, res, next) {
@@ -156,8 +159,24 @@ router.post('/marketplace', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
+    let finalImageUrl = imageUrl;
+    if (typeof imageUrl === 'string' && (imageUrl.startsWith('file://') || imageUrl.startsWith('data:') || !/^https?:\/\//i.test(imageUrl))) {
+      try {
+        const uploadResult = await cloudinary.uploader.upload(imageUrl, {
+          folder: 'glamora/marketplace',
+          transformation: [
+            { width: 400, height: 500, crop: 'fill' },
+            { quality: 'auto' }
+          ]
+        });
+        finalImageUrl = uploadResult.secure_url;
+      } catch (uploadErr) {
+        console.error('⚠️ Cloudinary upload failed for marketplace item, using original URL:', uploadErr?.message);
+      }
+    }
+    
     const item = new MarketplaceItem({
-      imageUrl,
+      imageUrl: finalImageUrl,
       name,
       description,
       price,
@@ -194,20 +213,31 @@ router.get('/marketplace', async (req, res) => {
     const search = req.query.search || '';
     console.log('📦 Fetching marketplace items...');
     console.log('🔍 Search query:', search);
-    
-    // Build status filter: Approved items OR items without status (legacy items)
-    // MUST use $or at top level to match EITHER Approved OR items without status
-    // Also check for empty string status in case some items have ""
-    const statusFilter = {
-      $or: [
-        { status: 'Approved' },
-        { status: { $exists: false } }, // Legacy items posted before approval system
-        { status: null }, // Also handle items with null status
-        { status: '' } // Handle empty string status
-      ]
-    };
-    
-    // Combine search filter with status filter using $and
+
+    if (!legacyStatusNormalized) {
+      try {
+        const legacyResult = await MarketplaceItem.updateMany(
+          {
+            $or: [
+              { status: { $exists: false } },
+              { status: null },
+              { status: '' }
+            ]
+          },
+          { $set: { status: 'Approved' } }
+        );
+        if (legacyResult.modifiedCount) {
+          console.log(`🛠️ Normalized ${legacyResult.modifiedCount} legacy marketplace items to status='Approved'`);
+        }
+      } catch (legacyError) {
+        console.error('⚠️ Failed to normalize legacy marketplace items:', legacyError);
+      } finally {
+        legacyStatusNormalized = true;
+      }
+    }
+
+    const statusFilter = { status: 'Approved' };
+
     let query;
     if (search) {
       query = {
@@ -217,12 +247,11 @@ router.get('/marketplace', async (req, res) => {
         ]
       };
     } else {
-      // No search - just use status filter
       query = statusFilter;
     }
-    
+
     console.log('🔍 MongoDB query:', JSON.stringify(query, null, 2));
-    
+
     const items = await MarketplaceItem.find(query)
       .sort({ createdAt: -1 })
       .populate('userId', 'profilePicture name email');
@@ -279,7 +308,7 @@ router.get('/marketplace', async (req, res) => {
 router.get('/marketplace/user', auth, async (req, res) => {
   try {
     console.log('📦 Fetching user marketplace items...');
-    const items = await MarketplaceItem.find({ userId: req.userId })
+    const items = await MarketplaceItem.find({ userId: req.userId, status: 'Approved' })
       .sort({ createdAt: -1 });
     
     console.log(`✅ Found ${items.length} items for user`);

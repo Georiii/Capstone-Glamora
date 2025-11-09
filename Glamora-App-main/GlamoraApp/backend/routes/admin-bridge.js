@@ -70,12 +70,29 @@ router.get('/pending-moderation', auth, requireAdmin, async (req, res) => {
 // Approve item (admin only)
 router.put('/marketplace/:id/approve', auth, requireAdmin, async (req, res) => {
   try {
-    const item = await MarketplaceItem.findByIdAndUpdate(
-      req.params.id,
-      { status: 'Approved', approvedAt: new Date(), rejectionReason: null },
-      { new: true }
-    );
+    const item = await MarketplaceItem.findById(req.params.id).populate('userId');
     if (!item) return res.status(404).json({ message: 'Item not found' });
+
+    item.status = 'Approved';
+    item.rejectionReason = null;
+    item.approvedAt = new Date();
+    await item.save();
+
+    try {
+      const adminUser = await User.findById(req.userId) || await User.findOne({ role: 'admin' });
+      if (adminUser) {
+        await ChatMessage.create({
+          senderId: adminUser._id,
+          receiverId: item.userId,
+          text: `Your marketplace item "${item.name}" has been approved and is now live in the marketplace.`,
+          timestamp: new Date(),
+          read: false
+        });
+      }
+    } catch (notifyErr) {
+      console.warn('Moderation approval notification failed:', notifyErr?.message);
+    }
+
     res.json({ message: 'Item approved', item });
   } catch (e) {
     res.status(500).json({ message: 'Server error' });

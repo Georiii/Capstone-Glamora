@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Tex
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS } from '../config/api';
+import { useSocket } from './contexts/SocketContext';
 
 interface MarketplaceItem {
   _id: string;
@@ -17,6 +18,7 @@ interface MarketplaceItem {
 
 export default function Marketplace() {
   const router = useRouter();
+  const { socket } = useSocket();
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +64,24 @@ export default function Marketplace() {
   useEffect(() => {
     fetchMarketplaceItems();
   }, [fetchMarketplaceItems]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const refreshHandler = () => {
+      fetchMarketplaceItems();
+    };
+
+    socket.on('marketplace:item:approved', refreshHandler);
+    socket.on('marketplace:item:rejected', refreshHandler);
+    socket.on('system:account-notice', refreshHandler);
+
+    return () => {
+      socket.off('marketplace:item:approved', refreshHandler);
+      socket.off('marketplace:item:rejected', refreshHandler);
+      socket.off('system:account-notice', refreshHandler);
+    };
+  }, [socket, fetchMarketplaceItems]);
 
   return (
     <View style={styles.container}>
