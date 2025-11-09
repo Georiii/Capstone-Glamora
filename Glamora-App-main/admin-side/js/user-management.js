@@ -4,6 +4,7 @@ class UserManagementManager {
   constructor() {
     this.refreshInterval = null;
     this.allUsers = [];
+    this.lastUsersSnapshot = null;
     this.init();
   }
 
@@ -50,12 +51,22 @@ class UserManagementManager {
   async loadUserManagement() {
     try {
       const data = await api.getUsers({ limit: 1000 });
-      this.allUsers = data.users || [];
-      this.renderUsersTable(this.allUsers);
+      const users = Array.isArray(data.users) ? data.users : [];
+      const snapshot = AdminUtils ? AdminUtils.serializeData(users) : JSON.stringify(users);
+
+      if (snapshot === this.lastUsersSnapshot) {
+        return;
+      }
+
+      this.lastUsersSnapshot = snapshot;
+      this.allUsers = users;
+      this.filterUsers();
     } catch (error) {
       console.error('Failed to load users:', error);
-      this.allUsers = [];
-      this.renderUsersTable([]);
+      if (!this.lastUsersSnapshot) {
+        this.allUsers = [];
+        this.renderUsersTable([]);
+      }
       if (error.isConnectionError) {
         AdminUtils.showMessage('Cannot connect to backend server', 'error');
       }

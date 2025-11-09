@@ -5,6 +5,8 @@ class ContentModerationManager {
         this.currentView = 'pending'; // 'pending', 'reports', or 'reportDetail'
         this.currentReportId = null;
         this.refreshInterval = null; // Auto-refresh interval
+        this.lastPendingItemsSnapshot = null;
+        this.lastReportsSnapshot = null;
         this.init();
     }
 
@@ -132,16 +134,26 @@ class ContentModerationManager {
             console.error('Available elements with IDs:', Array.from(document.querySelectorAll('[id]')).map(el => el.id).join(', '));
             return;
         }
-        
-        console.log('✅ Container found, setting loading state...');
-        container.innerHTML = '<div style="text-align: center; padding: 20px;">Loading pending items...</div>';
+
+        const hadSnapshot = Boolean(this.lastPendingItemsSnapshot);
+        if (!hadSnapshot) {
+            container.innerHTML = '<div style="text-align: center; padding: 20px;">Loading pending items...</div>';
+        }
 
         try {
             console.log('📦 Fetching pending marketplace items...');
             console.log('🌐 Current hostname:', window.location.hostname);
             console.log('🔗 API should be:', window.location.hostname.includes('netlify.app') ? 'Render backend' : 'Render backend');
             
-            const items = await api.getPendingMarketplaceItems();
+            const itemsRaw = await api.getPendingMarketplaceItems();
+            const items = Array.isArray(itemsRaw) ? itemsRaw : [];
+            const snapshot = AdminUtils ? AdminUtils.serializeData(items) : JSON.stringify(items);
+
+            if (hadSnapshot && snapshot === this.lastPendingItemsSnapshot) {
+                return;
+            }
+
+            this.lastPendingItemsSnapshot = snapshot;
             console.log('✅ Received items:', items);
             console.log('📊 Items count:', items?.length || 0);
             
@@ -186,7 +198,8 @@ class ContentModerationManager {
             
             // Check if it's a connection error - show helpful message
             if (error.isConnectionError || error.message.includes('Cannot connect to backend')) {
-                container.innerHTML = `
+                if (!hadSnapshot) {
+                    container.innerHTML = `
                     <div style="text-align: center; padding: 40px 20px; color: #666;">
                         <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">🔌</div>
                         <div style="font-size: 18px; font-weight: 500; color: #888; margin-bottom: 8px;">Backend server not connected</div>
@@ -194,6 +207,7 @@ class ContentModerationManager {
                         <div style="font-size: 12px; color: #bbb; font-style: italic;">Please start the backend server to view pending items.</div>
                     </div>
                 `;
+                }
             } else {
                 // Other errors - show error message
                 console.error('Error details:', {
@@ -201,13 +215,15 @@ class ContentModerationManager {
                     stack: error.stack,
                     response: error.response
                 });
-                container.innerHTML = `
+                if (!hadSnapshot) {
+                    container.innerHTML = `
                     <div style="text-align: center; padding: 20px; color: red;">
                         <div style="font-weight: bold; margin-bottom: 10px;">Error loading pending items</div>
                         <div style="font-size: 12px; color: #666;">${error.message || 'Unknown error'}</div>
                         <div style="font-size: 12px; color: #666; margin-top: 10px;">Check browser console for details</div>
                     </div>
                 `;
+                }
             }
         }
     }
@@ -331,11 +347,22 @@ class ContentModerationManager {
     async renderReportsTable() {
         const tbody = document.getElementById('reportsTableBody');
         if (!tbody) return;
-        
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Loading reports...</td></tr>';
+
+        const hadSnapshot = Boolean(this.lastReportsSnapshot);
+        if (!hadSnapshot) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Loading reports...</td></tr>';
+        }
 
         try {
-            const reports = await api.getReports();
+            const reportsRaw = await api.getReports();
+            const reports = Array.isArray(reportsRaw) ? reportsRaw : [];
+            const snapshot = AdminUtils ? AdminUtils.serializeData(reports) : JSON.stringify(reports);
+
+            if (hadSnapshot && snapshot === this.lastReportsSnapshot) {
+                return;
+            }
+
+            this.lastReportsSnapshot = snapshot;
             console.log('Reports from API:', reports);
             
             if (reports.length === 0) {
@@ -375,7 +402,9 @@ class ContentModerationManager {
             });
         } catch (error) {
             console.error('Error loading reports:', error);
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">Error loading reports</td></tr>';
+            if (!hadSnapshot) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">Error loading reports</td></tr>';
+            }
         }
     }
 

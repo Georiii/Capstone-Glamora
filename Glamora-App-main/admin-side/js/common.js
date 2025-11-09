@@ -255,6 +255,31 @@ const api = {
 };
 
 class AdminUtils {
+  static _lastMetricsSnapshot = null;
+  static _lastReportsToday = null;
+
+  static _stableReplacer(key, value) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return Object.keys(value).sort().reduce((acc, currentKey) => {
+        acc[currentKey] = value[currentKey];
+        return acc;
+      }, {});
+    }
+    return value;
+  }
+
+  static serializeData(data) {
+    try {
+      return JSON.stringify(data, AdminUtils._stableReplacer);
+    } catch {
+      return '';
+    }
+  }
+
+  static deepEqual(a, b) {
+    return AdminUtils.serializeData(a) === AdminUtils.serializeData(b);
+  }
+
   static showMessage(message, type = 'info', duration = 5000) {
     document.querySelectorAll('.message').forEach((msg) => msg.remove());
 
@@ -299,39 +324,49 @@ class AdminUtils {
     const reportsTodayEl = document.getElementById('reportsToday');
     const activeListingEl = document.getElementById('activeListing');
 
-    if (totalUsersEl) totalUsersEl.textContent = '...';
-    if (reportsTodayEl) reportsTodayEl.textContent = '...';
-    if (activeListingEl) activeListingEl.textContent = '...';
-
     try {
       const metrics = await api.getMetrics();
-      if (totalUsersEl) totalUsersEl.textContent = metrics.totalUsers;
+      const snapshot = {
+        totalUsers: metrics?.totalUsers ?? 0,
+        totalReports: metrics?.totalReports ?? 0,
+        activeListings: metrics?.activeListings ?? metrics?.pendingPosts ?? 0
+      };
+
+      if (!AdminUtils._lastMetricsSnapshot || !AdminUtils.deepEqual(AdminUtils._lastMetricsSnapshot, snapshot)) {
+        if (totalUsersEl) totalUsersEl.textContent = snapshot.totalUsers;
+        if (activeListingEl) activeListingEl.textContent = snapshot.activeListings;
+        AdminUtils._lastMetricsSnapshot = snapshot;
+      }
 
       if (reportsTodayEl) {
+        let reportsTodayValue = snapshot.totalReports ?? 0;
         try {
           const reports = await api.getReports();
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          const reportsToday = reports.filter((report) => {
+          reportsTodayValue = reports.filter((report) => {
             const reportDate = new Date(report.createdAt || report.date || report.timestamp);
             reportDate.setHours(0, 0, 0, 0);
             return reportDate.getTime() === today.getTime();
           }).length;
-          reportsTodayEl.textContent = reportsToday;
         } catch (error) {
           console.error('Failed to compute reports today:', error);
-          reportsTodayEl.textContent = metrics.totalReports;
         }
-      }
 
-      if (activeListingEl) {
-        activeListingEl.textContent = metrics.activeListings || metrics.pendingPosts || 0;
+        if (AdminUtils._lastReportsToday !== reportsTodayValue) {
+          reportsTodayEl.textContent = reportsTodayValue;
+          AdminUtils._lastReportsToday = reportsTodayValue;
+        }
       }
     } catch (error) {
       console.error('Error updating metrics:', error);
-      if (totalUsersEl) totalUsersEl.textContent = '0';
-      if (reportsTodayEl) reportsTodayEl.textContent = '0';
-      if (activeListingEl) activeListingEl.textContent = '0';
+      if (!AdminUtils._lastMetricsSnapshot) {
+        if (totalUsersEl) totalUsersEl.textContent = '0';
+        if (activeListingEl) activeListingEl.textContent = '0';
+      }
+      if (!AdminUtils._lastReportsToday && reportsTodayEl) {
+        reportsTodayEl.textContent = '0';
+      }
     }
   }
 

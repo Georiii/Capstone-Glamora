@@ -5,6 +5,7 @@ class AnalyticsManager {
     this.analyticsChart = null;
     this.refreshInterval = null;
     this.currentPeriod = '6months';
+    this.lastAnalyticsSnapshot = null;
     this.init();
   }
 
@@ -35,16 +36,25 @@ class AnalyticsManager {
   async loadAnalytics() {
     try {
       const analyticsData = await api.getAnalytics(this.currentPeriod);
+      const snapshot = AdminUtils ? AdminUtils.serializeData(analyticsData) : JSON.stringify(analyticsData);
+
+      if (this.lastAnalyticsSnapshot && snapshot === this.lastAnalyticsSnapshot) {
+        return;
+      }
+
+      this.lastAnalyticsSnapshot = snapshot;
       this.renderChart(analyticsData);
     } catch (error) {
       console.error('Failed to load analytics:', error);
-      this.renderChart({
-        userRegistrations: [],
-        marketplaceActivity: [],
-        reportsOverTime: [],
-        topCategories: [],
-        period: this.currentPeriod
-      });
+      if (!this.analyticsChart) {
+        this.renderChart({
+          userRegistrations: [],
+          marketplaceActivity: [],
+          reportsOverTime: [],
+          topCategories: [],
+          period: this.currentPeriod
+        });
+      }
       if (error.isConnectionError) {
         AdminUtils.showMessage('Cannot connect to backend server', 'error');
       }
