@@ -596,6 +596,7 @@ class ContentModerationManager {
         // Switch back to reports view
         this.currentView = 'reports';
         this.showView('reports');
+        this.startAutoRefresh();
         await this.renderReportsTable();
     }
 
@@ -646,6 +647,7 @@ class ContentModerationManager {
     async switchToReports() {
         this.currentView = 'reports';
         this.showView('reports');
+        this.startAutoRefresh();
         await this.renderReportsTable();
     }
 
@@ -675,7 +677,6 @@ class ContentModerationManager {
             // It's called separately in loadContentModeration and switchToPending
         } else if (viewName === 'reports' && reportsView) {
             reportsView.style.display = 'block';
-            this.stopAutoRefresh(); // Stop auto-refresh when viewing reports
         } else if (viewName === 'reportDetail' && reportDetailView) {
             reportDetailView.style.display = 'block';
             this.stopAutoRefresh(); // Stop auto-refresh when viewing report details
