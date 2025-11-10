@@ -35,6 +35,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [termsChecked, setTermsChecked] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState('');
 
   // Animations
@@ -244,6 +245,10 @@ export default function Register() {
               I have read and agree to the{' '}
               <Text style={styles.termsLink} onPress={() => setTermsModalVisible(true)}>
                 Terms and Conditions
+              </Text>{' '}
+              and{' '}
+              <Text style={styles.termsLink} onPress={() => setPrivacyModalVisible(true)}>
+                Privacy Policy
               </Text>.
             </Text>
           </View>
@@ -264,6 +269,20 @@ export default function Register() {
                 <Text style={styles.modalText}>Your Terms and Conditions go here.</Text>
               </ScrollView>
               <Pressable style={styles.modalClose} onPress={() => setTermsModalVisible(false)}>
+                <Text style={styles.modalCloseText}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={privacyModalVisible} animationType="fade" transparent onRequestClose={() => setPrivacyModalVisible(false)}>
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalHeader}>Privacy Policy</Text>
+              <ScrollView style={styles.modalScroll}>
+                <Text style={styles.modalText}>Your Privacy Policy details go here.</Text>
+              </ScrollView>
+              <Pressable style={styles.modalClose} onPress={() => setPrivacyModalVisible(false)}>
                 <Text style={styles.modalCloseText}>Close</Text>
               </Pressable>
             </View>
@@ -294,8 +313,8 @@ const styles = StyleSheet.create({
   },
   logoContainer: { 
     position: 'absolute', 
-    top: Platform.OS === 'web' ? 20 : 5, 
-    right: Platform.OS === 'web' ? 20 : 5,
+    top: Platform.OS === 'web' ? 5 : 5, 
+    right: Platform.OS === 'web' ? 5 : 5,
   },
   logo: { 
     width: Math.min(90, width * 0.23), 
