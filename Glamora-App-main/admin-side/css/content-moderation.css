@@ -767,6 +767,193 @@
     transform: translateY(-1px);
 }
 
+/* Restriction Modal Redesign */
+.restriction-modal-overlay {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 40px 24px;
+    background-color: rgba(17, 24, 39, 0.55);
+    backdrop-filter: blur(2px);
+    align-items: center;
+    justify-content: center;
+}
+
+.restriction-dialog {
+    width: 100%;
+    max-width: 540px;
+    background: #ffffff;
+    border-radius: 28px;
+    box-shadow: 0 28px 60px rgba(31, 42, 68, 0.25);
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.restriction-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.restriction-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1f2a44;
+    letter-spacing: 0.4px;
+}
+
+.restriction-close {
+    border: none;
+    background: transparent;
+    font-size: 28px;
+    line-height: 1;
+    color: #7b879a;
+    cursor: pointer;
+    padding: 4px 6px;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.restriction-close:hover {
+    color: #1f2a44;
+    transform: translateY(-1px);
+}
+
+.restriction-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    color: #4a5873;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.restriction-text {
+    margin: 0;
+}
+
+.restriction-duration-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+}
+
+.restriction-option {
+    border: 2px solid #dde3f0;
+    border-radius: 18px;
+    background-color: #f6f8fd;
+    color: #1f2a44;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 0 0 0 rgba(31, 42, 68, 0.12);
+}
+
+.restriction-option:hover {
+    border-color: #2c3e60;
+    box-shadow: inset 0 0 0 1px rgba(31, 42, 68, 0.1);
+}
+
+.restriction-option.selected {
+    background: linear-gradient(135deg, #2c3e60 0%, #1f2a44 100%);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(31, 42, 68, 0.35);
+}
+
+.restriction-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #6c7a93;
+}
+
+.restriction-textarea {
+    border: 2px solid #dbe1f1;
+    border-radius: 18px;
+    min-height: 120px;
+    padding: 14px 16px;
+    font-size: 15px;
+    color: #1f2a44;
+    resize: vertical;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.restriction-textarea:focus {
+    outline: none;
+    border-color: #2c3e60;
+    box-shadow: 0 0 0 3px rgba(44, 62, 96, 0.18);
+}
+
+.restriction-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 14px;
+}
+
+.restriction-btn {
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 26px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.restriction-btn-secondary {
+    background-color: #ffffff;
+    border: 2px solid #dbe1f1;
+    color: #1f2a44;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.restriction-btn-secondary:hover {
+    border-color: #2c3e60;
+    color: #2c3e60;
+}
+
+.restriction-btn-primary {
+    background: linear-gradient(135deg, #2c3e60 0%, #1f2a44 100%);
+    border: none;
+    color: #ffffff;
+    box-shadow: 0 14px 26px rgba(31, 42, 68, 0.3);
+}
+
+.restriction-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 32px rgba(31, 42, 68, 0.32);
+}
+
+@media (max-width: 540px) {
+    .restriction-dialog {
+        padding: 24px;
+        border-radius: 22px;
+    }
+
+    .restriction-duration-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .restriction-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .restriction-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
 .sidebar-divider {
     height: 1px;
     background-color: #e2e6f2;

@@ -672,37 +672,62 @@ class ContentModerationManager {
         
         // First confirmation modal
         const firstModal = document.createElement('div');
-        firstModal.className = 'modal';
+        firstModal.className = 'modal restriction-modal-overlay';
         firstModal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Restrict Account</h3>
-                    <span class="close">&times;</span>
+            <div class="restriction-dialog">
+                <div class="restriction-header">
+                    <h3 class="restriction-title">Restrict Account</h3>
+                    <button type="button" class="restriction-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to restrict this account?</p>
-                    <div class="modal-actions">
-                        <button class="cancel-btn" onclick="this.closest('.modal').remove()">Cancel</button>
-                        <button class="confirm-btn" onclick="contentModeration.showDurationModal('${reportId}')">Yes</button>
-                    </div>
+                <div class="restriction-body">
+                    <p class="restriction-text">Are you sure you want to restrict this account?</p>
+                </div>
+                <div class="restriction-actions">
+                    <button type="button" class="restriction-btn restriction-btn-secondary">Cancel</button>
+                    <button type="button" class="restriction-btn restriction-btn-primary">Yes</button>
                 </div>
             </div>
         `;
         document.body.appendChild(firstModal);
-        firstModal.style.display = 'block';
+        firstModal.style.display = 'flex';
 
-        // Close modal functionality
-        firstModal.querySelector('.close').onclick = () => {
-            document.body.removeChild(firstModal);
+        const removeFirstModal = () => {
+            if (firstModal && firstModal.parentNode) {
+                firstModal.parentNode.removeChild(firstModal);
+            }
         };
+
+        const closeBtn = firstModal.querySelector('.restriction-close');
+        if (closeBtn) {
+            closeBtn.onclick = removeFirstModal;
+        }
+
+        const cancelBtn = firstModal.querySelector('.restriction-btn-secondary');
+        if (cancelBtn) {
+            cancelBtn.onclick = removeFirstModal;
+        }
+
+        const confirmBtn = firstModal.querySelector('.restriction-btn-primary');
+        if (confirmBtn) {
+            confirmBtn.onclick = () => {
+                removeFirstModal();
+                this.showDurationModal(reportId);
+            };
+        }
+
+        firstModal.addEventListener('click', (event) => {
+            if (event.target === firstModal) {
+                removeFirstModal();
+            }
+        });
     }
 
     showDurationModal(reportId) {
-        // Remove first modal
-        document.querySelectorAll('.modal').forEach(modal => modal.remove());
+        // Remove any existing restriction modals
+        document.querySelectorAll('.restriction-modal-overlay').forEach(modal => modal.remove());
 
         const durationModal = document.createElement('div');
-        durationModal.className = 'modal restriction-flow-modal';
+        durationModal.className = 'modal restriction-modal-overlay';
 
         const durationOptions = [
             { label: '1 Hour', value: '1 hour' },
@@ -714,35 +739,33 @@ class ContentModerationManager {
         ];
 
         const optionButtons = durationOptions.map((option, index) => `
-            <button type="button" class="duration-option ${index === 1 ? 'selected' : ''}" data-value="${option.value}">
+            <button type="button" class="restriction-option ${index === 1 ? 'selected' : ''}" data-value="${option.value}">
                 ${option.label}
             </button>
         `).join('');
 
         durationModal.innerHTML = `
-            <div class="modal-content restriction-modal-content">
-                <div class="modal-header">
-                    <h3>Select Restriction Duration</h3>
-                    <span class="close">&times;</span>
+            <div class="restriction-dialog">
+                <div class="restriction-header">
+                    <h3 class="restriction-title">Select Restriction Duration</h3>
+                    <button type="button" class="restriction-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="modal-body">
-                    <div class="restriction-options">
-                        <div class="duration-grid">
-                            ${optionButtons}
-                        </div>
-                        <label for="restrictionReason" class="restriction-label">Restriction Reason</label>
-                        <textarea id="restrictionReason" class="restriction-reason" placeholder="Write a message..."></textarea>
+                <div class="restriction-body">
+                    <div class="restriction-duration-grid">
+                        ${optionButtons}
                     </div>
-                    <div class="modal-actions">
-                        <button class="cancel-btn" type="button">Cancel</button>
-                        <button class="confirm-btn" type="button">Confirm</button>
-                    </div>
+                    <label for="restrictionReason" class="restriction-label">Restriction Reason</label>
+                    <textarea id="restrictionReason" class="restriction-textarea" placeholder="Write a message..."></textarea>
+                </div>
+                <div class="restriction-actions">
+                    <button type="button" class="restriction-btn restriction-btn-secondary">Cancel</button>
+                    <button type="button" class="restriction-btn restriction-btn-primary">Confirm</button>
                 </div>
             </div>
         `;
 
         document.body.appendChild(durationModal);
-        durationModal.style.display = 'block';
+        durationModal.style.display = 'flex';
 
         const closeModal = () => {
             if (durationModal.parentNode) {
@@ -750,24 +773,40 @@ class ContentModerationManager {
             }
         };
 
-        durationModal.querySelector('.close').onclick = closeModal;
-        durationModal.querySelector('.cancel-btn').onclick = closeModal;
+        const modalCloseBtn = durationModal.querySelector('.restriction-close');
+        if (modalCloseBtn) {
+            modalCloseBtn.onclick = closeModal;
+        }
 
-        durationModal.querySelectorAll('.duration-option').forEach((button) => {
+        const modalCancelBtn = durationModal.querySelector('.restriction-btn-secondary');
+        if (modalCancelBtn) {
+            modalCancelBtn.onclick = closeModal;
+        }
+
+        durationModal.querySelectorAll('.restriction-option').forEach((button) => {
             button.addEventListener('click', () => {
-                durationModal.querySelectorAll('.duration-option').forEach((btn) => btn.classList.remove('selected'));
+                durationModal.querySelectorAll('.restriction-option').forEach((btn) => btn.classList.remove('selected'));
                 button.classList.add('selected');
             });
         });
 
-        durationModal.querySelector('.confirm-btn').onclick = () => {
-            const selectedButton = durationModal.querySelector('.duration-option.selected');
-            const reasonField = durationModal.querySelector('#restrictionReason');
-            const durationValue = selectedButton ? selectedButton.dataset.value : null;
-            const reasonValue = reasonField ? reasonField.value : '';
+        const confirmBtn = durationModal.querySelector('.restriction-btn-primary');
+        if (confirmBtn) {
+            confirmBtn.onclick = () => {
+                const selectedButton = durationModal.querySelector('.restriction-option.selected');
+                const reasonField = durationModal.querySelector('#restrictionReason');
+                const durationValue = selectedButton ? selectedButton.dataset.value : null;
+                const reasonValue = reasonField ? reasonField.value : '';
 
-            this.confirmRestriction(reportId, durationValue, reasonValue, durationModal);
-        };
+                this.confirmRestriction(reportId, durationValue, reasonValue, durationModal);
+            };
+        }
+
+        durationModal.addEventListener('click', (event) => {
+            if (event.target === durationModal) {
+                closeModal();
+            }
+        });
     }
 
     async confirmRestriction(reportId, duration, reason, modalRef) {
