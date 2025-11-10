@@ -248,6 +248,82 @@ router.delete('/users/:id', adminAuth, async (req, res) => {
     }
 });
 
+// Publish announcement to all users
+router.post('/announcements', adminAuth, async (req, res) => {
+    try {
+        const { message } = req.body;
+        const trimmedMessage = typeof message === 'string' ? message.trim() : '';
+
+        if (!trimmedMessage) {
+            return res.status(400).json({ message: 'Announcement message is required.' });
+        }
+
+        let adminUser = await User.findById(req.adminId);
+        if (!adminUser) {
+            adminUser = await User.findOne({ role: 'admin' });
+        }
+
+        if (!adminUser) {
+            return res.status(404).json({ message: 'Admin user not found.' });
+        }
+
+        const recipients = await User.find({ role: 'user', isActive: true }).select('_id name email');
+
+        if (!recipients.length) {
+            return res.json({
+                message: 'Announcement recorded, but no active users were found.',
+                recipients: 0
+            });
+        }
+
+        const createdAt = new Date();
+        const chatPayload = recipients.map((user) => ({
+            senderId: adminUser._id,
+            receiverId: user._id,
+            text: trimmedMessage,
+            timestamp: createdAt,
+            read: false
+        }));
+
+        await ChatMessage.insertMany(chatPayload, { ordered: false });
+
+        const io = req.app?.get?.('io');
+        if (io) {
+            const senderId = String(adminUser._id);
+            const senderName = adminUser.name || 'Admin';
+            recipients.forEach((user) => {
+                const receiverId = String(user._id);
+                const roomId = [senderId, receiverId].sort().join('-');
+
+                io.to(roomId).emit('new-message', {
+                    fromUserId: senderId,
+                    toUserId: receiverId,
+                    message: trimmedMessage,
+                    timestamp: createdAt,
+                    senderName,
+                    read: false,
+                    isAnnouncement: true
+                });
+
+                io.to(`user_${receiverId}`).emit('system:announcement', {
+                    senderId,
+                    senderName,
+                    message: trimmedMessage,
+                    timestamp: createdAt
+                });
+            });
+        }
+
+        res.json({
+            message: 'Announcement sent successfully.',
+            recipients: recipients.length
+        });
+    } catch (error) {
+        console.error('Publish announcement error:', error);
+        res.status(500).json({ message: 'Failed to send announcement.', error: error.message });
+    }
+});
+
 // Content Moderation Routes
 router.get('/reports', adminAuth, async (req, res) => {
     try {

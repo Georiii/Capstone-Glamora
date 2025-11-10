@@ -36,6 +36,10 @@ class UserManagementManager {
     const userSearch = document.getElementById('userSearch');
     const roleFilter = document.getElementById('roleFilter');
     const statusFilter = document.getElementById('statusFilter');
+    const openAnnouncementBtn = document.getElementById('openAnnouncementBtn');
+    const closeAnnouncementBtn = document.getElementById('closeAnnouncementBtn');
+    const announcementModal = document.getElementById('announcementModal');
+    const publishAnnouncementBtn = document.getElementById('publishAnnouncementSubmitBtn');
 
     if (userSearch) {
       userSearch.addEventListener('input', () => this.filterUsers());
@@ -45,6 +49,22 @@ class UserManagementManager {
     }
     if (statusFilter) {
       statusFilter.addEventListener('change', () => this.filterUsers());
+    }
+    if (openAnnouncementBtn) {
+      openAnnouncementBtn.addEventListener('click', () => this.toggleAnnouncementModal(true));
+    }
+    if (closeAnnouncementBtn) {
+      closeAnnouncementBtn.addEventListener('click', () => this.toggleAnnouncementModal(false));
+    }
+    if (announcementModal) {
+      announcementModal.addEventListener('click', (event) => {
+        if (event.target === announcementModal) {
+          this.toggleAnnouncementModal(false);
+        }
+      });
+    }
+    if (publishAnnouncementBtn) {
+      publishAnnouncementBtn.addEventListener('click', () => this.publishAnnouncement());
     }
   }
 
@@ -176,6 +196,59 @@ class UserManagementManager {
     } catch (error) {
       console.error('Failed to update user status:', error);
       AdminUtils.showMessage('Failed to update user status', 'error');
+    }
+  }
+
+  toggleAnnouncementModal(show) {
+    const modal = document.getElementById('announcementModal');
+    if (!modal) return;
+    modal.style.display = show ? 'block' : 'none';
+    const messageField = document.getElementById('announcementMessage');
+    if (show && messageField) {
+      messageField.focus();
+    }
+    if (!show && messageField) {
+      messageField.value = '';
+      messageField.blur();
+    }
+  }
+
+  async publishAnnouncement() {
+    const messageField = document.getElementById('announcementMessage');
+    const submitBtn = document.getElementById('publishAnnouncementSubmitBtn');
+
+    if (!messageField || !submitBtn) {
+      return;
+    }
+
+    const rawMessage = messageField.value || '';
+    const message = rawMessage.trim();
+
+    if (!message) {
+      AdminUtils.showMessage('Please enter a message before publishing.', 'error');
+      messageField.focus();
+      return;
+    }
+
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Publishing...';
+
+    try {
+      await api.request('/api/admin/announcements', {
+        method: 'POST',
+        body: { message }
+      });
+
+      AdminUtils.showMessage('Announcement sent to all users.', 'success');
+      this.toggleAnnouncementModal(false);
+    } catch (error) {
+      console.error('Failed to publish announcement:', error);
+      const errorMessage = error?.response?.message || error.message || 'Failed to publish announcement.';
+      AdminUtils.showMessage(errorMessage, 'error');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
     }
   }
 }

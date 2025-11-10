@@ -71,22 +71,28 @@
                     <h2>User management</h2>
                 </div>
                 <div class="search-filters">
-                    <div class="search-bar">
-                        <i class="fas fa-search"></i>
-                        <input type="text" placeholder="search" id="userSearch">
+                    <div class="search-controls">
+                        <div class="search-bar">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="search" id="userSearch">
+                        </div>
+                        <div class="filter-dropdowns">
+                            <select id="roleFilter">
+                                <option value="all">All roles</option>
+                                <option value="admin">Admin</option>
+                                <option value="user">User</option>
+                            </select>
+                            <select id="statusFilter">
+                                <option value="all">All statuses</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="filter-dropdowns">
-                        <select id="roleFilter">
-                            <option value="all">All roles</option>
-                            <option value="admin">Admin</option>
-                            <option value="user">User</option>
-                        </select>
-                        <select id="statusFilter">
-                            <option value="all">All statuses</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
+                    <button id="openAnnouncementBtn" class="publish-announcement-btn">
+                        <i class="fas fa-bullhorn"></i>
+                        Publish Announcement
+                    </button>
                 </div>
                 <div class="users-table-container">
                     <table class="users-table">
@@ -133,6 +139,30 @@
                 <div class="modal-actions">
                     <button id="deactivateBtn" class="deactivate-btn">Deactivate account</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Announcement Modal -->
+    <div id="announcementModal" class="modal announcement-modal">
+        <div class="announcement-modal-content">
+            <div class="announcement-modal-header">
+                <h3>Announcement</h3>
+                <button id="closeAnnouncementBtn" class="announcement-close-btn" aria-label="Close announcement modal">
+                    &times;
+                </button>
+            </div>
+            <div class="announcement-modal-body">
+                <div class="announcement-recipient">
+                    <span class="recipient-label">To:</span>
+                    <span class="recipient-target">@Everyone</span>
+                </div>
+                <textarea id="announcementMessage" class="announcement-message" placeholder="Write a message..."></textarea>
+            </div>
+            <div class="announcement-modal-footer">
+                <button id="publishAnnouncementSubmitBtn" class="announcement-submit-btn">
+                    Publish Announcement
+                </button>
             </div>
         </div>
     </div>
