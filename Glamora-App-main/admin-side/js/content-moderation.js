@@ -11,13 +11,16 @@ class ContentModerationManager {
         this.reportFilters = { status: 'all', type: 'all' };
         this.reportTypeLabels = {
             'scam': 'Scam',
-            'fake-product-claim': 'Fake Product Claim',
+            'fake-product-claim': 'Fake Product',
             'inappropriate-chat-behavior': 'Inappropriate Chat Behavior',
-            'bait-and-switching-listing': 'Bait-and-switching Listing',
-            'pressure-tactics': 'Pressure Tactics',
+            'bait-and-switching-listing': 'Bait-and-Switch',
+            'pressure-tactics': 'Pressure / Rushing Payment',
             'others': 'Others'
         };
         this.defaultAvatar = 'https://randomuser.me/api/portraits/men/32.jpg';
+        this.currentReportData = null;
+        this.currentReportUserId = null;
+        this.messageSendInProgress = false;
         this.init();
     }
 
@@ -99,6 +102,21 @@ class ContentModerationManager {
             reportTypeFilter.addEventListener('change', () => {
                 this.reportFilters.type = reportTypeFilter.value || 'all';
                 this.applyReportFilters();
+            });
+        }
+
+        const sendBtn = document.getElementById('reportDetailSendBtn');
+        if (sendBtn) {
+            sendBtn.addEventListener('click', () => this.sendReportMessage());
+        }
+
+        const messageInput = document.getElementById('reportDetailMessageInput');
+        if (messageInput) {
+            messageInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                    event.preventDefault();
+                    this.sendReportMessage();
+                }
             });
         }
     }
@@ -795,30 +813,162 @@ class ContentModerationManager {
         await this.renderReportsTable();
     }
 
+    async sendReportMessage() {
+        if (this.messageSendInProgress) {
+            return;
+        }
+
+        const messageInput = document.getElementById('reportDetailMessageInput');
+        const sendBtn = document.getElementById('reportDetailSendBtn');
+
+        if (!messageInput || !sendBtn) {
+            return;
+        }
+
+        if (!this.currentReportUserId) {
+            AdminUtils.showMessage('Reported user information is unavailable.', 'error');
+            return;
+        }
+
+        const messageText = messageInput.value ? messageInput.value.trim() : '';
+        if (!messageText) {
+            AdminUtils.showMessage('Please enter a message before sending.', 'error');
+            messageInput.focus();
+            return;
+        }
+
+        this.messageSendInProgress = true;
+        sendBtn.disabled = true;
+        if (!sendBtn.dataset.defaultText) {
+            sendBtn.dataset.defaultText = sendBtn.textContent || 'Send';
+        }
+        sendBtn.textContent = 'Sending...';
+
+        try {
+            await api.request('/api/chat/send', {
+                method: 'POST',
+                body: {
+                    receiverId: this.currentReportUserId,
+                    text: messageText
+                }
+            });
+
+            AdminUtils.showMessage('Message sent to the user.', 'success');
+            messageInput.value = '';
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            const errorMessage = (error && error.response && error.response.message) || error.message || 'Failed to send message.';
+            AdminUtils.showMessage(errorMessage, 'error');
+        } finally {
+            this.messageSendInProgress = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = sendBtn.dataset.defaultText || 'Send';
+            messageInput.focus();
+        }
+    }
+
     populateReportDetailView(report) {
         console.log('Populating report detail view with:', report);
-        
-        // Update report detail view elements
-        const userName = report.reportedUserId?.name || 'Unknown User';
-        const userEmail = report.reportedUserId?.email || 'No email';
-        
-        document.getElementById('reportDetailUserName').textContent = userName;
-        document.getElementById('reportDetailUserEmail').textContent = userEmail;
-        document.getElementById('reportDetailReason').textContent = report.reason;
-        document.getElementById('reportDetailDescription').textContent = report.description || 'No additional description provided';
 
-        // Display evidence photos
+        this.currentReportData = report;
+        this.currentReportUserId = report && report.reportedUserId ? report.reportedUserId._id : null;
+
+        const userName = report?.reportedUserId?.name || 'Unknown User';
+        const userEmail = report?.reportedUserId?.email || 'No email';
+        const avatarUrl = this.getReportAvatar(report);
+        const reportDate = report?.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'No date';
+        const normalizedReason = this.normalizeReportType(report.reason);
+
+        const nameEl = document.getElementById('reportDetailUserName');
+        if (nameEl) nameEl.textContent = userName;
+
+        const emailEl = document.getElementById('reportDetailUserEmail');
+        if (emailEl) emailEl.textContent = userEmail;
+
+        const avatarEl = document.getElementById('reportDetailAvatar');
+        if (avatarEl) {
+            avatarEl.src = avatarUrl;
+            avatarEl.alt = `${userName}'s avatar`;
+            avatarEl.referrerPolicy = 'no-referrer';
+        }
+
+        const dateEl = document.getElementById('reportDetailDate');
+        if (dateEl) dateEl.textContent = reportDate;
+
+        const descriptionEl = document.getElementById('reportDetailDescription');
+        if (descriptionEl) {
+            descriptionEl.textContent = report.description || 'No additional description provided';
+        }
+
+        const messageToEl = document.getElementById('reportDetailMessageTo');
+        if (messageToEl) {
+            messageToEl.textContent = userName;
+        }
+
+        const messageFromEl = document.getElementById('reportDetailMessageFrom');
+        if (messageFromEl) {
+            messageFromEl.textContent = 'Admin';
+        }
+
+        const messageInput = document.getElementById('reportDetailMessageInput');
+        if (messageInput) {
+            messageInput.value = '';
+            if (this.currentReportUserId) {
+                messageInput.placeholder = 'Write a message...';
+                messageInput.disabled = false;
+            } else {
+                messageInput.placeholder = 'Reported user details unavailable.';
+                messageInput.disabled = true;
+            }
+        }
+
+        const sendBtn = document.getElementById('reportDetailSendBtn');
+        if (sendBtn) {
+            if (!sendBtn.dataset.defaultText) {
+                sendBtn.dataset.defaultText = sendBtn.textContent || 'Send';
+            }
+            sendBtn.textContent = sendBtn.dataset.defaultText;
+            sendBtn.disabled = !this.currentReportUserId;
+        }
+
+        const chipsContainer = document.getElementById('reportDetailReasonChips');
+        if (chipsContainer) {
+            chipsContainer.innerHTML = '';
+            const chipDefinitions = [
+                { key: 'scam', label: this.getReportTypeLabel('scam') },
+                { key: 'fake-product-claim', label: this.getReportTypeLabel('fake-product-claim') },
+                { key: 'inappropriate-chat-behavior', label: this.getReportTypeLabel('inappropriate-chat-behavior') },
+                { key: 'bait-and-switching-listing', label: this.getReportTypeLabel('bait-and-switching-listing') },
+                { key: 'pressure-tactics', label: this.getReportTypeLabel('pressure-tactics') },
+                { key: 'others', label: this.getReportTypeLabel('others') }
+            ];
+
+            chipDefinitions.forEach((chip) => {
+                const chipEl = document.createElement('span');
+                chipEl.className = `reason-chip${chip.key === normalizedReason ? ' active' : ''}`;
+                chipEl.textContent = chip.label;
+                chipsContainer.appendChild(chipEl);
+            });
+        }
+
         const photosContainer = document.getElementById('reportDetailEvidencePhotos');
         if (photosContainer) {
             photosContainer.innerHTML = '';
-            if (report.evidencePhotos && report.evidencePhotos.length > 0) {
+            if (Array.isArray(report?.evidencePhotos) && report.evidencePhotos.length > 0) {
                 report.evidencePhotos.forEach((photo, index) => {
                     const photoDiv = document.createElement('div');
                     photoDiv.className = 'evidence-photo';
-                    photoDiv.innerHTML = `
-                        <img src="${photo.url}" alt="Evidence ${index + 1}" onclick="contentModeration.viewPhoto('${photo.url}')">
-                        <span>Evidence ${index + 1}</span>
-                    `;
+
+                    const imgEl = document.createElement('img');
+                    imgEl.src = photo.url;
+                    imgEl.alt = `Evidence ${index + 1}`;
+                    imgEl.addEventListener('click', () => this.viewPhoto(photo.url));
+
+                    const captionEl = document.createElement('span');
+                    captionEl.textContent = `Evidence ${index + 1}`;
+
+                    photoDiv.appendChild(imgEl);
+                    photoDiv.appendChild(captionEl);
                     photosContainer.appendChild(photoDiv);
                 });
             } else {
@@ -826,7 +976,6 @@ class ContentModerationManager {
             }
         }
 
-        // Set up restrict button
         const restrictBtn = document.getElementById('reportDetailRestrictBtn');
         if (restrictBtn) {
             restrictBtn.onclick = () => {

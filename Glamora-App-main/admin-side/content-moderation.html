@@ -97,7 +97,7 @@
                 <div id="reportsView" class="content-view" style="display: none;">
                     <div class="page-header">
                         <h2>Reports</h2>
-                        <button class="back-btn" onclick="contentModeration.switchToPending()">
+                        <button class="reports-btn back-btn" onclick="contentModeration.switchToPending()">
                             <i class="fas fa-arrow-left"></i>
                             Back to Content Moderation
                         </button>
@@ -120,10 +120,10 @@
                             <select id="reportTypeFilter" class="reports-filter-select">
                                 <option value="all">All Report Types</option>
                                 <option value="scam">Scam</option>
-                                <option value="fake-product-claim">Fake Product Claim</option>
+                                <option value="fake-product-claim">Fake Product</option>
                                 <option value="inappropriate-chat-behavior">Inappropriate Chat Behavior</option>
-                                <option value="bait-and-switching-listing">Bait-and-switching Listing</option>
-                                <option value="pressure-tactics">Pressure Tactics</option>
+                                <option value="bait-and-switching-listing">Bait-and-Switch</option>
+                                <option value="pressure-tactics">Pressure / Rushing Payment</option>
                                 <option value="others">Others</option>
                             </select>
                         </div>
@@ -145,47 +145,79 @@
 
                 <!-- View 3: Report Detail View -->
                 <div id="reportDetailView" class="content-view" style="display: none;">
-                    <div class="page-header">
-                        <h2>Report Detail</h2>
-                        <button class="back-btn" onclick="contentModeration.backToReports()">
-                            <i class="fas fa-arrow-left"></i>
-                            Back to Reports
-                        </button>
+                    <div class="detail-header">
+                        <div class="detail-header-left">
+                            <button class="reports-btn detail-back-btn" onclick="contentModeration.backToReports()">
+                                <span class="detail-back-icon"><i class="fas fa-arrow-left"></i></span>
+                                Back
+                            </button>
+                            <div class="detail-header-text">
+                                <h2>Reports</h2>
+                                <p class="detail-subtitle">The following content did not follow the community guidelines</p>
+                            </div>
+                        </div>
+                        <button type="button" class="print-btn">Print a Copy</button>
                     </div>
-                    
-                    <div class="report-detail-container">
-                        <div class="report-user-section">
-                            <img src="https://via.placeholder.com/80" alt="User Avatar" class="report-avatar" id="reportDetailAvatar">
-                            <div class="report-user-info">
-                                <p><strong>Name:</strong> <span id="reportDetailUserName">Name</span></p>
-                                <p><strong>Email:</strong> <span id="reportDetailUserEmail">Email</span></p>
-                            </div>
-                        </div>
 
-                        <div class="report-content-section">
-                            <div class="report-reason">
-                                <p><strong>Reason:</strong> <span id="reportDetailReason">Scam</span></p>
-                            </div>
-                            <div class="report-description">
-                                <p><strong>Elaborated situation:</strong></p>
-                                <p id="reportDetailDescription">Explain</p>
-                            </div>
-                        </div>
+                    <div class="report-detail-card">
+                        <div class="report-detail-layout">
+                            <div class="report-detail-main">
+                                <div class="report-summary-card">
+                                    <div class="report-summary-header">
+                                        <div class="report-summary-avatar">
+                                            <img src="https://via.placeholder.com/120" alt="User Avatar" class="report-avatar-large" id="reportDetailAvatar">
+                                        </div>
+                                        <div class="report-summary-meta">
+                                            <h3 id="reportDetailUserName">Name</h3>
+                                            <p id="reportDetailUserEmail" class="report-summary-email">Email</p>
+                                        </div>
+                                    </div>
+                                    <div class="report-summary-tags">
+                                        <div class="report-meta-block">
+                                            <span class="meta-label">Date</span>
+                                            <span class="meta-value" id="reportDetailDate">--</span>
+                                        </div>
+                                        <div class="report-meta-block">
+                                            <span class="meta-label">Reason</span>
+                                            <div class="reason-chip-group" id="reportDetailReasonChips"></div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                        <div class="evidence-photos-section">
-                            <h4>Evidence Photos</h4>
-                            <div id="reportDetailEvidencePhotos" class="evidence-photos-container">
-                                <!-- Photos will be populated by JavaScript -->
-                            </div>
-                        </div>
+                                <div class="report-description-card">
+                                    <h4>Report Information</h4>
+                                    <p id="reportDetailDescription">Explain</p>
+                                </div>
 
-                        <div class="admin-actions-section">
-                            <div class="action-buttons">
-                                <button class="restrict-btn" id="reportDetailRestrictBtn">
-                                    <i class="fas fa-ban"></i>
-                                    Restrict Account
-                                </button>
+                                <div class="evidence-photos-section">
+                                    <h4>Evidence Photos</h4>
+                                    <div id="reportDetailEvidencePhotos" class="evidence-photos-container">
+                                        <!-- Photos will be populated by JavaScript -->
+                                    </div>
+                                </div>
                             </div>
+
+                            <aside class="report-detail-sidebar">
+                                <div class="message-card">
+                                    <h3>Message User</h3>
+                                    <div class="message-field">
+                                        <span class="field-label">To</span>
+                                        <span class="field-pill" id="reportDetailMessageTo">Reported User</span>
+                                    </div>
+                                    <div class="message-field">
+                                        <span class="field-label">From</span>
+                                        <span class="field-pill" id="reportDetailMessageFrom">Admin</span>
+                                    </div>
+                                    <label class="field-label" for="reportDetailMessageInput">Message</label>
+                                    <textarea id="reportDetailMessageInput" class="message-textarea" placeholder="Write a message..."></textarea>
+                                    <button type="button" class="message-send-btn" id="reportDetailSendBtn">Send</button>
+                                    <div class="sidebar-divider"></div>
+                                    <button class="restrict-btn" id="reportDetailRestrictBtn">
+                                        <i class="fas fa-ban"></i>
+                                        Restrict Account
+                                    </button>
+                                </div>
+                            </aside>
                         </div>
                     </div>
                 </div>
