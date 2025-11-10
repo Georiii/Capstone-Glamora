@@ -38,7 +38,7 @@
     position: absolute;
     top: 30px;
     right: 30px;
-    background-color: #3498db;
+    background-color: #294a78;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -49,5 +49,6 @@
 }
 
 .generate-report-btn:hover {
-    background-color: #2980b9;
+    background-color: #1f3a5d;
+    transform: translateY(-1px);
 }

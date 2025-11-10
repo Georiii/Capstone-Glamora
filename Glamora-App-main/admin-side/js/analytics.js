@@ -153,54 +153,166 @@ class AnalyticsManager {
     AdminUtils.showMessage('Generating report...', 'info');
 
     try {
+      const pdfLib = window.jspdf;
+      if (!pdfLib || !pdfLib.jsPDF) {
+        throw new Error('PDF generator is not available. Please refresh the page and try again.');
+      }
+
       const metrics = await api.getMetrics();
       const analytics = await api.getAnalytics(this.currentPeriod);
       const users = await api.getUsers({ limit: 1000 });
       const reports = await api.getReports();
 
+      const activeUsers = Array.isArray(users?.users)
+        ? users.users.filter((u) => u.isActive !== false).length
+        : 0;
+
       const reportData = {
         totalUsers: metrics.totalUsers || 0,
-        activeUsers: users.users.filter((u) => u.isActive !== false).length,
+        activeUsers,
         totalReports: metrics.totalReports || 0,
         pendingPosts: metrics.pendingPosts || 0,
-        date: new Date().toLocaleDateString()
+        date: new Date().toLocaleString()
       };
 
-      const reportText = `
-GLAMORA ADMIN REPORT
-Generated: ${reportData.date}
+      const { jsPDF } = pdfLib;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 48;
+      let cursorY = margin;
 
-SUMMARY:
-- Total Users: ${reportData.totalUsers}
-- Active Users: ${reportData.activeUsers}
-- Total Reports: ${reportData.totalReports}
-- Pending Posts: ${reportData.pendingPosts}
+      const ensureSpace = (increment) => {
+        if (cursorY + increment > pageHeight - margin) {
+          doc.addPage();
+          cursorY = margin;
+        }
+      };
 
-ANALYTICS:
-- User Registrations: ${analytics.userRegistrations?.length || 0} months tracked
-- Marketplace Activity: ${analytics.marketplaceActivity?.length || 0} months tracked
-- Reports Over Time: ${analytics.reportsOverTime?.length || 0} months tracked
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.text('Glamora Admin Report', margin, cursorY);
 
-RECOMMENDATIONS:
-- Review pending posts for content moderation
-- Monitor user reports for platform safety
-- Consider user engagement strategies
-      `;
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(12);
+      cursorY += 24;
+      doc.text(`Generated: ${reportData.date}`, margin, cursorY);
 
-      const blob = new Blob([reportText], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `glamora-report-${new Date().toISOString().split('T')[0]}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const chartCanvas = document.getElementById('analyticsChart');
+      if (chartCanvas && chartCanvas.toDataURL) {
+        try {
+          const chartDataUrl = chartCanvas.toDataURL('image/png', 1.0);
+          const imgProps = doc.getImageProperties(chartDataUrl);
+          const maxWidth = pageWidth - margin * 2;
+          const aspectRatio = imgProps.width ? imgProps.height / imgProps.width : 0.6;
+          const targetHeight = Math.min(aspectRatio * maxWidth, 280);
+
+          cursorY += 20;
+          ensureSpace(targetHeight + 24);
+          doc.setFont('Helvetica', 'bold');
+          doc.setFontSize(14);
+          doc.text('Activity Chart Snapshot', margin, cursorY);
+          cursorY += 16;
+          doc.addImage(chartDataUrl, 'PNG', margin, cursorY, maxWidth, targetHeight);
+          cursorY += targetHeight;
+        } catch (chartError) {
+          console.warn('Unable to embed chart image:', chartError);
+          cursorY += 24;
+          doc.setFont('Helvetica', 'bold');
+          doc.setFontSize(14);
+          doc.text('Activity Chart Snapshot', margin, cursorY);
+          doc.setFont('Helvetica', 'normal');
+          doc.setFontSize(12);
+          cursorY += 16;
+          doc.text('Chart preview unavailable. Please regenerate while connected.', margin, cursorY);
+        }
+      }
+
+      const addSection = (title, lines) => {
+        cursorY += 28;
+        ensureSpace(0);
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text(title, margin, cursorY);
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(12);
+        cursorY += 16;
+
+        const maxWidth = pageWidth - margin * 2;
+        lines.forEach((line) => {
+          const wrapped = doc.splitTextToSize(line, maxWidth);
+          wrapped.forEach((part) => {
+            ensureSpace(16);
+            doc.text(part, margin, cursorY);
+            cursorY += 16;
+          });
+        });
+      };
+
+      addSection('Summary', [
+        `• Total Users: ${reportData.totalUsers}`,
+        `• Active Users: ${reportData.activeUsers}`,
+        `• Total Reports: ${reportData.totalReports}`,
+        `• Pending Marketplace Posts: ${reportData.pendingPosts}`
+      ]);
+
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const userRegistrationLines = [];
+      if (Array.isArray(analytics?.userRegistrations) && analytics.userRegistrations.length) {
+        analytics.userRegistrations.forEach((entry) => {
+          const monthIndex = (entry._id?.month || 1) - 1;
+          const monthLabel = monthNames[monthIndex] || `Month ${entry._id?.month || 1}`;
+          userRegistrationLines.push(`• ${monthLabel}: ${entry.count || 0} user logins`);
+        });
+      } else {
+        userRegistrationLines.push('• No user login data available for the selected period.');
+      }
+
+      addSection('User Login Activity', userRegistrationLines);
+
+      const marketplaceLines = [];
+      if (Array.isArray(analytics?.marketplaceActivity) && analytics.marketplaceActivity.length) {
+        analytics.marketplaceActivity.forEach((entry, index) => {
+          const label = analytics.userRegistrations?.[index]?._id?.month
+            ? monthNames[(analytics.userRegistrations[index]._id.month || 1) - 1]
+            : `Entry ${index + 1}`;
+          marketplaceLines.push(`• ${label}: ${entry.count || 0} generated actions`);
+        });
+      } else {
+        marketplaceLines.push('• No marketplace activity data available for the selected period.');
+      }
+
+      addSection('Marketplace Activity', marketplaceLines);
+
+      const reportInsights = [];
+      reportInsights.push(`• Reports recorded: ${Array.isArray(reports) ? reports.length : 0}`);
+      if (Array.isArray(reports) && reports.length) {
+        const reasonCounts = reports.reduce((acc, report) => {
+          const key = (report.reason || 'Others').toString();
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
+        reportInsights.push('• Report reasons:');
+        Object.entries(reasonCounts).forEach(([reason, count]) => {
+          reportInsights.push(`  - ${reason}: ${count}`);
+        });
+      }
+
+      addSection('Report Insights', reportInsights);
+
+      addSection('Recommendations', [
+        '• Review pending marketplace posts for moderation opportunities.',
+        '• Monitor user reports closely to maintain platform safety.',
+        '• Evaluate engagement strategies to encourage active participation.'
+      ]);
+
+      const fileName = `glamora-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
 
       AdminUtils.showMessage('Report generated and downloaded successfully', 'success');
     } catch (error) {
       console.error('Failed to generate report:', error);
-      AdminUtils.showMessage('Failed to generate report', 'error');
+      AdminUtils.showMessage(error.message || 'Failed to generate report', 'error');
     }
   }
 }

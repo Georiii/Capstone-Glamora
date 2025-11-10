@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/content-moderation.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -74,21 +75,52 @@
                         <button class="reports-btn" onclick="contentModeration.switchToReports()">Reports</button>
                     </div>
                     
-                    <!-- Community Guidelines Section -->
-                    <div class="guidelines-card">
-                        <div class="guidelines-header">
-                            <i class="fas fa-users"></i>
-                            <h3>Community Guidelines</h3>
-                            <button class="edit-btn">Edit</button>
+                    <!-- Policies Section -->
+                    <div class="policy-card">
+                        
+                        <div class="policy-list">
+                            <div class="policy-item" data-policy="terms">
+                                <div class="policy-info">
+                                    <div class="policy-icon">
+                                        <i class="fas fa-file-contract"></i>
+                                    </div>
+                                    <div class="policy-text">
+                                        <h4>Terms and Conditions</h4>
+                                        <p class="policy-description" data-policy-content="terms"></p>
+                                    </div>
+                                </div>
+                                <button class="policy-edit-btn" data-policy-edit="terms">Edit</button>
+                            </div>
+                            <div class="policy-item" data-policy="privacy">
+                                <div class="policy-info">
+                                    <div class="policy-icon">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </div>
+                                    <div class="policy-text">
+                                        <h4>Data Privacy Policy</h4>
+                                        <p class="policy-description" data-policy-content="privacy"></p>
+                                    </div>
+                                </div>
+                                <button class="policy-edit-btn" data-policy-edit="privacy">Edit</button>
+                            </div>
                         </div>
-                        <p>Our community guidelines ensure a safe and respectful environment for all users...</p>
+                    </div>
+                    <div class="policy-divider">
+                        <span>For Glamora Application</span>
                     </div>
 
                     <!-- User Posts Section -->
                     <div class="posts-section">
                         <h3>Pending Moderation</h3>
-                        <div id="pendingPosts" class="posts-list">
-                            <!-- Posts will be populated by JavaScript -->
+                        <div class="pending-table">
+                            <div class="pending-header">
+                                <span>Name</span>
+                                <span>User Post Item Name</span>
+                                <span class="pending-actions-title">Actions</span>
+                            </div>
+                            <div class="pending-list" id="pendingPosts">
+                                <!-- Posts will be populated by JavaScript -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -277,6 +309,22 @@
                 <div id="postDetailContent">
                     <!-- Content will be populated by JavaScript -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="policyModal" class="modal" style="display: none;">
+        <div class="modal-content policy-modal-content">
+            <div class="modal-header">
+                <h3 id="policyModalTitle">Edit Policy</h3>
+                <span class="close" id="policyModalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <textarea id="policyModalTextarea" class="policy-textarea" placeholder="Update policy details here..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="cancel-btn policy-cancel-btn">Cancel</button>
+                <button type="button" class="confirm-btn policy-save-btn">Save</button>
             </div>
         </div>
     </div>

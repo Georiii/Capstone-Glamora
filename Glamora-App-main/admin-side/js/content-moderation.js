@@ -21,11 +21,23 @@ class ContentModerationManager {
         this.currentReportData = null;
         this.currentReportUserId = null;
         this.messageSendInProgress = false;
+        this.policyData = {
+            terms: {
+                title: 'Terms and Conditions',
+                content: `1. Introduction\n\nThe Glamora application is designed to provide a safe and respectful marketplace for all users. By using the platform, users agree to follow the community guidelines and uphold the standards expected in every transaction.\n\n2. User Responsibilities\n\nUsers must provide accurate information when posting listings, avoid misleading offers, and complete transactions in good faith. Any conduct that harms other members or the platform is strictly prohibited.\n\n3. Content Guidelines\n\nListings must reflect the actual product, include truthful descriptions, and comply with all applicable laws. Items that violate regulations, infringe intellectual property, or promote unsafe behavior are not allowed.\n\n4. Enforcement\n\nThe Glamora admin team reserves the right to remove content, restrict accounts, or take other actions when policies are violated.`
+            },
+            privacy: {
+                title: 'Data Privacy Policy',
+                content: `1. Purpose\n\nThis policy explains how the Glamora application collects, stores, and protects personal data shared by its users. The collected data enables account management, marketplace transactions, and platform support.\n\n2. Data We Collect\n\nWe may collect names, contact details, listing information, and communication records. This information is used only for legitimate platform activities and improving user experience.\n\n3. Data Protection\n\nWe implement administrative, technical, and physical safeguards to protect personal data against unauthorized access, disclosure, or loss. Only authorized personnel can access sensitive information.\n\n4. User Rights\n\nUsers can request to update or remove their personal data, subject to legal and operational constraints. Concerns regarding privacy may be directed to the support team for proper handling.`
+            }
+        };
+        this.activePolicyKey = null;
         this.init();
     }
 
     init() {
         this.setupEventListeners();
+        this.updatePolicySummaries();
         this.loadContentModeration();
         this.startAutoRefresh();
     }
@@ -54,12 +66,6 @@ class ContentModerationManager {
     }
 
     setupEventListeners() {
-        // Edit guidelines button
-        const editBtn = document.querySelector('.edit-btn');
-        if (editBtn) {
-            editBtn.addEventListener('click', () => this.editGuidelines());
-        }
-        
         // Close modal on backdrop click
         const postDetailModal = document.getElementById('postDetailModal');
         if (postDetailModal) {
@@ -84,6 +90,10 @@ class ContentModerationManager {
                 const modal = document.getElementById('postDetailModal');
                 if (modal && modal.style.display === 'block') {
                     this.closePostDetail();
+                }
+                const policyModal = document.getElementById('policyModal');
+                if (policyModal && policyModal.style.display === 'block') {
+                    this.closePolicyModal();
                 }
             }
         });
@@ -110,6 +120,11 @@ class ContentModerationManager {
             sendBtn.addEventListener('click', () => this.sendReportMessage());
         }
 
+        const printBtn = document.querySelector('.print-btn');
+        if (printBtn) {
+            printBtn.addEventListener('click', () => this.exportReportDetail());
+        }
+
         const messageInput = document.getElementById('reportDetailMessageInput');
         if (messageInput) {
             messageInput.addEventListener('keydown', (event) => {
@@ -118,6 +133,36 @@ class ContentModerationManager {
                     this.sendReportMessage();
                 }
             });
+        }
+
+        const policyButtons = document.querySelectorAll('[data-policy-edit]');
+        policyButtons.forEach((button) => {
+            const key = button.getAttribute('data-policy-edit');
+            button.addEventListener('click', () => this.openPolicyModal(key));
+        });
+
+        const policyModal = document.getElementById('policyModal');
+        if (policyModal) {
+            policyModal.addEventListener('click', (event) => {
+                if (event.target === policyModal) {
+                    this.closePolicyModal();
+                }
+            });
+        }
+
+        const policyCloseBtn = document.getElementById('policyModalClose');
+        if (policyCloseBtn) {
+            policyCloseBtn.addEventListener('click', () => this.closePolicyModal());
+        }
+
+        const policyCancelBtn = document.querySelector('.policy-cancel-btn');
+        if (policyCancelBtn) {
+            policyCancelBtn.addEventListener('click', () => this.closePolicyModal());
+        }
+
+        const policySaveBtn = document.querySelector('.policy-save-btn');
+        if (policySaveBtn) {
+            policySaveBtn.addEventListener('click', () => this.savePolicyModal());
         }
     }
 
@@ -206,10 +251,8 @@ class ContentModerationManager {
             if (!items || items.length === 0) {
                 console.log('ℹ️ No pending items found');
                 container.innerHTML = `
-                    <div style="text-align: center; padding: 40px 20px; color: #666;">
-                        <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">📋</div>
-                        <div style="font-size: 18px; font-weight: 500; color: #888; margin-bottom: 8px;">No pending items to check</div>
-                        <div style="font-size: 14px; color: #aaa;">All items have been moderated. Check back later for new submissions.</div>
+                    <div class="pending-empty">
+                        No pending items currently require moderation.
                     </div>
                 `;
                 return;
@@ -220,23 +263,66 @@ class ContentModerationManager {
             
             items.forEach((item, index) => {
                 console.log(`  Item ${index + 1}:`, item.name || item._id);
-                const postElement = document.createElement('div');
-                postElement.className = 'post-item-simple';
-                postElement.innerHTML = `
-                    <div class="post-item-content">
-                        <span class="post-type-label">User Post</span>
-                        <a href="#" class="view-post-link" onclick="contentModeration.viewPost('${item._id}'); return false;">View post</a>
-                    </div>
-                    <div class="post-item-actions">
-                        <button class="action-icon-btn approve-icon-btn" onclick="contentModeration.approvePost('${item._id}')" title="Approve">
-                            <i class="fas fa-check"></i>
-                        </button>
-                        <button class="action-icon-btn disapprove-icon-btn" onclick="contentModeration.disapprovePost('${item._id}')" title="Disapprove">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                `;
-                container.appendChild(postElement);
+                const row = document.createElement('div');
+                row.className = 'pending-row';
+
+                const userCell = document.createElement('div');
+                userCell.className = 'pending-user';
+                const userName = item.userName || item.sellerName || 'Unknown User';
+                const userEmail = item.userEmail || '';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'pending-user-name';
+                nameSpan.textContent = userName;
+                userCell.appendChild(nameSpan);
+                if (userEmail) {
+                    const emailSpan = document.createElement('span');
+                    emailSpan.className = 'pending-user-email';
+                    emailSpan.textContent = userEmail;
+                    userCell.appendChild(emailSpan);
+                }
+
+                const itemCell = document.createElement('div');
+                itemCell.className = 'pending-item';
+                const itemNameSpan = document.createElement('span');
+                itemNameSpan.className = 'pending-item-name';
+                itemNameSpan.textContent = item.name || 'Untitled Item';
+                itemCell.appendChild(itemNameSpan);
+
+                const actionsCell = document.createElement('div');
+                actionsCell.className = 'pending-actions';
+
+                const viewBtn = document.createElement('button');
+                viewBtn.type = 'button';
+                viewBtn.className = 'pending-view-btn';
+                viewBtn.textContent = 'View Post';
+                viewBtn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    this.viewPost(item._id);
+                });
+
+                const approveBtn = document.createElement('button');
+                approveBtn.type = 'button';
+                approveBtn.className = 'action-icon-btn approve-icon-btn';
+                approveBtn.title = 'Approve';
+                approveBtn.innerHTML = '<i class="fas fa-check"></i>';
+                approveBtn.addEventListener('click', () => this.approvePost(item._id));
+
+                const rejectBtn = document.createElement('button');
+                rejectBtn.type = 'button';
+                rejectBtn.className = 'action-icon-btn disapprove-icon-btn';
+                rejectBtn.title = 'Reject';
+                rejectBtn.innerHTML = '<i class="fas fa-times"></i>';
+                rejectBtn.addEventListener('click', () => this.disapprovePost(item._id));
+
+                actionsCell.appendChild(viewBtn);
+                actionsCell.appendChild(approveBtn);
+                actionsCell.appendChild(rejectBtn);
+
+                row.appendChild(userCell);
+                row.appendChild(itemCell);
+                row.appendChild(actionsCell);
+
+                container.appendChild(row);
             });
             console.log('✅ Successfully rendered', items.length, 'items');
         } catch (error) {
@@ -384,10 +470,7 @@ class ContentModerationManager {
         }
     }
     editGuidelines() {
-        const newGuidelines = prompt('Enter new community guidelines:', 'Current guidelines...');
-        if (newGuidelines) {
-            AdminUtils.showMessage('Community guidelines updated successfully', 'success');
-        }
+        this.openPolicyModal('terms');
     }
 
     normalizeReportType(reason = '') {
@@ -904,6 +987,246 @@ class ContentModerationManager {
             sendBtn.textContent = sendBtn.dataset.defaultText || 'Send';
             messageInput.focus();
         }
+    }
+
+    updatePolicySummaries() {
+        Object.entries(this.policyData || {}).forEach(([key, policy]) => {
+            const summaryElement = document.querySelector(`[data-policy-content="${key}"]`);
+            if (summaryElement) {
+                summaryElement.textContent = this.getPolicySummary(policy?.content);
+            }
+        });
+    }
+
+    getPolicySummary(content) {
+        const trimmed = (content || '').trim();
+        if (!trimmed) {
+            return 'No details have been provided yet.';
+        }
+        if (trimmed.length <= 160) {
+            return trimmed;
+        }
+        return `${trimmed.slice(0, 157)}...`;
+    }
+
+    openPolicyModal(policyKey) {
+        if (!policyKey || !this.policyData[policyKey]) {
+            return;
+        }
+        const modal = document.getElementById('policyModal');
+        const titleEl = document.getElementById('policyModalTitle');
+        const textarea = document.getElementById('policyModalTextarea');
+        if (!modal || !titleEl || !textarea) {
+            return;
+        }
+
+        const policy = this.policyData[policyKey];
+        this.activePolicyKey = policyKey;
+        titleEl.textContent = policy.title;
+        textarea.value = policy.content || '';
+        modal.style.display = 'block';
+        textarea.focus();
+    }
+
+    closePolicyModal() {
+        const modal = document.getElementById('policyModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        this.activePolicyKey = null;
+    }
+
+    savePolicyModal() {
+        if (!this.activePolicyKey || !this.policyData[this.activePolicyKey]) {
+            this.closePolicyModal();
+            return;
+        }
+
+        const textarea = document.getElementById('policyModalTextarea');
+        if (!textarea) {
+            this.closePolicyModal();
+            return;
+        }
+
+        const updatedContent = textarea.value.trim();
+        this.policyData[this.activePolicyKey].content = updatedContent;
+        this.updatePolicySummaries();
+        AdminUtils.showMessage(`${this.policyData[this.activePolicyKey].title} updated successfully.`, 'success');
+        this.closePolicyModal();
+    }
+
+    async exportReportDetail() {
+        if (!this.currentReportData) {
+            AdminUtils.showMessage('Open a report before using Print a Copy.', 'error');
+            return;
+        }
+
+        const pdfLib = window.jspdf;
+        if (!pdfLib || !pdfLib.jsPDF) {
+            AdminUtils.showMessage('PDF generator is not available. Please refresh the page and try again.', 'error');
+            return;
+        }
+
+        const loadImageAsDataURL = async (url) => {
+            if (!url) {
+                throw new Error('Missing image URL');
+            }
+            const response = await fetch(url, { mode: 'cors' });
+            if (!response.ok) {
+                throw new Error(`Image request failed (${response.status})`);
+            }
+            const blob = await response.blob();
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('Unable to read image data'));
+                reader.readAsDataURL(blob);
+            });
+        };
+
+        const { jsPDF } = pdfLib;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 48;
+        let cursorY = margin;
+
+        const ensureSpace = (increment) => {
+            if (cursorY + increment > pageHeight - margin) {
+                doc.addPage();
+                cursorY = margin;
+            }
+        };
+
+        const report = this.currentReportData;
+        const reportedUser = report?.reportedUserId || {};
+        const reportingUser = report?.reportingUserId || {};
+        const timestamp = report?.timestamp || report?.createdAt || report?.updatedAt || Date.now();
+        const formattedDate = new Date(timestamp).toLocaleString();
+        const statusLabel = this.formatStatus(report?.status || 'pending');
+        const reasonKey = this.normalizeReportType(report?.reason || '');
+        const reasonLabel = this.getReportTypeLabel(reasonKey, report?.reason || 'Others');
+
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.text('Report Detail', margin, cursorY);
+
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(12);
+        cursorY += 24;
+        doc.text(`Generated: ${new Date().toLocaleString()}`, margin, cursorY);
+
+        const maxWidth = pageWidth - margin * 2;
+        const addSection = (title, lines) => {
+            cursorY += 28;
+            ensureSpace(0);
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text(title, margin, cursorY);
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(12);
+            cursorY += 16;
+
+            lines.forEach((line) => {
+                const wrapped = doc.splitTextToSize(line, maxWidth);
+                wrapped.forEach((part) => {
+                    ensureSpace(16);
+                    doc.text(part, margin, cursorY);
+                    cursorY += 16;
+                });
+            });
+        };
+
+        addSection('Reported User', [
+            `• Name: ${reportedUser.name || 'Unknown User'}`,
+            `• Email: ${reportedUser.email || 'No email provided'}`,
+            `• User ID: ${reportedUser._id || 'N/A'}`
+        ]);
+
+        const reporterLines = [];
+        if (reportingUser && (reportingUser.name || reportingUser.email)) {
+            reporterLines.push(`• Name: ${reportingUser.name || 'Unknown Reporter'}`);
+            reporterLines.push(`• Email: ${reportingUser.email || 'No email provided'}`);
+            if (reportingUser._id) {
+                reporterLines.push(`• User ID: ${reportingUser._id}`);
+            }
+        } else {
+            reporterLines.push('• Reporter information not available.');
+        }
+
+        addSection('Reporter', reporterLines);
+
+        addSection('Report Overview', [
+            `• Report ID: ${report?._id || 'N/A'}`,
+            `• Created: ${formattedDate}`,
+            `• Status: ${statusLabel}`,
+            `• Current Reason Category: ${reasonLabel}`
+        ]);
+
+        const descriptionText = report?.description?.toString().trim() || 'No additional description provided.';
+        addSection('Detailed Description', [descriptionText]);
+
+        const evidencePhotos = Array.isArray(report?.evidencePhotos) ? report.evidencePhotos : [];
+        if (evidencePhotos.length) {
+            const evidenceLines = evidencePhotos.map((photo, index) => {
+                const label = photo?.url || 'Attachment';
+                return `• Evidence ${index + 1}: ${label}`;
+            });
+            addSection('Evidence Summary', evidenceLines);
+
+            const maxImageWidth = pageWidth - margin * 2;
+            for (let index = 0; index < evidencePhotos.length; index += 1) {
+                const photo = evidencePhotos[index];
+                if (!photo?.url) {
+                    continue;
+                }
+
+                cursorY += 12;
+                try {
+                    const dataUrl = await loadImageAsDataURL(photo.url);
+                    const props = doc.getImageProperties(dataUrl);
+                    const aspectRatio = props.width ? props.height / props.width : 0.75;
+                    const targetHeight = Math.min(aspectRatio * maxImageWidth, 260);
+
+                    ensureSpace(targetHeight + 36);
+                    doc.setFont('Helvetica', 'bold');
+                    doc.setFontSize(13);
+                    doc.text(`Evidence ${index + 1}`, margin, cursorY);
+                    cursorY += 18;
+                    doc.addImage(dataUrl, props.fileType || 'PNG', margin, cursorY, maxImageWidth, targetHeight);
+                    cursorY += targetHeight + 12;
+                    doc.setFont('Helvetica', 'normal');
+                    doc.setFontSize(11);
+                    const caption = photo.url.length > 80 ? `${photo.url.slice(0, 77)}...` : photo.url;
+                    doc.text(caption || 'Image source', margin, cursorY);
+                    cursorY += 18;
+                } catch (imageError) {
+                    console.warn('Unable to embed evidence image:', imageError);
+                    ensureSpace(24);
+                    doc.setFont('Helvetica', 'bold');
+                    doc.setFontSize(13);
+                    doc.text(`Evidence ${index + 1}`, margin, cursorY);
+                    cursorY += 18;
+                    doc.setFont('Helvetica', 'italic');
+                    doc.setFontSize(11);
+                    doc.text('Image could not be included. Please view it in the admin portal.', margin, cursorY);
+                    cursorY += 18;
+                }
+            }
+        } else {
+            addSection('Evidence Summary', ['No evidence photos provided.']);
+        }
+
+        addSection('Notes', [
+            '• Keep track of follow-up actions taken after this report.',
+            '• Ensure user communication is documented in the message center.',
+            '• Update the status to "Resolved" once the case is closed.'
+        ]);
+
+        const fileName = `report-detail-${(report?._id || 'export').toString().slice(-8)}.pdf`;
+        doc.save(fileName);
+
+        AdminUtils.showMessage('Report detail exported as PDF', 'success');
     }
 
     populateReportDetailView(report) {

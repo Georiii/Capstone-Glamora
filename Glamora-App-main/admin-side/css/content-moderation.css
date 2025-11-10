@@ -1389,3 +1389,308 @@
         margin: 5% auto;
     }
 }
+
+.policy-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 28px 32px;
+    box-shadow: 0 18px 45px rgba(20, 40, 90, 0.08);
+    border: 1px solid #e6ecfb;
+    margin-bottom: 20px;
+}
+
+.policy-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.policy-card-header h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: #1f2a44;
+}
+
+.policy-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.policy-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 20px;
+    border: 1px solid #dfe5f5;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #f9fbff 0%, #f2f6ff 100%);
+}
+
+.policy-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.policy-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    background: #e5ebfa;
+    color: #2c3e60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.policy-text h4 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #1f2a44;
+}
+
+.policy-description {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: #6c7a93;
+    max-width: 520px;
+}
+
+.policy-edit-btn {
+    border: none;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #2c3e60 0%, #1f2a44 100%);
+    color: #ffffff;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.policy-edit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(31, 42, 68, 0.25);
+}
+
+.policy-divider {
+    margin: 24px 0 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: #2c3e60;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.policy-divider::before,
+.policy-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #dfe5f5;
+}
+
+.pending-table {
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 16px 40px rgba(20, 40, 90, 0.08);
+    border: 1px solid #e6ecfb;
+    overflow: hidden;
+}
+
+.pending-header {
+    display: grid;
+    grid-template-columns: 2.2fr 2fr 1.1fr;
+    gap: 16px;
+    padding: 18px 28px;
+    background: linear-gradient(135deg, #f5f8ff 0%, #ebf1ff 100%);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #4d5c7a;
+}
+
+.pending-actions-title {
+    text-align: right;
+}
+
+.pending-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.pending-row {
+    display: grid;
+    grid-template-columns: 2.2fr 2fr 1.1fr;
+    gap: 16px;
+    align-items: center;
+    padding: 22px 28px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.pending-row:last-child {
+    border-bottom: none;
+}
+
+.pending-user-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2a44;
+}
+
+.pending-user-email {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    color: #7b879a;
+}
+
+.pending-item-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2a44;
+}
+
+.pending-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.pending-view-btn {
+    border: 2px solid #2c3e60;
+    background: transparent;
+    color: #2c3e60;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.pending-view-btn:hover {
+    background-color: #2c3e60;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.policy-modal-content {
+    max-width: 640px;
+    border-radius: 24px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.policy-modal-content .modal-header {
+    padding: 24px 28px 12px;
+    border-bottom: none;
+}
+
+.policy-modal-content .modal-body {
+    padding: 0 28px 12px;
+}
+
+.policy-modal-content .modal-actions {
+    padding: 0 28px 28px;
+}
+
+.policy-textarea {
+    width: 100%;
+    min-height: 240px;
+    border-radius: 18px;
+    border: 1px solid #dfe5f5;
+    padding: 16px 18px;
+    font-size: 14px;
+    color: #1f2a44;
+    resize: vertical;
+    background: #f9fbff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.policy-textarea:focus {
+    outline: none;
+    border-color: #2c3e60;
+    box-shadow: 0 0 0 3px rgba(44, 62, 96, 0.18);
+}
+
+.policy-cancel-btn,
+.policy-save-btn {
+    min-width: 120px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 26px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.policy-cancel-btn {
+    background-color: #ffffff;
+    border: 2px solid #dfe5f5;
+    color: #1f2a44;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.policy-cancel-btn:hover {
+    border-color: #2c3e60;
+    color: #2c3e60;
+    transform: translateY(-1px);
+}
+
+.policy-save-btn {
+    border: none;
+    background: linear-gradient(135deg, #2c3e60 0%, #1f2a44 100%);
+    color: #ffffff;
+    box-shadow: 0 14px 24px rgba(31, 42, 68, 0.28);
+}
+
+.policy-save-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 30px rgba(31, 42, 68, 0.32);
+}
+
+@media (max-width: 960px) {
+    .pending-header,
+    .pending-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        text-align: left;
+    }
+
+    .pending-actions {
+        justify-content: flex-start;
+    }
+
+    .pending-actions-title {
+        text-align: left;
+    }
+}
+
+.pending-user {
+    display: flex;
+    flex-direction: column;
+}
+
+.pending-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.pending-empty {
+    padding: 36px 28px;
+    text-align: center;
+    color: #6c7a93;
+    font-size: 14px;
+}
