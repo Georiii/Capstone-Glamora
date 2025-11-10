@@ -7,6 +7,17 @@ class ContentModerationManager {
         this.refreshInterval = null; // Auto-refresh interval
         this.lastPendingItemsSnapshot = null;
         this.lastReportsSnapshot = null;
+        this.reportsData = [];
+        this.reportFilters = { status: 'all', type: 'all' };
+        this.reportTypeLabels = {
+            'scam': 'Scam',
+            'fake-product-claim': 'Fake Product Claim',
+            'inappropriate-chat-behavior': 'Inappropriate Chat Behavior',
+            'bait-and-switching-listing': 'Bait-and-switching Listing',
+            'pressure-tactics': 'Pressure Tactics',
+            'others': 'Others'
+        };
+        this.defaultAvatar = 'https://randomuser.me/api/portraits/men/32.jpg';
         this.init();
     }
 
@@ -73,6 +84,23 @@ class ContentModerationManager {
                 }
             }
         });
+
+        const reportStatusFilter = document.getElementById('reportStatusFilter');
+        const reportTypeFilter = document.getElementById('reportTypeFilter');
+
+        if (reportStatusFilter) {
+            reportStatusFilter.addEventListener('change', () => {
+                this.reportFilters.status = reportStatusFilter.value || 'all';
+                this.applyReportFilters();
+            });
+        }
+
+        if (reportTypeFilter) {
+            reportTypeFilter.addEventListener('change', () => {
+                this.reportFilters.type = reportTypeFilter.value || 'all';
+                this.applyReportFilters();
+            });
+        }
     }
 
     async loadContentModeration() {
@@ -344,13 +372,183 @@ class ContentModerationManager {
         }
     }
 
+    normalizeReportType(reason = '') {
+        const value = reason ? reason.toString().toLowerCase().trim() : '';
+        if (!value) return 'others';
+        if (value.includes('scam')) return 'scam';
+        if (value.includes('fake') && value.includes('product')) return 'fake-product-claim';
+        if (value.includes('inappropriate') && value.includes('chat')) return 'inappropriate-chat-behavior';
+        if (value.includes('bait') && value.includes('switch')) return 'bait-and-switching-listing';
+        if (value.includes('pressure')) return 'pressure-tactics';
+        return 'others';
+    }
+
+    getReportTypeLabel(typeKey, fallback = '') {
+        if (this.reportTypeLabels[typeKey]) {
+            return this.reportTypeLabels[typeKey];
+        }
+        if (fallback) {
+            return fallback;
+        }
+        return this.reportTypeLabels['others'];
+    }
+
+    formatStatus(status = '') {
+        const value = status.toString().toLowerCase();
+        if (value === 'resolved') return 'Resolved';
+        if (value === 'reviewed') return 'Reviewed';
+        return 'Pending';
+    }
+
+    isHandledStatus(status = '') {
+        const value = status.toString().toLowerCase();
+        return value === 'reviewed' || value === 'resolved';
+    }
+
+    getReportAvatar(report) {
+        const profilePicture = report?.reportedUserId?.profilePicture;
+        if (profilePicture && profilePicture.url) {
+            return profilePicture.url;
+        }
+        const fallbackAvatar = report?.reportedUserId?.avatarUrl;
+        if (fallbackAvatar) {
+            return fallbackAvatar;
+        }
+        return this.defaultAvatar;
+    }
+
+    applyReportFilters() {
+        const reportsList = document.getElementById('reportsList');
+        if (!reportsList) return;
+
+        const statusFilter = this.reportFilters.status || 'all';
+        const typeFilter = this.reportFilters.type || 'all';
+
+        const filteredReports = this.reportsData.filter((report) => {
+            const statusKey = (report.status || 'pending').toLowerCase();
+            const typeKey = this.normalizeReportType(report.reason);
+
+            const matchesStatus = statusFilter === 'all' || statusKey === statusFilter;
+            const matchesType = typeFilter === 'all' || typeKey === typeFilter;
+
+            return matchesStatus && matchesType;
+        });
+
+        this.renderReportsList(filteredReports);
+    }
+
+    renderReportsList(reports) {
+        const reportsList = document.getElementById('reportsList');
+        if (!reportsList) return;
+
+        if (!reports || !reports.length) {
+            reportsList.innerHTML = `
+                <div class="reports-empty-state">
+                    <strong>No reports found</strong>
+                    <span>Try adjusting the filters to explore other reports.</span>
+                </div>
+            `;
+            return;
+        }
+
+        reportsList.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+
+        reports.forEach((report) => {
+            const userName = report.reportedUserId?.name || 'Unknown User';
+            const userEmail = report.reportedUserId?.email || 'No email';
+            const typeKey = this.normalizeReportType(report.reason);
+            const typeLabel = this.getReportTypeLabel(typeKey, report.reason);
+            const statusKey = (report.status || 'pending').toLowerCase();
+            const statusLabel = this.formatStatus(statusKey);
+            const isHandled = this.isHandledStatus(statusKey);
+
+            const card = document.createElement('div');
+            card.className = 'report-card';
+
+            const userCell = document.createElement('div');
+            userCell.className = 'report-user-cell';
+
+            const avatar = document.createElement('img');
+            avatar.className = 'report-user-avatar';
+            avatar.src = this.getReportAvatar(report);
+            avatar.alt = `${userName}'s avatar`;
+            avatar.referrerPolicy = 'no-referrer';
+
+            const meta = document.createElement('div');
+            meta.className = 'report-user-meta';
+
+            const nameEl = document.createElement('span');
+            nameEl.className = 'report-user-name';
+            nameEl.textContent = userName;
+
+            const emailEl = document.createElement('span');
+            emailEl.className = 'report-user-email';
+            emailEl.textContent = userEmail;
+
+            meta.appendChild(nameEl);
+            meta.appendChild(emailEl);
+            userCell.appendChild(avatar);
+            userCell.appendChild(meta);
+
+            const typeCell = document.createElement('div');
+            typeCell.className = 'report-type-cell';
+            const typeBadge = document.createElement('span');
+            typeBadge.className = 'report-type-badge';
+            typeBadge.dataset.type = typeKey;
+            typeBadge.textContent = typeLabel;
+            typeCell.appendChild(typeBadge);
+
+            const dateCell = document.createElement('div');
+            dateCell.className = 'report-date-cell';
+            dateCell.textContent = report.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'No date';
+
+            const statusCell = document.createElement('div');
+            statusCell.className = 'report-status-cell';
+            const statusWrapper = document.createElement('label');
+            statusWrapper.className = 'report-status-checkbox';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.disabled = true;
+            checkbox.checked = isHandled;
+            const statusText = document.createElement('span');
+            statusText.textContent = statusLabel;
+            statusWrapper.appendChild(checkbox);
+            statusWrapper.appendChild(statusText);
+            statusCell.appendChild(statusWrapper);
+
+            const actionCell = document.createElement('div');
+            actionCell.className = 'report-action-cell';
+            const viewButton = document.createElement('button');
+            viewButton.className = 'view-details-btn';
+            viewButton.textContent = 'View Details';
+            viewButton.onclick = () => this.viewReport(report._id);
+            actionCell.appendChild(viewButton);
+
+            card.appendChild(userCell);
+            card.appendChild(typeCell);
+            card.appendChild(dateCell);
+            card.appendChild(statusCell);
+            card.appendChild(actionCell);
+
+            fragment.appendChild(card);
+        });
+
+        reportsList.appendChild(fragment);
+    }
+
     async renderReportsTable() {
-        const tbody = document.getElementById('reportsTableBody');
-        if (!tbody) return;
+        const listBody = document.getElementById('reportsList');
+        if (!listBody) return;
 
         const hadSnapshot = Boolean(this.lastReportsSnapshot);
         if (!hadSnapshot) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Loading reports...</td></tr>';
+            listBody.innerHTML = `
+                <div class="reports-empty-state">
+                    <strong>Loading reports...</strong>
+                    <span>This may take a moment.</span>
+                </div>
+            `;
         }
 
         try {
@@ -363,48 +561,16 @@ class ContentModerationManager {
             }
 
             this.lastReportsSnapshot = snapshot;
-            console.log('Reports from API:', reports);
-            
-            if (reports.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No reports found</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = '';
-
-            reports.forEach(report => {
-                console.log('Processing report:', report);
-                const row = document.createElement('tr');
-                const userName = report.reportedUserId?.name || 'Unknown User';
-                const userEmail = report.reportedUserId?.email || 'No email';
-                
-                row.innerHTML = `
-                    <td>
-                        <div class="report-user">
-                            <div class="report-avatar">${userName.charAt(0)}</div>
-                            <div>
-                                <div class="user-name">${userName}</div>
-                                <div class="user-email">${userEmail}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="report-reason">${report.reason}</div>
-                    </td>
-                    <td>${report.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'No date'}</td>
-                    <td>
-                        <button class="view-details-btn" onclick="contentModeration.viewReport('${report._id}')">
-                            View Details
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
+            this.reportsData = reports;
+            this.applyReportFilters();
         } catch (error) {
             console.error('Error loading reports:', error);
-            if (!hadSnapshot) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">Error loading reports</td></tr>';
-            }
+            listBody.innerHTML = `
+                <div class="reports-empty-state" style="color: #c0392b;">
+                    <strong>Unable to load reports</strong>
+                    <span>${error?.message || 'An unexpected error occurred.'}</span>
+                </div>
+            `;
         }
     }
 

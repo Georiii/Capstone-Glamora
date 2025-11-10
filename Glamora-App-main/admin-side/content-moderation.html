@@ -108,20 +108,38 @@
                         <p><strong>Integration Status:</strong> <span id="integrationStatus" style="color: #4CAF50;">Connected to Mobile App</span></p>
                     </div>
 
-                    <div class="reports-table-container">
-                        <table class="reports-table">
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>Reason</th>
-                                    <th>Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reportsTableBody">
-                                <!-- Reports will be populated by JavaScript -->
-                            </tbody>
-                        </table>
+                    <div class="reports-toolbar">
+                        <div class="reports-filters">
+                            <span class="filters-label">Filter by</span>
+                            <select id="reportStatusFilter" class="reports-filter-select">
+                                <option value="all">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="reviewed">Reviewed</option>
+                                <option value="resolved">Resolved</option>
+                            </select>
+                            <select id="reportTypeFilter" class="reports-filter-select">
+                                <option value="all">All Report Types</option>
+                                <option value="scam">Scam</option>
+                                <option value="fake-product-claim">Fake Product Claim</option>
+                                <option value="inappropriate-chat-behavior">Inappropriate Chat Behavior</option>
+                                <option value="bait-and-switching-listing">Bait-and-switching Listing</option>
+                                <option value="pressure-tactics">Pressure Tactics</option>
+                                <option value="others">Others</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="reports-list">
+                        <div class="reports-list-header">
+                            <span>Reported User</span>
+                            <span>Report Type</span>
+                            <span>Date</span>
+                            <span>Status</span>
+                            <span></span>
+                        </div>
+                        <div class="reports-list-body" id="reportsList">
+                            <!-- Reports will be populated by JavaScript -->
+                        </div>
                     </div>
                 </div>
 

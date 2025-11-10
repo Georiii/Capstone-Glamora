@@ -336,7 +336,7 @@ router.get('/reports', adminAuth, async (req, res) => {
 
         const reports = await Report.find(query)
             .populate('reporterId', 'name email')
-            .populate('reportedUserId', 'name email')
+            .populate('reportedUserId', 'name email profilePicture avatarUrl')
             .populate('marketplaceItemId', 'name description')
             .sort({ createdAt: -1 })
             .limit(limit * 1)
