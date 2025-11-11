@@ -251,6 +251,23 @@ const api = {
       method: 'PUT',
       body: { reason }
     });
+  },
+
+  getPolicies: async () => {
+    try {
+      const data = await api.request('/api/admin/policies');
+      return data?.policies || {};
+    } catch (error) {
+      console.error('Failed to load policies:', error);
+      return {};
+    }
+  },
+
+  updatePolicy: async (key, content) => {
+    return api.request(`/api/admin/policies/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      body: { content }
+    });
   }
 };
 

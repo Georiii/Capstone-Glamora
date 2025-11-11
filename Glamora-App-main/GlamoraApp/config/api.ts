@@ -104,6 +104,9 @@ export const API_ENDPOINTS = {
   // Subscription/Premium
   subscriptionStatus: `${API_BASE_URL}/api/subscription/status`,
   subscribe: `${API_BASE_URL}/api/subscription/subscribe`,
+
+  // Policies
+  policies: `${API_BASE_URL}/api/policy`,
 };
 
 // Helper function to get full URL for any endpoint

@@ -40,6 +40,7 @@ class ContentModerationManager {
         this.updatePolicySummaries();
         this.loadContentModeration();
         this.startAutoRefresh();
+        this.fetchPolicies();
     }
 
     startAutoRefresh() {
@@ -995,6 +996,11 @@ class ContentModerationManager {
             if (summaryElement) {
                 summaryElement.textContent = this.getPolicySummary(policy?.content);
             }
+
+            const titleElement = document.querySelector(`[data-policy-title="${key}"]`);
+            if (titleElement && policy?.title) {
+                titleElement.textContent = policy.title;
+            }
         });
     }
 
@@ -1036,7 +1042,7 @@ class ContentModerationManager {
         this.activePolicyKey = null;
     }
 
-    savePolicyModal() {
+    async savePolicyModal() {
         if (!this.activePolicyKey || !this.policyData[this.activePolicyKey]) {
             this.closePolicyModal();
             return;
@@ -1048,11 +1054,44 @@ class ContentModerationManager {
             return;
         }
 
-        const updatedContent = textarea.value.trim();
-        this.policyData[this.activePolicyKey].content = updatedContent;
-        this.updatePolicySummaries();
-        AdminUtils.showMessage(`${this.policyData[this.activePolicyKey].title} updated successfully.`, 'success');
-        this.closePolicyModal();
+        const updatedContent = (textarea.value || '').trim();
+        if (!updatedContent) {
+            AdminUtils.showMessage('Content cannot be empty.', 'error');
+            textarea.focus();
+            return;
+        }
+
+        const currentContent = this.policyData[this.activePolicyKey].content || '';
+        if (updatedContent === currentContent) {
+            AdminUtils.showMessage('No changes detected.', 'info');
+            this.closePolicyModal();
+            return;
+        }
+
+        try {
+            let response = null;
+            if (typeof api !== 'undefined' && typeof api.updatePolicy === 'function') {
+                response = await api.updatePolicy(this.activePolicyKey, updatedContent);
+            }
+
+            if (response?.policy) {
+                this.policyData[this.activePolicyKey] = {
+                    ...(this.policyData[this.activePolicyKey] || {}),
+                    ...response.policy,
+                };
+            } else {
+                this.policyData[this.activePolicyKey].content = updatedContent;
+                this.policyData[this.activePolicyKey].updatedAt = new Date().toISOString();
+            }
+
+            this.updatePolicySummaries();
+            AdminUtils.showMessage(response?.message || `${this.policyData[this.activePolicyKey].title} updated successfully.`, 'success');
+            this.closePolicyModal();
+        } catch (error) {
+            console.error('Failed to update policy:', error);
+            const errorMessage = error?.response?.message || error.message || 'Failed to update policy.';
+            AdminUtils.showMessage(errorMessage, 'error');
+        }
     }
 
     async exportReportDetail() {
@@ -1386,6 +1425,31 @@ class ContentModerationManager {
         } else if (viewName === 'reportDetail' && reportDetailView) {
             reportDetailView.style.display = 'block';
             this.stopAutoRefresh(); // Stop auto-refresh when viewing report details
+        }
+    }
+
+    async fetchPolicies() {
+        if (typeof api === 'undefined' || typeof api.getPolicies !== 'function') {
+            return;
+        }
+
+        try {
+            const policies = await api.getPolicies();
+            if (!policies || typeof policies !== 'object') {
+                return;
+            }
+
+            Object.entries(policies).forEach(([key, policy]) => {
+                if (!policy) return;
+                this.policyData[key] = {
+                    ...(this.policyData[key] || {}),
+                    ...policy,
+                };
+            });
+
+            this.updatePolicySummaries();
+        } catch (error) {
+            console.error('Failed to fetch policies for admin view:', error);
         }
     }
 }

@@ -48,9 +48,38 @@ const Report = resolveBackendModule('models/Report');
 const MarketplaceItem = resolveBackendModule('models/MarketplaceItem');
 const WardrobeItem = resolveBackendModule('models/WardrobeItem');
 const ChatMessage = resolveBackendModule('models/Chat');
+const Policy = resolveBackendModule('models/Policy');
 const { JWT_SECRET } = resolveBackendModule('config/database');
 
 const router = express.Router();
+
+const sanitizePolicyContent = (input = '') => {
+    const stringInput = String(input ?? '');
+    return stringInput
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/on\w+="[^"]*"/gi, '')
+        .replace(/on\w+='[^']*'/gi, '')
+        .trim();
+};
+
+const formatPolicy = (policy) => ({
+    key: policy.key,
+    title: policy.title,
+    content: policy.content,
+    updatedAt: policy.updatedAt,
+    updatedBy: policy.updatedBy
+        ? {
+            id: policy.updatedBy._id,
+            name: policy.updatedBy.name,
+            email: policy.updatedBy.email,
+        }
+        : null,
+    history: (policy.history || []).slice(-10).map((entry) => ({
+        content: entry.content,
+        updatedAt: entry.updatedAt,
+        updatedBy: entry.updatedBy ? entry.updatedBy.toString() : null,
+    })),
+});
 
 // Admin Authentication Middleware
 const adminAuth = async (req, res, next) => {
@@ -141,6 +170,82 @@ router.get('/metrics', adminAuth, async (req, res) => {
     } catch (error) {
         console.error('Get metrics error:', error);
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.get('/policies', adminAuth, async (req, res) => {
+    try {
+        await Policy.ensureDefaults();
+        const docs = await Policy.find({})
+            .populate('updatedBy', 'name email')
+            .lean();
+
+        const policies = {};
+        docs.forEach((doc) => {
+            policies[doc.key] = formatPolicy(doc);
+        });
+
+        res.set({
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+        });
+        res.json({ policies });
+    } catch (error) {
+        console.error('Failed to load policies:', error);
+        res.status(500).json({ message: 'Failed to load policies', error: error.message });
+    }
+});
+
+router.put('/policies/:key', adminAuth, async (req, res) => {
+    const allowedKeys = ['terms', 'privacy'];
+    const { key } = req.params;
+
+    if (!allowedKeys.includes(key)) {
+        return res.status(404).json({ message: 'Unknown policy key.' });
+    }
+
+    try {
+        await Policy.ensureDefaults();
+        const policy = await Policy.findOne({ key }).populate('updatedBy', 'name email');
+        if (!policy) {
+            return res.status(404).json({ message: 'Policy not found.' });
+        }
+
+        const sanitizedContent = sanitizePolicyContent(req.body?.content);
+        if (!sanitizedContent) {
+            return res.status(400).json({ message: 'Policy content cannot be empty.' });
+        }
+
+        if (sanitizedContent === policy.content) {
+            return res.status(400).json({ message: 'No changes detected. Update aborted.' });
+        }
+
+        const now = new Date();
+        policy.content = sanitizedContent;
+        policy.updatedAt = now;
+        policy.updatedBy = req.adminId;
+        policy.history = [...(policy.history || []), {
+            content: sanitizedContent,
+            updatedAt: now,
+            updatedBy: req.adminId,
+        }].slice(-25);
+
+        await policy.save();
+        await policy.populate('updatedBy', 'name email');
+
+        res.set({
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+        });
+        res.json({
+            message: `${policy.title} updated and synced successfully.`,
+            policy: formatPolicy(policy),
+        });
+    } catch (error) {
+        console.error('Failed to update policy:', error);
+        res.status(500).json({ message: 'Failed to update policy', error: error.message });
     }
 });
 

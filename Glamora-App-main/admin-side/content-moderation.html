@@ -85,7 +85,7 @@
                                         <i class="fas fa-file-contract"></i>
                                     </div>
                                     <div class="policy-text">
-                                        <h4>Terms and Conditions</h4>
+                                        <h4 data-policy-title="terms">Terms and Conditions</h4>
                                         <p class="policy-description" data-policy-content="terms"></p>
                                     </div>
                                 </div>
@@ -97,7 +97,7 @@
                                         <i class="fas fa-shield-alt"></i>
                                     </div>
                                     <div class="policy-text">
-                                        <h4>Data Privacy Policy</h4>
+                                        <h4 data-policy-title="privacy">Data Privacy Policy</h4>
                                         <p class="policy-description" data-policy-content="privacy"></p>
                                     </div>
                                 </div>
@@ -119,7 +119,7 @@
                                 <span class="pending-actions-title">Actions</span>
                             </div>
                             <div class="pending-list" id="pendingPosts">
-                                <!-- Posts will be populated by JavaScript -->
+                            <!-- Posts will be populated by JavaScript -->
                             </div>
                         </div>
                     </div>
@@ -182,14 +182,14 @@
                             <button class="reports-btn detail-back-btn" onclick="contentModeration.backToReports()">
                                 <span class="detail-back-icon"><i class="fas fa-arrow-left"></i></span>
                                 Back
-                            </button>
+                        </button>
                             <div class="detail-header-text">
                                 <h2>Reports</h2>
                                 <p class="detail-subtitle">The following content did not follow the community guidelines</p>
                             </div>
                         </div>
                         <button type="button" class="print-btn">Print a Copy</button>
-                    </div>
+                        </div>
 
                     <div class="report-detail-card">
                         <div class="report-detail-layout">
@@ -212,22 +212,22 @@
                                         <div class="report-meta-block">
                                             <span class="meta-label">Reason</span>
                                             <div class="reason-chip-group" id="reportDetailReasonChips"></div>
-                                        </div>
-                                    </div>
-                                </div>
+                            </div>
+                            </div>
+                        </div>
 
                                 <div class="report-description-card">
                                     <h4>Report Information</h4>
                                     <p id="reportDetailDescription">Explain</p>
                                 </div>
 
-                                <div class="evidence-photos-section">
-                                    <h4>Evidence Photos</h4>
-                                    <div id="reportDetailEvidencePhotos" class="evidence-photos-container">
-                                        <!-- Photos will be populated by JavaScript -->
+                        <div class="evidence-photos-section">
+                            <h4>Evidence Photos</h4>
+                            <div id="reportDetailEvidencePhotos" class="evidence-photos-container">
+                                <!-- Photos will be populated by JavaScript -->
                                     </div>
-                                </div>
                             </div>
+                        </div>
 
                             <aside class="report-detail-sidebar">
                                 <div class="message-card">
@@ -244,11 +244,11 @@
                                     <textarea id="reportDetailMessageInput" class="message-textarea" placeholder="Write a message..."></textarea>
                                     <button type="button" class="message-send-btn" id="reportDetailSendBtn">Send</button>
                                     <div class="sidebar-divider"></div>
-                                    <button class="restrict-btn" id="reportDetailRestrictBtn">
-                                        <i class="fas fa-ban"></i>
-                                        Restrict Account
-                                    </button>
-                                </div>
+                                <button class="restrict-btn" id="reportDetailRestrictBtn">
+                                    <i class="fas fa-ban"></i>
+                                    Restrict Account
+                                </button>
+                            </div>
                             </aside>
                         </div>
                     </div>

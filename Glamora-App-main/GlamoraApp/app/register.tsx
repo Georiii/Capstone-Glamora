@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,9 @@ import { API_ENDPOINTS } from '../config/api';
 
 const { width, height } = Dimensions.get('window');
 
+const DEFAULT_TERMS = 'Your Terms and Conditions go here.';
+const DEFAULT_PRIVACY = 'Your Privacy Policy details go here.';
+
 export default function Register() {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -36,6 +39,9 @@ export default function Register() {
   const [termsChecked, setTermsChecked] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [termsContent, setTermsContent] = useState(DEFAULT_TERMS);
+  const [privacyContent, setPrivacyContent] = useState(DEFAULT_PRIVACY);
+  const [policiesLoading, setPoliciesLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState('');
 
   // Animations
@@ -79,7 +85,55 @@ export default function Register() {
         Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
       ]).start();
     }
-  }, [passwordStrength]);
+  }, [animStrength, passwordStrength, password, shakeAnim]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchPolicies = async () => {
+      try {
+        setPoliciesLoading(true);
+        const response = await fetch(`${API_ENDPOINTS.policies}?t=${Date.now()}`, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Policy fetch failed (${response.status})`);
+        }
+
+        const data = await response.json();
+        if (!isMounted) return;
+
+        const policies = data?.policies || {};
+        if (policies.terms?.content) {
+          setTermsContent(policies.terms.content.trim() || DEFAULT_TERMS);
+        }
+        if (policies.privacy?.content) {
+          setPrivacyContent(policies.privacy.content.trim() || DEFAULT_PRIVACY);
+        }
+      } catch (error) {
+        console.warn('Unable to load latest policies:', error);
+        if (isMounted) {
+          setTermsContent((prev) => prev || DEFAULT_TERMS);
+          setPrivacyContent((prev) => prev || DEFAULT_PRIVACY);
+        }
+      } finally {
+        if (isMounted) {
+          setPoliciesLoading(false);
+        }
+      }
+    };
+
+    fetchPolicies();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const animatedWidth = animStrength.interpolate({
     inputRange: [0, 0.5, 1],
@@ -266,7 +320,7 @@ export default function Register() {
             <View style={styles.modalContainer}>
               <Text style={styles.modalHeader}>Terms and Conditions</Text>
               <ScrollView style={styles.modalScroll}>
-                <Text style={styles.modalText}>Your Terms and Conditions go here.</Text>
+                <Text style={styles.modalText}>{policiesLoading ? 'Loading latest Terms and Conditions...' : termsContent}</Text>
               </ScrollView>
               <Pressable style={styles.modalClose} onPress={() => setTermsModalVisible(false)}>
                 <Text style={styles.modalCloseText}>Close</Text>
@@ -280,7 +334,7 @@ export default function Register() {
             <View style={styles.modalContainer}>
               <Text style={styles.modalHeader}>Privacy Policy</Text>
               <ScrollView style={styles.modalScroll}>
-                <Text style={styles.modalText}>Your Privacy Policy details go here.</Text>
+                <Text style={styles.modalText}>{policiesLoading ? 'Loading latest Privacy Policy...' : privacyContent}</Text>
               </ScrollView>
               <Pressable style={styles.modalClose} onPress={() => setPrivacyModalVisible(false)}>
                 <Text style={styles.modalCloseText}>Close</Text>
