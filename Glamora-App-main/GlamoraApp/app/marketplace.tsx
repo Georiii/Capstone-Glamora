@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useSocket } from './contexts/SocketContext';
 
@@ -25,6 +25,11 @@ export default function Marketplace() {
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const { width: screenWidth } = useWindowDimensions();
+  const contentPadding = 32;
+  const columnGap = 16;
+  const cardWidth = Math.max(150, (screenWidth - contentPadding - columnGap) / 2);
+  const imageWidth = cardWidth - 20;
 
   const fetchMarketplaceItems = useCallback(async () => {
     setLoading(true);
@@ -117,11 +122,11 @@ export default function Marketplace() {
           {items.length === 0 ? (
             <Text style={{ textAlign: 'center', color: '#888', marginTop: 30 }}>No items found.</Text>
           ) : (
-            <View style={styles.gridRow}>
+            <View style={[styles.gridRow, { paddingHorizontal: contentPadding / 2 }]}>
               {items.map((item, idx) => (
                 <TouchableOpacity
                   key={item._id || idx}
-                  style={styles.itemCard}
+                  style={[styles.itemCard, { width: cardWidth }]}
                   onPress={() => router.push({
                     pathname: '/posted-item',
                     params: {
@@ -136,9 +141,11 @@ export default function Marketplace() {
                     }
                   })}
                 >
-                  <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+                  <Image source={{ uri: item.imageUrl }} style={[styles.itemImage, { width: imageWidth }]} />
                   <View style={styles.itemInfoRow}>
-                    <Text style={styles.itemLabel}>{item.name}</Text>
+                    <Text style={styles.itemLabel} numberOfLines={1} ellipsizeMode="tail">
+                      {item.name}
+                    </Text>
                     <Text style={styles.itemPrice}>₱{item.price}</Text>
                   </View>
                 </TouchableOpacity>
@@ -206,25 +213,25 @@ const styles = StyleSheet.create({
     fontSize: 22, fontWeight: 'bold', color: '#222', marginLeft: 24, marginTop: 10, marginBottom: 18,
   },
   gridContainer: {
-    flexDirection: 'column', alignItems: 'center', paddingBottom: 120,
+    flexDirection: 'column', alignItems: 'center', paddingBottom: 120, paddingHorizontal: 8,
   },
   gridRow: {
-    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', width: '100%',
+    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%',
   },
   itemCard: {
-    width: 170, height: 220, backgroundColor: '#fff', borderRadius: 18, margin: 10, alignItems: 'center',
+    backgroundColor: '#fff', borderRadius: 18, marginBottom: 16, alignItems: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 3,
     borderWidth: 1,
     borderColor: '#f0f0f0',
+    paddingBottom: 12,
   },
   itemImage: {
-    width: 150, height: 130, borderRadius: 12, marginTop: 10, marginBottom: 8, backgroundColor: '#eee',
+    height: 130, borderRadius: 12, marginTop: 10, marginBottom: 8, backgroundColor: '#eee',
   },
   itemInfoRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '90%', marginTop: 6,
-    paddingHorizontal: 8,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 12,
   },
-  itemLabel: { fontSize: 15, fontWeight: 'bold', color: '#222', flex: 1 },
+  itemLabel: { fontSize: 15, fontWeight: 'bold', color: '#222', flex: 1, marginRight: 6 },
   itemPrice: { fontSize: 15, color: '#222', fontWeight: 'bold', marginLeft: 8 },
   navigation: {
     flexDirection: 'row', 
