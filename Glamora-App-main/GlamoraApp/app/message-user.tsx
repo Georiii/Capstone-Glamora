@@ -29,9 +29,16 @@ interface Message {
   isFromCurrentUser: boolean;
 }
 
+const normalizeParam = (value: string | string[] | undefined) => {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value;
+};
+
 export default function MessageUser() {
   const router = useRouter();
-  const { sellerId, sellerEmail, sellerProfilePicture, productName, productImage } = useLocalSearchParams();
+  const { sellerId, sellerEmail, sellerProfilePicture, productName, productImage, itemId } = useLocalSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -47,6 +54,14 @@ export default function MessageUser() {
   
   // Socket.IO context
   const { socket, sendMessage: sendSocketMessage, joinChat, leaveChat, sendTyping } = useSocket();
+
+  const normalizedProductName = normalizeParam(productName);
+  const normalizedProductImage = normalizeParam(productImage);
+  const normalizedProductId = normalizeParam(itemId);
+  const [contextProductName, setContextProductName] = useState<string | null>(normalizedProductName || null);
+  const [contextProductImage, setContextProductImage] = useState<string | null>(normalizedProductImage || null);
+  const [contextProductId, setContextProductId] = useState<string | null>(normalizedProductId || null);
+  const defaultProductImage = 'https://via.placeholder.com/120?text=Item';
 
   const loadCurrentUser = async () => {
     try {
@@ -186,6 +201,79 @@ export default function MessageUser() {
       }]);
     }
   }, [sellerEmail, sellerId]);
+
+  const fetchConversationContext = async (targetId: string) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+      const response = await fetch(API_ENDPOINTS.chatContext(targetId), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.context) {
+          if (data.context.productName) {
+            setContextProductName(data.context.productName);
+          }
+          if (data.context.productImage) {
+            setContextProductImage(data.context.productImage);
+          }
+          if (data.context.productId) {
+            setContextProductId(data.context.productId);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching conversation context:', error);
+    }
+  };
+
+  const updateConversationContext = async (targetId: string, productIdValue?: string | null, productNameValue?: string | null, productImageValue?: string | null) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+      await fetch(API_ENDPOINTS.chatContextUpdate, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          targetUserId: targetId,
+          productId: productIdValue || null,
+          productName: productNameValue || '',
+          productImage: productImageValue || '',
+        }),
+      });
+    } catch (error) {
+      console.error('Error updating conversation context:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (!otherUserId) return;
+    (async () => {
+      try {
+        if (normalizedProductName || normalizedProductImage) {
+          await updateConversationContext(otherUserId, normalizedProductId, normalizedProductName, normalizedProductImage);
+          if (normalizedProductName) {
+            setContextProductName(normalizedProductName);
+          }
+          if (normalizedProductImage) {
+            setContextProductImage(normalizedProductImage);
+          }
+          if (normalizedProductId) {
+            setContextProductId(normalizedProductId);
+          }
+        }
+        await fetchConversationContext(otherUserId);
+      } catch (error) {
+        console.error('Error syncing conversation context:', error);
+      }
+    })();
+  }, [otherUserId, normalizedProductId, normalizedProductName, normalizedProductImage]);
 
   // Socket.IO effects
   useEffect(() => {
@@ -331,7 +419,7 @@ export default function MessageUser() {
     // Try Socket.IO first for real-time messaging
     if (socket && socket.connected && otherUserId) {
       console.log('📡 Sending via Socket.IO');
-      sendSocketMessage(otherUserId, messageText, undefined, productName as string);
+      sendSocketMessage(otherUserId, messageText, contextProductId || undefined, contextProductName || undefined);
       
       // Scroll to bottom
       setTimeout(() => {
@@ -372,7 +460,9 @@ export default function MessageUser() {
           body: JSON.stringify({
             receiverId: sellerUserId,
             text: messageText,
-            productName: productName,
+            productId: contextProductId,
+            productName: contextProductName,
+            productImage: contextProductImage,
           }),
         });
 
@@ -680,9 +770,11 @@ export default function MessageUser() {
       {/* Product Info */}
       <View style={styles.productSection}>
         <View style={styles.productCard}>
-          <Image source={{ uri: productImage as string }} style={styles.productImage} />
+          <Image source={{ uri: (contextProductImage as string) || defaultProductImage }} style={styles.productImage} />
           <View style={styles.productInfo}>
-            <Text style={styles.productName}>{productName}</Text>
+            <Text style={styles.productName} numberOfLines={2}>
+              {contextProductName || 'Conversation'}
+            </Text>
           </View>
         </View>
       </View>

@@ -4,9 +4,14 @@ const mongoose = require('mongoose');
 const ChatMessage = require('../models/Chat');
 const User = require('../models/User');
 const Report = require('../models/Report');
+const ConversationContext = require('../models/ConversationContext');
 const { JWT_SECRET } = require('../config/database');
 
 const router = express.Router();
+
+const getParticipantsHash = (id1, id2) => {
+  return [String(id1), String(id2)].sort().join('-');
+};
 
 // Auth middleware
 function auth(req, res, next) {
@@ -40,7 +45,10 @@ router.get('/:userId', auth, async (req, res) => {
     .populate('senderId', 'name email')
     .populate('receiverId', 'name email');
 
-    res.json({ messages });
+    const contextHash = getParticipantsHash(currentUserId, userId);
+    const context = await ConversationContext.findOne({ participantsHash: contextHash });
+
+    res.json({ messages, context });
   } catch (err) {
     console.error('Error fetching chat messages:', err);
     res.status(500).json({ message: 'Failed to fetch messages.', error: err.message });
@@ -152,9 +160,17 @@ router.get('/conversations/list', auth, async (req, res) => {
     const populatedConversations = await Promise.all(
       conversations.map(async (conv) => {
         const user = await User.findById(conv._id).select('name email');
+        const participantsHash = getParticipantsHash(currentUserId, conv._id);
+        const context = await ConversationContext.findOne({ participantsHash });
         return {
           ...conv,
-          user: user
+          user: user,
+          context: context ? {
+            productId: context.productId || null,
+            productName: context.productName || '',
+            productImage: context.productImage || '',
+            updatedAt: context.updatedAt
+          } : null
         };
       })
     );
@@ -188,6 +204,53 @@ router.put('/mark-read/:userId', auth, async (req, res) => {
   } catch (err) {
     console.error('Error marking messages as read:', err);
     res.status(500).json({ message: 'Failed to mark messages as read.', error: err.message });
+  }
+});
+
+// POST /api/chat/context - Update conversation context
+router.post('/context', auth, async (req, res) => {
+  try {
+    const { targetUserId, productId, productName, productImage } = req.body;
+    if (!targetUserId) {
+      return res.status(400).json({ message: 'targetUserId is required.' });
+    }
+
+    const participantsHash = getParticipantsHash(req.userId, targetUserId);
+    const sortedParticipants = [
+      new mongoose.Types.ObjectId(req.userId),
+      new mongoose.Types.ObjectId(targetUserId),
+    ].sort((a, b) => a.toString().localeCompare(b.toString()));
+
+    const context = await ConversationContext.findOneAndUpdate(
+      { participantsHash },
+      {
+        participantsHash,
+        participants: sortedParticipants,
+        productId: productId || null,
+        productName: productName || '',
+        productImage: productImage || '',
+        updatedAt: new Date(),
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({ context });
+  } catch (err) {
+    console.error('Error updating conversation context:', err);
+    res.status(500).json({ message: 'Failed to update conversation context.', error: err.message });
+  }
+});
+
+// GET /api/chat/context/:userId - Get conversation context
+router.get('/context/:userId', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const participantsHash = getParticipantsHash(req.userId, userId);
+    const context = await ConversationContext.findOne({ participantsHash });
+    res.json({ context });
+  } catch (err) {
+    console.error('Error fetching conversation context:', err);
+    res.status(500).json({ message: 'Failed to fetch conversation context.', error: err.message });
   }
 });
 

@@ -72,6 +72,8 @@ export const API_ENDPOINTS = {
   chatSend: `${API_BASE_URL}/api/chat/send`,
   chatMarkRead: (userId: string) => `${API_BASE_URL}/api/chat/mark-read/${userId}`,
   chatDeleteConversation: (userId: string) => `${API_BASE_URL}/api/chat/conversations/${userId}`,
+  chatContext: (userId: string) => `${API_BASE_URL}/api/chat/context/${userId}`,
+  chatContextUpdate: `${API_BASE_URL}/api/chat/context`,
   
   // Reports
   report: `${API_BASE_URL}/api/report`,

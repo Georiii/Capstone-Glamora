@@ -30,6 +30,11 @@ interface Conversation {
   };
   messageCount: number;
   unreadCount: number;
+  context?: {
+    productId?: string | null;
+    productName?: string;
+    productImage?: string;
+  } | null;
 }
 
 export default function MessageBox() {
@@ -155,7 +160,8 @@ export default function MessageBox() {
             senderId: conv.lastMessage?.senderId || 'unknown'
           },
           messageCount: conv.messageCount || 0,
-          unreadCount: conv.unreadCount || 0
+          unreadCount: conv.unreadCount || 0,
+          context: conv.context || null,
         }));
         
         setConversations(transformedConversations);
@@ -206,8 +212,9 @@ export default function MessageBox() {
       params: {
         sellerId: conversation.user._id,
         sellerEmail: conversation.user.email,
-        productName: 'Conversation',
-        productImage: 'https://randomuser.me/api/portraits/men/32.jpg'
+        productName: conversation.context?.productName || 'Conversation',
+        productImage: conversation.context?.productImage || 'https://randomuser.me/api/portraits/men/32.jpg',
+        itemId: conversation.context?.productId || '',
       }
     });
   };
