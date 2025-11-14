@@ -150,12 +150,28 @@ router.post('/marketplace', auth, async (req, res) => {
     const { imageUrl, name, description, price } = req.body;
     if (!imageUrl || !name || !price) return res.status(400).json({ message: 'Missing required fields: imageUrl, name, and price' });
     
+    let optimizedImageUrl = imageUrl;
+    if (imageUrl.startsWith('file://') || imageUrl.startsWith('data:')) {
+      try {
+        const result = await cloudinary.uploader.upload(imageUrl, {
+          folder: 'glamora/marketplace',
+          transformation: [
+            { width: 400, height: 500, crop: 'fill' },
+            { quality: 'auto' }
+          ]
+        });
+        optimizedImageUrl = result.secure_url;
+      } catch (uploadErr) {
+        console.error('❌ Cloudinary upload failed (marketplace):', uploadErr);
+      }
+    }
+
     // Get user information from database including profile picture
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
     
     const item = new MarketplaceItem({
-      imageUrl,
+      imageUrl: optimizedImageUrl,
       name,
       description,
       price,

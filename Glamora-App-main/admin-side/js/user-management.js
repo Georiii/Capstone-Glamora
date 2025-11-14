@@ -5,6 +5,7 @@ class UserManagementManager {
     this.refreshInterval = null;
     this.allUsers = [];
     this.lastUsersSnapshot = null;
+    this.defaultAvatar = 'https://via.placeholder.com/100?text=User';
     this.init();
   }
 
@@ -152,9 +153,16 @@ class UserManagementManager {
 
       const status = user.isActive !== false ? 'active' : 'inactive';
 
+      const avatar = user.profilePicture?.url || user.avatarUrl || this.defaultAvatar;
+      const avatarImg = document.getElementById('modalUserAvatar');
+      if (avatarImg) {
+        avatarImg.src = avatar;
+        avatarImg.alt = `${user.name || 'User'} avatar`;
+      }
+
       document.getElementById('modalUserName').textContent = user.name || 'Unknown';
       document.getElementById('modalUserEmail').textContent = user.email || 'No email';
-      document.getElementById('modalUserRole').value = user.role || 'user';
+      document.getElementById('modalUserRole').textContent = (user.role || 'user').toLowerCase();
       document.getElementById('modalUserStatus').textContent = status;
       document.getElementById('modalUserStatus').className = `status-${status}`;
 
