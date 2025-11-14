@@ -254,4 +254,4 @@ router.get('/context/:userId', auth, async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = require('../GlamoraApp/backend/routes/chat');
