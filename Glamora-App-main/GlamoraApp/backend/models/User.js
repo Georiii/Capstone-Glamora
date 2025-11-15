@@ -57,6 +57,19 @@ const userSchema = new mongoose.Schema({
     allowPersonalizedRecommendations: { type: Boolean, default: true },
     measurementLastUpdated: { type: Date }
   },
+
+  // Subscription / PayPal info
+  subscription: {
+    isSubscribed: { type: Boolean, default: false },
+    subscriptionType: { type: String, enum: ['free', 'plus'], default: 'free' },
+    subscribedAt: { type: Date },
+    expiresAt: { type: Date },
+    lastOutfitSuggestionDate: { type: Date },
+    dailyOutfitSuggestionsCount: { type: Number, default: 0 },
+    paypalSubscriptionId: { type: String },
+    paypalPlanId: { type: String },
+    paypalStatus: { type: String }
+  },
   
   // Password Reset
   resetPasswordToken: { type: String },

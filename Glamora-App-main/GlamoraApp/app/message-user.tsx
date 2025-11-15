@@ -29,11 +29,53 @@ interface Message {
   isFromCurrentUser: boolean;
 }
 
+const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dq8wzujfj/image/upload';
+const CLOUDINARY_UPLOAD_PRESET = 'glamora_wardrobe';
+
 const normalizeParam = (value: string | string[] | undefined) => {
   if (Array.isArray(value)) {
     return value[0];
   }
   return value;
+};
+
+const isLocalUri = (uri?: string | null): uri is string => {
+  if (!uri) return false;
+  return uri.startsWith('file://') || uri.startsWith('data:');
+};
+
+const uploadEvidencePhoto = async (uri: string) => {
+  if (!isLocalUri(uri)) {
+    return uri;
+  }
+
+  const formData = new FormData();
+  formData.append('file', {
+    uri,
+    type: 'image/jpeg',
+    name: `evidence-${Date.now()}.jpg`,
+  } as any);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+  const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Cloudinary upload failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (!data?.secure_url) {
+    throw new Error('Cloudinary upload response missing secure_url');
+  }
+
+  return {
+    url: data.secure_url as string,
+    filename: data.public_id as string,
+  };
 };
 
 export default function MessageUser() {
@@ -587,28 +629,16 @@ export default function MessageUser() {
         const uploadedPhotos: { url: string; filename?: string | null }[] = [];
         if (evidencePhotos.length > 0) {
           for (const photoUri of evidencePhotos) {
-            const formData = new FormData();
-            formData.append('file', {
-              uri: photoUri,
-              type: 'image/jpeg',
-              name: 'evidence.jpg',
-            } as any);
-            formData.append('upload_preset', 'glamora_wardrobe');
-
-            const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/dq8wzujfj/image/upload', {
-              method: 'POST',
-              body: formData,
-              headers: {
-                'Content-Type': 'multipart/form-data',
-              },
-            });
-
-            if (uploadResponse.ok) {
-              const uploadResult = await uploadResponse.json();
+            try {
+              const uploaded = await uploadEvidencePhoto(photoUri);
               uploadedPhotos.push({
-                url: uploadResult.secure_url,
-                filename: uploadResult.public_id,
+                url: uploaded.url || uploaded,
+                filename: uploaded.filename || null,
               });
+            } catch (uploadError: any) {
+              console.error('Evidence upload failed:', uploadError);
+              Alert.alert('Upload Error', 'Failed to upload an evidence photo. Please try again.');
+              return;
             }
           }
         }
@@ -617,7 +647,7 @@ export default function MessageUser() {
 
         console.log('Submitting report with data:', {
           reportedUserId: sellerUserId,
-          reason: selectedReportReason,
+          reason: (reportReasons.find(r => r.key === selectedReportReason)?.title) || selectedReportReason,
           description: trimmedMessage,
           evidencePhotos: uploadedPhotos,
           marketplaceItemId: contextProductId,
@@ -631,7 +661,7 @@ export default function MessageUser() {
           },
           body: JSON.stringify({
             reportedUserId: sellerUserId,
-            reason: selectedReportReason,
+            reason: (reportReasons.find(r => r.key === selectedReportReason)?.title) || selectedReportReason,
             description: trimmedMessage,
             evidencePhotos: uploadedPhotos,
             marketplaceItemId: contextProductId,
@@ -712,22 +742,27 @@ export default function MessageUser() {
 
   const reportReasons = [
     {
-      title: 'Scams',
+      key: 'scam',
+      title: 'Scam',
       description: 'Seller scammed me by requesting payment outside the app and never shipped the item.'
     },
     {
+      key: 'fake-product-claim',
       title: 'Fake Product Claim',
       description: 'Seller falsely claimed the item was authentic when it wasn\'t.'
     },
     {
+      key: 'inappropriate-chat',
       title: 'Inappropriate Chat Behavior',
       description: 'Seller made inappropriate/unprofessional comments during the transaction.'
     },
     {
+      key: 'bait-and-switch',
       title: 'Bait-and-Switch Listing',
       description: 'Seller used misleading pricing to bait users.'
     },
     {
+      key: 'pressure-tactics',
       title: 'Pressure Tactics / Rushing Payment',
       description: 'Seller is using pressure tactics to rush payment outside safe channels.'
     }
@@ -899,15 +934,15 @@ export default function MessageUser() {
                     key={index}
                     style={[
                       styles.reportOption,
-                      selectedReportReason === reason.description && styles.reportOptionSelected
+                      selectedReportReason === reason.key && styles.reportOptionSelected
                     ]}
-                    onPress={() => setSelectedReportReason(reason.description)}
+                    onPress={() => setSelectedReportReason(reason.key)}
                   >
                     <View style={[
                       styles.checkbox,
-                      selectedReportReason === reason.description && styles.checkboxSelected
+                      selectedReportReason === reason.key && styles.checkboxSelected
                     ]}>
-                      {selectedReportReason === reason.description && (
+                      {selectedReportReason === reason.key && (
                         <Ionicons name="checkmark" size={16} color="#FFF" />
                       )}
                     </View>

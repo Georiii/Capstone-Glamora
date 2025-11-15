@@ -2,14 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal, ActivityIndicator, Platform } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 export default function Premium() {
   const router = useRouter();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [paypalModalVisible, setPaypalModalVisible] = useState(false);
+  const [paypalWebViewKey, setPaypalWebViewKey] = useState(0);
+
+  const PAYPAL_CLIENT_ID = process.env.EXPO_PUBLIC_PAYPAL_CLIENT_ID || '';
+  const PAYPAL_PLAN_ID = process.env.EXPO_PUBLIC_PAYPAL_PLAN_ID || '';
+  const PAYPAL_ENV = process.env.EXPO_PUBLIC_PAYPAL_ENV || 'sandbox';
+  const isPayPalConfigured = Boolean(PAYPAL_CLIENT_ID && PAYPAL_PLAN_ID);
 
   useEffect(() => {
     checkSubscriptionStatus();
@@ -40,7 +48,12 @@ export default function Premium() {
     }
   };
 
-  const handleSubscribe = async () => {
+  const activateSubscription = async (paypalSubscriptionId: string) => {
+    if (!paypalSubscriptionId) {
+      Alert.alert('Error', 'Missing PayPal subscription ID. Please try again.');
+      return;
+    }
+    
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
@@ -55,7 +68,8 @@ export default function Premium() {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ paypalSubscriptionId })
       });
 
       const data = await response.json();
@@ -96,6 +110,114 @@ export default function Premium() {
       setLoading(false);
     }
   };
+
+  const resetPayPalModal = () => {
+    setPaypalModalVisible(false);
+    setPaypalWebViewKey((prev) => prev + 1);
+  };
+
+  const startPayPalCheckout = () => {
+    if (!isPayPalConfigured) {
+      Alert.alert(
+        'PayPal Not Configured',
+        'PayPal client ID or plan ID is missing. Please set EXPO_PUBLIC_PAYPAL_CLIENT_ID and EXPO_PUBLIC_PAYPAL_PLAN_ID.'
+      );
+      return;
+    }
+
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        'Unsupported Platform',
+        'PayPal checkout is currently supported inside the mobile app build. Please test using an Android/iOS device or emulator.'
+      );
+      return;
+    }
+
+    setPaypalModalVisible(true);
+  };
+
+  const handlePayPalMessage = async (event: WebViewMessageEvent) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data || '{}');
+      if (data.event === 'approved' && data.subscriptionID) {
+        resetPayPalModal();
+        await activateSubscription(data.subscriptionID);
+        return;
+      }
+
+      if (data.event === 'cancelled') {
+        resetPayPalModal();
+        Alert.alert('Payment Cancelled', 'You cancelled the PayPal checkout.');
+        return;
+      }
+
+      if (data.event === 'error') {
+        resetPayPalModal();
+        Alert.alert('PayPal Error', data.message || 'Something went wrong with PayPal checkout.');
+        return;
+      }
+    } catch (err) {
+      resetPayPalModal();
+      Alert.alert('PayPal Error', 'Failed to process PayPal response. Please try again.');
+    }
+  };
+
+  const paypalCheckoutHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&vault=true&intent=subscription&components=buttons${PAYPAL_ENV === 'live' ? '' : '&buyer-country=PH'}"></script>
+        <style>
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+          }
+        </style>
+      </head>
+      <body>
+        <div id="paypal-button-container"></div>
+        <script>
+          paypal.Buttons({
+            style: {
+              layout: 'vertical',
+              color: 'gold',
+              shape: 'rect',
+              label: 'subscribe'
+            },
+            createSubscription: function(data, actions) {
+              return actions.subscription.create({
+                plan_id: '${PAYPAL_PLAN_ID}'
+              });
+            },
+            onApprove: function(data, actions) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                event: 'approved',
+                subscriptionID: data.subscriptionID
+              }));
+            },
+            onCancel: function (data) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                event: 'cancelled'
+              }));
+            },
+            onError: function(err) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                event: 'error',
+                message: err && err.toString ? err.toString() : 'Unknown PayPal error'
+              }));
+            }
+          }).render('#paypal-button-container');
+        </script>
+      </body>
+    </html>
+  `;
 
   if (checkingStatus) {
     return (
@@ -190,7 +312,7 @@ export default function Premium() {
         ) : (
           <TouchableOpacity
             style={[styles.subscribeButton, loading && styles.disabledButton]}
-            onPress={handleSubscribe}
+            onPress={startPayPalCheckout}
             disabled={loading}
           >
             <Text style={styles.subscribeButtonText}>
@@ -200,6 +322,38 @@ export default function Premium() {
         )}
       </View>
       </ScrollView>
+
+      <Modal
+        visible={paypalModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={resetPayPalModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Pay with PayPal</Text>
+            <View style={styles.webViewContainer}>
+              <WebView
+                key={paypalWebViewKey}
+                originWhitelist={['*']}
+                source={{ html: paypalCheckoutHtml }}
+                onMessage={handlePayPalMessage}
+                javaScriptEnabled
+                startInLoadingState
+                renderLoading={() => (
+                  <View style={styles.webViewLoading}>
+                    <ActivityIndicator size="large" color="#D4AF37" />
+                    <Text style={styles.loadingText}>Loading PayPal checkout...</Text>
+                  </View>
+                )}
+              />
+            </View>
+            <TouchableOpacity style={styles.modalCloseButton} onPress={resetPayPalModal}>
+              <Text style={styles.modalCloseButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 }
@@ -363,6 +517,53 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: '#666',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 500,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    color: '#5C3E30',
+  },
+  webViewContainer: {
+    width: '100%',
+    height: 450,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  webViewLoading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  modalCloseButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#5C3E30',
+  },
+  modalCloseButtonText: {
+    color: '#5C3E30',
+    fontWeight: '600',
   },
 });
 

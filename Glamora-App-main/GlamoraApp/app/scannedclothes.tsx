@@ -105,7 +105,7 @@ export default function ScannedClothes() {
   const [occasions, setOccasions] = useState<string[]>([]);
   const [selectedWeather, setSelectedWeather] = useState('');
   const [selectedStyle, setSelectedStyle] = useState('');
-const [selectedColor] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
@@ -154,6 +154,7 @@ const [selectedColor] = useState('');
   const occasionOptions = ['Birthdays', 'Weddings', 'Work', 'Casual', 'Party', 'Sports'];
   const weatherOptions = ['Sunny', 'Rainy', 'Cold', 'Warm', 'Cloudy'];
   const styleOptions = ['Casual', 'Formal', 'Sporty', 'Vintage', 'Minimalist', 'Streetwear'];
+  const colorOptions = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple', 'Brown', 'Gray', 'Orange'];
 
   const handleAddToWardrobe = (): void => {
     setShowCategoryModal(true);

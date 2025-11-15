@@ -123,6 +123,7 @@ const recommendationRoutes = require('./routes/recommendations');
 const weatherRoutes = require('./routes/weather');
 const clothingUsageRoutes = require('./routes/clothing-usage');
 const policyRoutes = require('./routes/policy');
+const subscriptionRoutes = require('./routes/subscription');
 // Lightweight admin bridge routes to expose moderation endpoints and metrics
 const adminBridgeRoutes = require('./routes/admin-bridge');
 
@@ -147,6 +148,7 @@ app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/clothing-usage', clothingUsageRoutes);
 app.use('/api/policy', policyRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/admin', adminBridgeRoutes);
 if (adminRoutes) {
   app.use('/api/admin', adminRoutes);
