@@ -46,7 +46,9 @@ export default function MessageUser() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedReportReason, setSelectedReportReason] = useState('');
+  const [reportMessage, setReportMessage] = useState('');
   const [evidencePhotos, setEvidencePhotos] = useState<string[]>([]);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -544,7 +546,17 @@ export default function MessageUser() {
       return;
     }
 
+    if (!evidencePhotos.length) {
+      Alert.alert('Evidence Required', 'Please attach at least one evidence photo.');
+      return;
+    }
+
+    if (reportSubmitting) {
+      return;
+    }
+
     try {
+      setReportSubmitting(true);
       const token = await AsyncStorage.getItem('token');
       console.log('Token retrieved:', token ? 'Token exists' : 'No token found');
       
@@ -572,7 +584,7 @@ export default function MessageUser() {
         console.log('Seller user ID:', sellerUserId);
 
         // Upload photos to Cloudinary if any
-        let uploadedPhotos = [];
+        const uploadedPhotos: { url: string; filename?: string | null }[] = [];
         if (evidencePhotos.length > 0) {
           for (const photoUri of evidencePhotos) {
             const formData = new FormData();
@@ -601,10 +613,14 @@ export default function MessageUser() {
           }
         }
 
+        const trimmedMessage = reportMessage.trim();
+
         console.log('Submitting report with data:', {
           reportedUserId: sellerUserId,
           reason: selectedReportReason,
+          description: trimmedMessage,
           evidencePhotos: uploadedPhotos,
+          marketplaceItemId: contextProductId,
         });
 
         const response = await fetch(API_ENDPOINTS.report, {
@@ -616,7 +632,9 @@ export default function MessageUser() {
           body: JSON.stringify({
             reportedUserId: sellerUserId,
             reason: selectedReportReason,
+            description: trimmedMessage,
             evidencePhotos: uploadedPhotos,
+            marketplaceItemId: contextProductId,
           }),
         });
 
@@ -628,6 +646,7 @@ export default function MessageUser() {
           Alert.alert('Success', 'Report submitted successfully');
           setShowReportModal(false);
           setSelectedReportReason('');
+          setReportMessage('');
           setEvidencePhotos([]);
         } else {
           const errorData = await response.json();
@@ -642,6 +661,8 @@ export default function MessageUser() {
     } catch (error) {
       console.error('Error submitting report:', error);
       Alert.alert('Error', 'Failed to submit report');
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
@@ -711,6 +732,12 @@ export default function MessageUser() {
       description: 'Seller is using pressure tactics to rush payment outside safe channels.'
     }
   ];
+
+  const canSubmitReport = Boolean(
+    selectedReportReason &&
+    evidencePhotos.length > 0 &&
+    !reportSubmitting
+  );
 
   const renderMessage = ({ item }: { item: Message }) => (
     <View style={[
@@ -847,68 +874,113 @@ export default function MessageUser() {
         animationType="fade"
         onRequestClose={() => setShowReportModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
           <View style={styles.reportModal}>
             <View style={styles.reportHeader}>
-              <TouchableOpacity onPress={() => setShowReportModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+              <TouchableOpacity onPress={() => setShowReportModal(false)} style={styles.headerClose}>
+                <Ionicons name="close" size={24} color="#4B2E2B" />
               </TouchableOpacity>
-              <Text style={styles.reportTitle}>Report user</Text>
+              <Text style={styles.reportTitle}>REPORT USER</Text>
+              <View style={{ width: 24 }} />
             </View>
 
-            <View style={styles.reportOptionsContainer}>
-              {reportReasons.map((reason, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.reportOption}
-                  onPress={() => setSelectedReportReason(reason.description)}
-                >
-                  <View style={[
-                    styles.checkbox,
-                    selectedReportReason === reason.description && styles.checkboxSelected
-                  ]}>
-                    {selectedReportReason === reason.description && (
-                      <Ionicons name="checkmark" size={16} color="#FFF" />
-                    )}
-                  </View>
-                  <View style={styles.reportTextContainer}>
-                    <Text style={styles.reportTitleText}>{reason.title}</Text>
-                    <Text style={styles.reportDescription}>{reason.description}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Photo Evidence Section */}
-            <View style={styles.photoEvidenceSection}>
-              <Text style={styles.photoEvidenceTitle}>Add Evidence Photos (Optional)</Text>
-              <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
-                <Ionicons name="camera" size={20} color="#007AFF" />
-                <Text style={styles.addPhotoText}>Add Photo</Text>
-              </TouchableOpacity>
-              
-              {evidencePhotos.length > 0 && (
-                <View style={styles.photosContainer}>
-                  {evidencePhotos.map((photo, index) => (
-                    <View key={index} style={styles.photoItem}>
-                      <Image source={{ uri: photo }} style={styles.photoPreview} />
-                      <TouchableOpacity 
-                        style={styles.removePhotoButton} 
-                        onPress={() => removePhoto(index)}
-                      >
-                        <Ionicons name="close-circle" size={20} color="#FF3B30" />
-                      </TouchableOpacity>
+            <ScrollView
+              style={styles.reportScroll}
+              contentContainerStyle={styles.reportScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.reportSection}>
+                <Text style={styles.sectionLabel}>Report Type *</Text>
+                {reportReasons.map((reason, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.reportOption,
+                      selectedReportReason === reason.description && styles.reportOptionSelected
+                    ]}
+                    onPress={() => setSelectedReportReason(reason.description)}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      selectedReportReason === reason.description && styles.checkboxSelected
+                    ]}>
+                      {selectedReportReason === reason.description && (
+                        <Ionicons name="checkmark" size={16} color="#FFF" />
+                      )}
                     </View>
-                  ))}
-                </View>
-              )}
-            </View>
+                    <View style={styles.reportTextContainer}>
+                      <Text style={styles.reportTitleText}>{reason.title}</Text>
+                      <Text style={styles.reportDescription}>{reason.description}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-            <TouchableOpacity style={styles.submitButton} onPress={submitReport}>
-              <Text style={styles.submitButtonText}>Submit</Text>
+              <View style={styles.reportSection}>
+                <Text style={styles.sectionLabel}>Add Message (Optional)</Text>
+                <Text style={styles.sectionHelper}>
+                  Provide details to help the admin understand the situation.
+                </Text>
+                <TextInput
+                  style={styles.reportMessageInput}
+                  placeholder="Provide a detailed description of the issue..."
+                  placeholderTextColor="#9E8F86"
+                  value={reportMessage}
+                  onChangeText={setReportMessage}
+                  multiline
+                  textAlignVertical="top"
+                  maxLength={500}
+                />
+              </View>
+
+              <View style={[styles.reportSection, styles.photoEvidenceSection]}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionLabel}>Add Evidence Photo *</Text>
+                  <Text style={styles.requiredHint}>Required</Text>
+                </View>
+                <Text style={styles.sectionHelper}>
+                  Attach at least one screenshot or photo that supports your report.
+                </Text>
+                <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
+                  <Ionicons name="camera" size={20} color="#007AFF" />
+                  <Text style={styles.addPhotoText}>Add Photo</Text>
+                </TouchableOpacity>
+                
+                {evidencePhotos.length > 0 && (
+                  <View style={styles.photosContainer}>
+                    {evidencePhotos.map((photo, index) => (
+                      <View key={index} style={styles.photoItem}>
+                        <Image source={{ uri: photo }} style={styles.photoPreview} />
+                        <TouchableOpacity 
+                          style={styles.removePhotoButton} 
+                          onPress={() => removePhoto(index)}
+                        >
+                          <Ionicons name="close-circle" size={20} color="#FF3B30" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                (!canSubmitReport) && styles.submitButtonDisabled
+              ]}
+              onPress={submitReport}
+              disabled={!canSubmitReport}
+            >
+              <Text style={styles.submitButtonText}>
+                {reportSubmitting ? 'Submitting...' : 'Submit'}
+              </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Delete Conversation Modal */}
@@ -1106,46 +1178,66 @@ const styles = StyleSheet.create({
   },
   reportModal: {
     backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 0,
-    margin: 20,
-    maxHeight: '80%',
-    width: '90%',
+    borderRadius: 18,
+    paddingBottom: 8,
+    marginHorizontal: 16,
+    maxHeight: '90%',
+    width: '92%',
     alignSelf: 'center',
-  },
-  reportContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    width: '80%',
-    maxHeight: '70%',
+    overflow: 'hidden',
   },
   reportHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 24,
     paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#F7E1C8',
   },
   reportTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#4B2E2B',
     textAlign: 'center',
-    marginRight: 24, // To center the title (compensate for close button)
+    letterSpacing: 1.5,
+    flex: 1,
   },
-  reportOptionsContainer: {
+  reportScroll: {
+    flex: 1,
+  },
+  reportScrollContent: {
+    paddingBottom: 16,
+  },
+  reportSection: {
     paddingHorizontal: 20,
     paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F1F1',
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4B2E2B',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionHelper: {
+    fontSize: 13,
+    color: '#8A7B72',
+    marginBottom: 12,
+    lineHeight: 18,
   },
   reportOption: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 16,
-    paddingHorizontal: 0,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  reportOptionSelected: {
+    backgroundColor: '#FFF5EC',
   },
   checkbox: {
     width: 20,
@@ -1183,14 +1275,18 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   submitButton: {
-    backgroundColor: '#FFE8C8',
+    backgroundColor: '#F0C48A',
     paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
-    margin: 20,
+    marginHorizontal: 20,
+    marginTop: 12,
     borderWidth: 1,
-    borderColor: '#D4A574',
+    borderColor: '#C48A4A',
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
   },
   deleteCancelButton: {
     backgroundColor: '#F4C2C2',
@@ -1223,16 +1319,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   photoEvidenceSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  photoEvidenceTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
+    borderBottomWidth: 0,
+    paddingBottom: 24,
   },
   addPhotoButton: {
     flexDirection: 'row',
@@ -1271,6 +1359,32 @@ const styles = StyleSheet.create({
     right: -8,
     backgroundColor: 'white',
     borderRadius: 10,
+  },
+  headerClose: {
+    padding: 4,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  requiredHint: {
+    fontSize: 12,
+    color: '#B6463A',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  reportMessageInput: {
+    minHeight: 90,
+    borderWidth: 1,
+    borderColor: '#E2D5CB',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#3A2A23',
+    backgroundColor: '#FFFDF9',
   },
 
   typingBubble: {

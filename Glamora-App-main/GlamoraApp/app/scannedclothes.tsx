@@ -5,9 +5,95 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 
+const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dq8wzujfj/image/upload';
+const CLOUDINARY_UPLOAD_PRESET = 'glamora_wardrobe';
+
+const isLocalUri = (uri?: string | null): uri is string => {
+  if (!uri) {
+    return false;
+  }
+  return uri.startsWith('file://') || uri.startsWith('data:');
+};
+
+const uploadLocalImage = async (uri: string, folder: string) => {
+  const formData = new FormData();
+  formData.append('file', {
+    uri,
+    type: 'image/jpeg',
+    name: `upload-${Date.now()}.jpg`,
+  } as any);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', folder);
+
+  const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Failed to upload image to Cloudinary');
+  }
+
+  const uploadResult = await response.json();
+  if (!uploadResult?.secure_url) {
+    throw new Error('Cloudinary response missing secure_url');
+  }
+  return uploadResult.secure_url as string;
+};
+
+const getOptimizedImageUrl = async (
+  uri: string,
+  folder: string,
+  token: string | null,
+) => {
+  let optimizedUrl = uri;
+
+  if (isLocalUri(uri)) {
+    try {
+      optimizedUrl = await uploadLocalImage(uri, folder);
+      return optimizedUrl;
+    } catch (directUploadError) {
+      console.log('⚠️ Direct Cloudinary upload failed:', directUploadError);
+    }
+  }
+
+  if (token) {
+    try {
+      const uploadResponse = await fetch(API_ENDPOINTS.uploadImage, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          imageUrl: uri,
+          folder,
+        }),
+      });
+
+      if (uploadResponse.ok) {
+        const uploadResult = await uploadResponse.json();
+        if (uploadResult?.imageUrl) {
+          optimizedUrl = uploadResult.imageUrl;
+          return optimizedUrl;
+        }
+      } else {
+        const errorText = await uploadResponse.text();
+        console.log('⚠️ API upload failed:', errorText);
+      }
+    } catch (apiUploadError) {
+      console.log('⚠️ API upload error:', apiUploadError);
+    }
+  }
+
+  return optimizedUrl;
+};
+
 export default function ScannedClothes() {
   const { imageUri } = useLocalSearchParams();
   const router = useRouter();
+  const normalizedImageUri = Array.isArray(imageUri) ? imageUri[0] : imageUri;
   
   // Debug router
   console.log('🧭 Router initialized:', !!router);
@@ -19,7 +105,7 @@ export default function ScannedClothes() {
   const [occasions, setOccasions] = useState<string[]>([]);
   const [selectedWeather, setSelectedWeather] = useState('');
   const [selectedStyle, setSelectedStyle] = useState('');
-  const [selectedColor, setSelectedColor] = useState('');
+const [selectedColor] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
@@ -68,7 +154,6 @@ export default function ScannedClothes() {
   const occasionOptions = ['Birthdays', 'Weddings', 'Work', 'Casual', 'Party', 'Sports'];
   const weatherOptions = ['Sunny', 'Rainy', 'Cold', 'Warm', 'Cloudy'];
   const styleOptions = ['Casual', 'Formal', 'Sporty', 'Vintage', 'Minimalist', 'Streetwear'];
-  const colorOptions = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple', 'Brown', 'Gray', 'Orange'];
 
   const handleAddToWardrobe = (): void => {
     setShowCategoryModal(true);
@@ -127,36 +212,16 @@ export default function ScannedClothes() {
 
     setLoading(true);
     try {
-      if (!imageUri) throw new Error('No image found');
+      if (!normalizedImageUri) throw new Error('No image found');
       const token = await AsyncStorage.getItem('token');
       console.log('🔑 Token from AsyncStorage:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
 
-    let cloudinaryImageUrl = imageUri;
-    try {
-      const uploadResponse = await fetch(API_ENDPOINTS.uploadImage, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          imageUrl: imageUri,
-          folder: 'glamora/marketplace'
-        }),
-      });
+      const cloudinaryImageUrl = await getOptimizedImageUrl(
+        normalizedImageUri,
+        'glamora/marketplace',
+        token,
+      );
 
-      if (uploadResponse.ok) {
-        const uploadResult = await uploadResponse.json();
-        cloudinaryImageUrl = uploadResult.imageUrl;
-        console.log('✅ Marketplace image uploaded to Cloudinary:', cloudinaryImageUrl);
-      } else {
-        const errorText = await uploadResponse.text();
-        console.log('⚠️ Cloudinary marketplace upload failed:', errorText);
-      }
-    } catch (uploadError) {
-      console.log('⚠️ Cloudinary upload error for marketplace item:', uploadError);
-    }
-      
       const response = await fetch(API_ENDPOINTS.addMarketplaceItem, {
         method: 'POST',
         headers: {
@@ -164,7 +229,7 @@ export default function ScannedClothes() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-        imageUrl: cloudinaryImageUrl,
+          imageUrl: cloudinaryImageUrl,
           name: marketplaceName.trim(),
           description: marketplaceDescription.trim(),
           price: parseFloat(marketplacePrice),
@@ -221,47 +286,18 @@ export default function ScannedClothes() {
 
     setLoading(true);
     try {
-      if (!imageUri) throw new Error('No image found');
+      if (!normalizedImageUri) throw new Error('No image found');
       const token = await AsyncStorage.getItem('token');
       console.log('🔑 Token from AsyncStorage:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
       console.log('📡 Making request to:', API_ENDPOINTS.addWardrobeItem);
       
-      // Try Cloudinary upload, but continue if it fails
-      let cloudinaryImageUrl = imageUri;
-      try {
-        console.log('🔍 Attempting Cloudinary upload...');
-        console.log('📡 Upload endpoint:', API_ENDPOINTS.uploadImage);
-        console.log('🖼️ Image URI length:', imageUri ? imageUri.length : 0);
-        
-        const uploadResponse = await fetch(API_ENDPOINTS.uploadImage, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            imageUrl: imageUri,
-            folder: 'glamora/wardrobe'
-          }),
-        });
-
-        console.log('📊 Upload response status:', uploadResponse.status);
-        
-        if (uploadResponse.ok) {
-          const uploadResult = await uploadResponse.json();
-          cloudinaryImageUrl = uploadResult.imageUrl;
-          console.log('✅ Image uploaded to Cloudinary:', cloudinaryImageUrl);
-        } else {
-          const errorText = await uploadResponse.text();
-          console.log('⚠️ Cloudinary upload failed:', errorText);
-          console.log('⚠️ Using original image instead');
-        }
-      } catch (uploadError) {
-        console.log('⚠️ Cloudinary upload error, using original image:', uploadError);
-        console.log('⚠️ This is not critical - continuing with original image');
-      }
+      const cloudinaryImageUrl = await getOptimizedImageUrl(
+        normalizedImageUri,
+        'glamora/wardrobe',
+        token,
+      );
       
-      // Save to wardrobe with original image URL (temporarily)
+      // Save to wardrobe with optimized image URL
       const response = await fetch(API_ENDPOINTS.addWardrobeItem, {
         method: 'POST',
         headers: {
@@ -395,7 +431,7 @@ export default function ScannedClothes() {
       </View>
       {/* Image Display - always below header */}
       <View style={styles.imageContainer}>
-        <Image source={{ uri: imageUri as string }} style={styles.image} />
+        <Image source={{ uri: normalizedImageUri as string }} style={styles.image} />
       </View>
       {loading && (
         <View style={{ position: 'absolute', top: '50%', left: 0, right: 0, alignItems: 'center' }}>

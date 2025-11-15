@@ -20,6 +20,21 @@ const reportSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
+  description: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  evidencePhotos: {
+    type: [
+      {
+        url: { type: String, required: true },
+        filename: { type: String },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+    default: [],
+  },
   timestamp: { 
     type: Date, 
     default: Date.now 

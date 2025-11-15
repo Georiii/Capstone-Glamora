@@ -24,7 +24,7 @@ function auth(req, res, next) {
 // POST /api/report - Submit a user report
 router.post('/', auth, async (req, res) => {
   try {
-    const { reportedUserId, reason, marketplaceItemId } = req.body;
+    const { reportedUserId, reason, marketplaceItemId, description, evidencePhotos } = req.body;
     const reporterId = req.userId;
 
     if (!reportedUserId || !reason) {
@@ -53,11 +53,33 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'You have already reported this user.' });
     }
 
+    const sanitizedDescription = typeof description === 'string' ? description.trim() : '';
+    const sanitizedPhotos = Array.isArray(evidencePhotos)
+      ? evidencePhotos
+          .map((photo) => {
+            if (!photo) return null;
+            if (typeof photo === 'string') {
+              return { url: photo, filename: null };
+            }
+            if (photo.url) {
+              return {
+                url: photo.url,
+                filename: photo.filename || null,
+                uploadedAt: photo.uploadedAt ? new Date(photo.uploadedAt) : undefined,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean)
+      : [];
+
     const report = new Report({
       reporterId,
       reportedUserId,
       marketplaceItemId: marketplaceItemId || null,
       reason,
+      description: sanitizedDescription,
+      evidencePhotos: sanitizedPhotos,
       timestamp: new Date(),
       status: 'pending'
     });
