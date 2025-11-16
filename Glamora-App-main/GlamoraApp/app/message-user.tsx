@@ -631,10 +631,17 @@ export default function MessageUser() {
           for (const photoUri of evidencePhotos) {
             try {
               const uploaded = await uploadEvidencePhoto(photoUri);
-              uploadedPhotos.push({
-                url: uploaded.url || uploaded,
-                filename: uploaded.filename || null,
-              });
+              if (typeof uploaded === 'string') {
+                uploadedPhotos.push({
+                  url: uploaded,
+                  filename: null,
+                });
+              } else {
+                uploadedPhotos.push({
+                  url: uploaded.url,
+                  filename: uploaded.filename || null,
+                });
+              }
             } catch (uploadError: any) {
               console.error('Evidence upload failed:', uploadError);
               Alert.alert('Upload Error', 'Failed to upload an evidence photo. Please try again.');
@@ -925,6 +932,8 @@ export default function MessageUser() {
             <ScrollView
               style={styles.reportScroll}
               contentContainerStyle={styles.reportScrollContent}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.reportSection}>
@@ -1216,10 +1225,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingBottom: 8,
     marginHorizontal: 16,
-    maxHeight: '90%',
+    maxHeight: '85%',
+    minHeight: '60%',
     width: '92%',
     alignSelf: 'center',
-    overflow: 'hidden',
+    flexShrink: 1,
   },
   reportHeader: {
     flexDirection: 'row',
@@ -1229,6 +1239,14 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 16,
     backgroundColor: '#F7E1C8',
+  },
+  reportContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    width: '92%',
+    alignSelf: 'center',
   },
   reportTitle: {
     fontSize: 18,
@@ -1243,6 +1261,8 @@ const styles = StyleSheet.create({
   },
   reportScrollContent: {
     paddingBottom: 16,
+    paddingTop: 4,
+    flexGrow: 1,
   },
   reportSection: {
     paddingHorizontal: 20,

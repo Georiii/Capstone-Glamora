@@ -114,23 +114,33 @@ export default function OutfitHistoryDetail() {
     });
   };
 
+  // Normalize categories across saved item snapshot and populated wardrobe item
+  const categoryTokens = (raw?: string) =>
+    (raw || '')
+      .toLowerCase()
+      .split(/[\s/-]+/)
+      .filter(Boolean);
+
+  const isMatchCategory = (item: OutfitItem, targets: string[]) => {
+    const itemCat = (item?.itemCategory || '').toLowerCase();
+    const popCat = ((item as any)?.wardrobeItemId?.category || '').toLowerCase();
+    const tokens = new Set([...categoryTokens(itemCat), ...categoryTokens(popCat)]);
+    return targets.some(t => {
+      const tk = t.toLowerCase();
+      return itemCat.includes(tk) || popCat.includes(tk) || tokens.has(tk);
+    });
+  };
+
   const getItemByCategory = (category: string) => {
     if (!outfit || !outfit.outfitItems) return null;
-    return outfit.outfitItems.find(item => 
-      item && item.itemCategory && item.itemCategory.toLowerCase().includes(category.toLowerCase())
-    );
+    const targets = [category, ...(category === 'shoes' ? ['shoe', 'sneaker', 'boot', 'footwear'] : [])];
+    return outfit.outfitItems.find(item => item && isMatchCategory(item, targets));
   };
 
   const getAccessories = () => {
     if (!outfit || !outfit.outfitItems) return [];
-    return outfit.outfitItems.filter(item => 
-      item && item.itemCategory && (
-        item.itemCategory.toLowerCase().includes('accessory') ||
-        item.itemCategory.toLowerCase().includes('jewelry') ||
-        item.itemCategory.toLowerCase().includes('bag') ||
-        item.itemCategory.toLowerCase().includes('hat')
-      )
-    );
+    const targetTokens = ['accessory', 'accessories', 'jewelry', 'bag', 'belt', 'scarf', 'hat'];
+    return outfit.outfitItems.filter(item => item && isMatchCategory(item, targetTokens));
   };
 
   const renderItemCard = (title: string, item: OutfitItem | null | undefined, icon: string) => {

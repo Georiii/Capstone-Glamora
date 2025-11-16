@@ -20,6 +20,12 @@ export default function Premium() {
   const isPayPalConfigured = Boolean(PAYPAL_CLIENT_ID && PAYPAL_PLAN_ID);
 
   useEffect(() => {
+    // Minimal, non-sensitive confirmation that envs are present on device
+    console.log('PayPal env present?', {
+      clientId: !!PAYPAL_CLIENT_ID,
+      planId: !!PAYPAL_PLAN_ID,
+      env: PAYPAL_ENV
+    });
     checkSubscriptionStatus();
   }, []);
 
