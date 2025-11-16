@@ -11,6 +11,12 @@ module.exports = {
         projectId: "c50f9159-c5f3-4e50-a191-518ab1dc07ce"
       }
     },
+    updates: {
+      url: "https://u.expo.dev/c50f9159-c5f3-4e50-a191-518ab1dc07ce"
+    },
+    runtimeVersion: {
+      policy: "appVersion"
+    },
     scheme: "glamora",
     linking: {
       prefixes: ['glamora://', 'https://glamora-g5my.onrender.com'],
