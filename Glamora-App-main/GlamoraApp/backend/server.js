@@ -16,6 +16,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires']
 }));
 
+app.use('/api/paypal/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -124,6 +126,7 @@ const weatherRoutes = require('./routes/weather');
 const clothingUsageRoutes = require('./routes/clothing-usage');
 const policyRoutes = require('./routes/policy');
 const subscriptionRoutes = require('./routes/subscription');
+const paypalWebhookRoutes = require('./routes/paypal-webhook');
 // Lightweight admin bridge routes to expose moderation endpoints and metrics
 const adminBridgeRoutes = require('./routes/admin-bridge');
 
@@ -149,6 +152,7 @@ app.use('/api/weather', weatherRoutes);
 app.use('/api/clothing-usage', clothingUsageRoutes);
 app.use('/api/policy', policyRoutes);
 app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/paypal', paypalWebhookRoutes);
 app.use('/api/admin', adminBridgeRoutes);
 if (adminRoutes) {
   app.use('/api/admin', adminRoutes);
