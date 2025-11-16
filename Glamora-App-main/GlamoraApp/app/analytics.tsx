@@ -74,23 +74,22 @@ export default function Analytics() {
 
   const loadFrequentData = useCallback(async () => {
     try {
-      // Check if we're in a web environment
-      const isWeb = typeof window !== 'undefined';
-      let token = null;
-      
-      if (isWeb) {
-        // For web, try to get token from localStorage
-        token = localStorage.getItem('token');
-        console.log('Web environment detected, using localStorage for token');
-      } else {
-        // For mobile, use AsyncStorage
-        try {
+      // Resolve token safely across platforms
+      let token: string | null = null;
+      try {
+        if (Platform.OS === 'web') {
+          // Only touch localStorage if it exists on web
+          // @ts-ignore
+          const ls = typeof window !== 'undefined' ? (window as any).localStorage : undefined;
+          token = ls ? ls.getItem('token') : null;
+          console.log('Web environment detected, using localStorage for token');
+        } else {
           token = await AsyncStorage.getItem('token');
           console.log('Mobile environment detected, using AsyncStorage for token');
-        } catch (error) {
-          console.warn('AsyncStorage token read failed on native:', error);
-          token = null;
         }
+      } catch (error) {
+        console.warn('Token resolution failed:', error);
+        token = null;
       }
       
       if (!token) {

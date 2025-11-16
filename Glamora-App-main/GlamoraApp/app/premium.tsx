@@ -13,6 +13,7 @@ export default function Premium() {
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [paypalModalVisible, setPaypalModalVisible] = useState(false);
   const [paypalWebViewKey, setPaypalWebViewKey] = useState(0);
+  const [webPaypalVisible, setWebPaypalVisible] = useState(false);
 
   const PAYPAL_CLIENT_ID = process.env.EXPO_PUBLIC_PAYPAL_CLIENT_ID || '';
   const PAYPAL_PLAN_ID = process.env.EXPO_PUBLIC_PAYPAL_PLAN_ID || '';
@@ -28,6 +29,68 @@ export default function Premium() {
     });
     checkSubscriptionStatus();
   }, []);
+
+  // ---------- Web (browser) helpers ----------
+  const isWeb = typeof window !== 'undefined' && Platform.OS === 'web';
+
+  const loadPayPalScript = async (): Promise<void> => {
+    if (!isWeb) return;
+    // @ts-ignore
+    if ((window as any).paypal) return;
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=buttons&vault=true&intent=subscription`;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load PayPal SDK'));
+      document.body.appendChild(script);
+    });
+  };
+
+  useEffect(() => {
+    if (!isWeb || !webPaypalVisible) return;
+    (async () => {
+      try {
+        await loadPayPalScript();
+        // @ts-ignore
+        const paypal = (window as any).paypal;
+        if (!paypal) return;
+        // Clear previous render if any
+        const container = document.getElementById('paypal-web-buttons');
+        if (container) container.innerHTML = '';
+        paypal
+          .Buttons({
+            style: {
+              layout: 'vertical',
+              color: 'gold',
+              shape: 'rect',
+              label: 'subscribe',
+            },
+            createSubscription: function (_data: any, actions: any) {
+              return actions.subscription.create({ plan_id: PAYPAL_PLAN_ID });
+            },
+            onApprove: async (data: any) => {
+              setWebPaypalVisible(false);
+              if (data && data.subscriptionID) {
+                await activateSubscription(data.subscriptionID);
+              }
+            },
+            onCancel: () => {
+              setWebPaypalVisible(false);
+            },
+            onError: () => {
+              setWebPaypalVisible(false);
+              Alert.alert('PayPal Error', 'Something went wrong with PayPal checkout.');
+            },
+          })
+          .render('#paypal-web-buttons');
+      } catch {
+        setWebPaypalVisible(false);
+        Alert.alert('PayPal Error', 'Failed to initialize PayPal on web.');
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [webPaypalVisible]);
 
   const checkSubscriptionStatus = async () => {
     try {
@@ -132,10 +195,7 @@ export default function Premium() {
     }
 
     if (Platform.OS === 'web') {
-      Alert.alert(
-        'Unsupported Platform',
-        'PayPal checkout is currently supported inside the mobile app build. Please test using an Android/iOS device or emulator.'
-      );
+      setWebPaypalVisible(true);
       return;
     }
 
@@ -328,6 +388,29 @@ export default function Premium() {
         )}
       </View>
       </ScrollView>
+
+      {/* Web-only PayPal modal */}
+      {isWeb && (
+        <Modal
+          visible={webPaypalVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setWebPaypalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Pay with PayPal</Text>
+              <View style={styles.webViewContainer}>
+                {/* Container for PayPal JS SDK render on web */}
+                <View style={{ flex: 1 }} id="paypal-web-buttons" />
+              </View>
+              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setWebPaypalVisible(false)}>
+                <Text style={styles.modalCloseButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       <Modal
         visible={paypalModalVisible}

@@ -29,7 +29,7 @@ interface Message {
   isFromCurrentUser: boolean;
 }
 
-const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dtjtjlqte/image/upload';
+const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dq8wzujfj/image/upload';
 const CLOUDINARY_UPLOAD_PRESET = 'glamora_wardrobe';
 
 const normalizeParam = (value: string | string[] | undefined) => {
