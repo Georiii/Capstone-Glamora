@@ -48,43 +48,55 @@ const uploadEvidencePhoto = async (uri: string) => {
     return uri;
   }
 
-  // Use backend signed upload for safety and consistency
+  // Signed direct upload: request signature from backend, then upload to Cloudinary
   const token = await AsyncStorage.getItem('token');
-  const response = await fetch(API_ENDPOINTS.uploadImage, {
+  const sigResp = await fetch(`${API_ENDPOINTS.wardrobe}signature`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      imageUrl: uri,
-      folder: 'glamora/reports',
-    }),
+    body: JSON.stringify({ folder: 'glamora/reports' }),
   });
 
-  if (!response.ok) {
-    let message = `Image upload failed with status ${response.status}`;
+  if (!sigResp.ok) {
+    let msg = `Failed to get upload signature (${sigResp.status})`;
     try {
-      const errJson = await response.json();
-      if (errJson?.message) {
-        message = errJson.message;
-      }
+      const j = await sigResp.json();
+      if (j?.message) msg = j.message;
+    } catch {}
+    throw new Error(msg);
+  }
+
+  const { cloudName, apiKey, timestamp, folder, signature } = await sigResp.json();
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
+  const form = new FormData();
+  form.append('file', { uri, type: 'image/jpeg', name: `evidence-${Date.now()}.jpg` } as any);
+  form.append('api_key', String(apiKey));
+  form.append('timestamp', String(timestamp));
+  form.append('signature', String(signature));
+  form.append('folder', String(folder));
+
+  const uploadResp = await fetch(uploadUrl, { method: 'POST', body: form });
+  if (!uploadResp.ok) {
+    let message = `Cloudinary upload failed (${uploadResp.status})`;
+    try {
+      const errJson = await uploadResp.json();
+      if (errJson?.error?.message) message = errJson.error.message;
     } catch {
-      const errorText = await response.text();
-      if (errorText) message = errorText;
+      const t = await uploadResp.text();
+      if (t) message = t;
     }
     throw new Error(message);
   }
 
-  const data = await response.json();
-  if (!data?.imageUrl) {
-    throw new Error('Upload response missing imageUrl');
+  const data = await uploadResp.json();
+  if (!data?.secure_url) {
+    throw new Error('Cloudinary response missing secure_url');
   }
 
-  return {
-    url: data.imageUrl as string,
-    filename: (data.publicId as string) || null,
-  };
+  return { url: data.secure_url as string, filename: (data.public_id as string) || null };
 };
 
 export default function MessageUser() {

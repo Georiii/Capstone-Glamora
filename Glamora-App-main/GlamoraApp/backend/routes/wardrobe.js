@@ -54,6 +54,32 @@ router.post('/upload-image', auth, async (req, res) => {
   }
 });
 
+// POST /api/wardrobe/signature - Create short-lived signature for direct signed uploads
+router.post('/signature', auth, async (req, res) => {
+  try {
+    const { folder = 'glamora/wardrobe' } = req.body || {};
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    // Sign parameters for a standard image upload with folder
+    const paramsToSign = { timestamp, folder };
+    const signature = cloudinary.utils.api_sign_request(
+      paramsToSign,
+      cloudinary.config().api_secret
+    );
+
+    return res.json({
+      cloudName: cloudinary.config().cloud_name,
+      apiKey: cloudinary.config().api_key,
+      timestamp,
+      folder,
+      signature,
+    });
+  } catch (err) {
+    console.error('Error creating Cloudinary signature:', err);
+    return res.status(500).json({ message: 'Failed to create upload signature' });
+  }
+});
+
 // Add wardrobe item with Cloudinary optimization
 router.post('/add', auth, async (req, res) => {
   try {
