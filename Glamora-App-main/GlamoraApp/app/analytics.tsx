@@ -88,8 +88,8 @@ export default function Analytics() {
           token = await AsyncStorage.getItem('token');
           console.log('Mobile environment detected, using AsyncStorage for token');
         } catch (error) {
-          console.warn('AsyncStorage not available, falling back to localStorage:', error);
-          token = localStorage.getItem('token');
+          console.warn('AsyncStorage token read failed on native:', error);
+          token = null;
         }
       }
       
@@ -117,6 +117,15 @@ export default function Analytics() {
       const weekData = weekResponse.ok ? await weekResponse.json() : { categories: [] };
       const monthData = monthResponse.ok ? await monthResponse.json() : { categories: [] };
       const yearData = yearResponse.ok ? await yearResponse.json() : { categories: [] };
+
+      console.log('Frequent data responses:', {
+        weekStatus: weekResponse.status,
+        monthStatus: monthResponse.status,
+        yearStatus: yearResponse.status,
+        weekCount: weekData?.categories?.length ?? 0,
+        monthCount: monthData?.categories?.length ?? 0,
+        yearCount: yearData?.categories?.length ?? 0,
+      });
 
       const newFrequentData: FrequentData = {
         thisWeek: weekData.categories || [],
