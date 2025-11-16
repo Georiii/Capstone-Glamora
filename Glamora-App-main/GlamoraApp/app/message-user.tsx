@@ -29,8 +29,7 @@ interface Message {
   isFromCurrentUser: boolean;
 }
 
-const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dq8wzujfj/image/upload';
-const CLOUDINARY_UPLOAD_PRESET = 'glamora_wardrobe';
+// Using backend signed uploads for report evidence photos
 
 const normalizeParam = (value: string | string[] | undefined) => {
   if (Array.isArray(value)) {
@@ -49,32 +48,42 @@ const uploadEvidencePhoto = async (uri: string) => {
     return uri;
   }
 
-  const formData = new FormData();
-  formData.append('file', {
-    uri,
-    type: 'image/jpeg',
-    name: `evidence-${Date.now()}.jpg`,
-  } as any);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-  const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+  // Use backend signed upload for safety and consistency
+  const token = await AsyncStorage.getItem('token');
+  const response = await fetch(API_ENDPOINTS.uploadImage, {
     method: 'POST',
-    body: formData,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      imageUrl: uri,
+      folder: 'glamora/reports',
+    }),
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || `Cloudinary upload failed with status ${response.status}`);
+    let message = `Image upload failed with status ${response.status}`;
+    try {
+      const errJson = await response.json();
+      if (errJson?.message) {
+        message = errJson.message;
+      }
+    } catch {
+      const errorText = await response.text();
+      if (errorText) message = errorText;
+    }
+    throw new Error(message);
   }
 
   const data = await response.json();
-  if (!data?.secure_url) {
-    throw new Error('Cloudinary upload response missing secure_url');
+  if (!data?.imageUrl) {
+    throw new Error('Upload response missing imageUrl');
   }
 
   return {
-    url: data.secure_url as string,
-    filename: data.public_id as string,
+    url: data.imageUrl as string,
+    filename: (data.publicId as string) || null,
   };
 };
 
