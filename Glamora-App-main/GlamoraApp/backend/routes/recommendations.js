@@ -51,6 +51,55 @@ router.post('/outfits', auth, async (req, res) => {
       return res.status(400).json({ message: 'Top and bottom categories are required.' });
     }
 
+    // Check subscription status and daily limit for outfit suggestions
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Normalize subscription status
+    const subscription = user.subscription || {};
+    let isSubscribed = subscription.isSubscribed || false;
+    
+    // Check if subscription has expired
+    if (isSubscribed && subscription.expiresAt && new Date(subscription.expiresAt) < new Date()) {
+      isSubscribed = false;
+    }
+
+    const DAILY_OUTFIT_SUGGESTIONS_LIMIT = 5;
+
+    // Check daily limit for free users
+    if (!isSubscribed) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const lastSuggestionDate = subscription.lastOutfitSuggestionDate 
+        ? new Date(subscription.lastOutfitSuggestionDate)
+        : null;
+      
+      const lastDate = lastSuggestionDate ? new Date(lastSuggestionDate) : null;
+      if (lastDate) lastDate.setHours(0, 0, 0, 0);
+
+      // Reset count if it's a new day
+      if (!lastDate || lastDate.getTime() !== today.getTime()) {
+        user.subscription = user.subscription || {};
+        user.subscription.dailyOutfitSuggestionsCount = 0;
+        user.subscription.lastOutfitSuggestionDate = today;
+        await user.save();
+      }
+
+      const currentCount = user.subscription?.dailyOutfitSuggestionsCount || 0;
+      
+      if (currentCount >= DAILY_OUTFIT_SUGGESTIONS_LIMIT) {
+        return res.status(403).json({
+          message: `Daily limit reached! Free plan includes ${DAILY_OUTFIT_SUGGESTIONS_LIMIT} outfit suggestions per day. Subscribe to Glamora PLUS for unlimited suggestions.`,
+          limitReached: true,
+          currentCount: currentCount,
+          limit: DAILY_OUTFIT_SUGGESTIONS_LIMIT,
+          resetTime: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString() // Next day
+        });
+      }
+    }
+
     // Get user's wardrobe items
     const wardrobeItems = await WardrobeItem.find({ userId: req.userId });
     console.log('Found wardrobe items:', wardrobeItems.length);
@@ -81,7 +130,8 @@ router.post('/outfits', auth, async (req, res) => {
 
     // Generate outfit combinations with AI scoring
     const outfitSuggestions = [];
-    const maxSuggestions = 5;
+    // For free users, limit to 5 suggestions. Premium users get unlimited (capped at reasonable number)
+    const maxSuggestions = isSubscribed ? Math.min(20, filteredTops.length * filteredBottoms.length) : 5;
 
     for (let i = 0; i < Math.min(maxSuggestions, filteredTops.length * filteredBottoms.length); i++) {
       const topIndex = i % filteredTops.length;
@@ -109,10 +159,23 @@ router.post('/outfits', auth, async (req, res) => {
 
     console.log('Generated suggestions:', outfitSuggestions.length);
 
+    // Update daily count for free users
+    if (!isSubscribed) {
+      user.subscription = user.subscription || {};
+      user.subscription.dailyOutfitSuggestionsCount = (user.subscription.dailyOutfitSuggestionsCount || 0) + 1;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      user.subscription.lastOutfitSuggestionDate = today;
+      await user.save();
+    }
+
     res.json({ 
       message: 'Outfit suggestions generated successfully.',
       suggestions: outfitSuggestions,
-      totalCombinations: filteredTops.length * filteredBottoms.length
+      totalCombinations: filteredTops.length * filteredBottoms.length,
+      isSubscribed: isSubscribed,
+      dailySuggestionsUsed: !isSubscribed ? (user.subscription?.dailyOutfitSuggestionsCount || 0) : null,
+      dailySuggestionsLimit: !isSubscribed ? DAILY_OUTFIT_SUGGESTIONS_LIMIT : null
     });
 
   } catch (err) {

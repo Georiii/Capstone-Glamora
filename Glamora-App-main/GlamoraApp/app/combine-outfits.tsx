@@ -295,6 +295,26 @@ export default function CombineOutfits() {
     proceedWithGeneration();
   };
 
+  // Helper function to handle subscription limit errors
+  const handleSubscriptionLimitError = (response: Response, errorData: any) => {
+    if (response.status === 403 && errorData.limitReached) {
+      Alert.alert(
+        'Daily Limit Reached',
+        errorData.message || 'Daily limit reached! Free plan includes 5 outfit suggestions per day. Subscribe to Glamora PLUS for unlimited suggestions.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Subscribe to PLUS',
+            onPress: () => router.push('/premium'),
+            style: 'default'
+          }
+        ]
+      );
+      return true; // Indicates error was handled
+    }
+    return false; // Error not handled
+  };
+
   // Separate function for the actual generation logic
   const proceedWithGeneration = async () => {
     setLoading(true);
@@ -432,8 +452,45 @@ export default function CombineOutfits() {
       await AsyncStorage.setItem('generatedOutfits', JSON.stringify(outfitCombinations));
       (router as any).push('/outfit-suggestions');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error generating outfits:', error);
+      
+      // Check if error contains subscription limit information
+      if (error?.status === 403 || error?.response?.status === 403) {
+        let errorData: any = {};
+        try {
+          if (error?.response) {
+            errorData = await error.response.json().catch(() => ({}));
+          } else if (error?.json) {
+            errorData = await error.json().catch(() => ({}));
+          } else if (typeof error === 'object' && error.limitReached) {
+            errorData = error;
+          }
+        } catch {
+          // If parsing fails, check error message
+          if (error?.message?.includes('limit') || error?.message?.includes('Daily limit')) {
+            errorData = { limitReached: true, message: error.message };
+          }
+        }
+        
+        if (errorData.limitReached) {
+          Alert.alert(
+            'Daily Limit Reached',
+            errorData.message || 'Daily limit reached! Free plan includes 5 outfit suggestions per day. Subscribe to Glamora PLUS for unlimited suggestions.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Subscribe to PLUS',
+                onPress: () => router.push('/premium'),
+                style: 'default'
+              }
+            ]
+          );
+          setLoading(false);
+          return;
+        }
+      }
+      
       Alert.alert('Error', 'Failed to generate outfit suggestions. Please try again.');
     } finally {
       setLoading(false);

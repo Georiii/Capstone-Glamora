@@ -94,6 +94,40 @@ router.post('/add', auth, async (req, res) => {
       return res.status(400).json({ message: 'imageUrl and clothName are required.' });
     }
 
+    // Check subscription status and enforce wardrobe limit
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Normalize subscription status
+    const subscription = user.subscription || {};
+    let isSubscribed = subscription.isSubscribed || false;
+    
+    // Check if subscription has expired
+    if (isSubscribed && subscription.expiresAt && new Date(subscription.expiresAt) < new Date()) {
+      isSubscribed = false;
+    }
+
+    // Free users: limit to 10 items per category, PLUS users: unlimited
+    const FREE_USER_LIMIT_PER_CATEGORY = 10;
+    
+    if (!isSubscribed && category) {
+      // Count items for this specific category
+      const categoryItemCount = await WardrobeItem.countDocuments({ 
+        userId: req.userId,
+        category: category
+      });
+      
+      if (categoryItemCount >= FREE_USER_LIMIT_PER_CATEGORY) {
+        console.log(`❌ Wardrobe limit reached for category ${category}: ${categoryItemCount}/${FREE_USER_LIMIT_PER_CATEGORY}`);
+        return res.status(403).json({ 
+          message: `You've reached the free wardrobe limit of ${FREE_USER_LIMIT_PER_CATEGORY} items for ${category}. Subscribe to Glamora PLUS for unlimited storage.`,
+          limitReached: true
+        });
+      }
+    }
+
     // If it's a local image URL, upload to Cloudinary first
     let optimizedImageUrl = imageUrl;
     if (imageUrl.startsWith('file://') || imageUrl.startsWith('data:')) {
