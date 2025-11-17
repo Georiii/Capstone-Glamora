@@ -43,13 +43,29 @@ const isLocalUri = (uri?: string | null): uri is string => {
   return uri.startsWith('file://') || uri.startsWith('data:');
 };
 
-const uploadEvidencePhoto = async (uri: string) => {
-  if (!isLocalUri(uri)) {
-    return uri;
+const uploadEvidencePhoto = async (uri: string | any) => {
+  // Ensure uri is a string - extract from object if needed
+  let uriString: string;
+  if (typeof uri === 'string') {
+    uriString = uri;
+  } else if (uri && typeof uri === 'object' && uri.uri) {
+    uriString = uri.uri;
+  } else if (uri && typeof uri === 'object' && uri.url) {
+    uriString = uri.url;
+  } else {
+    throw new Error(`Invalid photo URI: expected string or object with uri/url, got ${typeof uri}`);
+  }
+
+  if (!isLocalUri(uriString)) {
+    return uriString;
   }
 
   // Signed direct upload: request signature from backend, then upload to Cloudinary
   const token = await AsyncStorage.getItem('token');
+  if (!token) {
+    throw new Error('Authentication required. Please log in again.');
+  }
+
   const sigResp = await fetch(`${API_ENDPOINTS.wardrobe}signature`, {
     method: 'POST',
     headers: {
@@ -68,22 +84,35 @@ const uploadEvidencePhoto = async (uri: string) => {
     throw new Error(msg);
   }
 
-  const { cloudName, apiKey, timestamp, folder, signature } = await sigResp.json();
+  const sigData = await sigResp.json();
+  if (!sigData || !sigData.cloudName || !sigData.apiKey || !sigData.timestamp || !sigData.signature) {
+    throw new Error('Invalid signature response from server');
+  }
+
+  const { cloudName, apiKey, timestamp, folder, signature } = sigData;
   const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 
   const form = new FormData();
-  form.append('file', { uri, type: 'image/jpeg', name: `evidence-${Date.now()}.jpg` } as any);
+  form.append('file', {
+    uri: uriString,
+    type: 'image/jpeg',
+    name: `evidence-${Date.now()}.jpg`,
+  } as any);
   form.append('api_key', String(apiKey));
   form.append('timestamp', String(timestamp));
   form.append('signature', String(signature));
-  form.append('folder', String(folder));
+  form.append('folder', String(folder || 'glamora/reports'));
 
   const uploadResp = await fetch(uploadUrl, { method: 'POST', body: form });
   if (!uploadResp.ok) {
     let message = `Cloudinary upload failed (${uploadResp.status})`;
     try {
       const errJson = await uploadResp.json();
-      if (errJson?.error?.message) message = errJson.error.message;
+      if (errJson?.error?.message) {
+        message = errJson.error.message;
+      } else if (errJson?.message) {
+        message = errJson.message;
+      }
     } catch {
       const t = await uploadResp.text();
       if (t) message = t;
@@ -651,7 +680,19 @@ export default function MessageUser() {
         if (evidencePhotos.length > 0) {
           for (const photoUri of evidencePhotos) {
             try {
-              const uploaded = await uploadEvidencePhoto(photoUri);
+              // Ensure we have a valid URI string (handle both string and object cases)
+              let uriToUpload: string;
+              if (typeof photoUri === 'string') {
+                uriToUpload = photoUri;
+              } else if (photoUri && typeof photoUri === 'object') {
+                uriToUpload = (photoUri as any).uri || (photoUri as any).url || String(photoUri);
+              } else {
+                uriToUpload = String(photoUri);
+              }
+              if (!uriToUpload || typeof uriToUpload !== 'string') {
+                throw new Error('Invalid photo URI format');
+              }
+              const uploaded = await uploadEvidencePhoto(uriToUpload);
               if (typeof uploaded === 'string') {
                 uploadedPhotos.push({
                   url: uploaded,

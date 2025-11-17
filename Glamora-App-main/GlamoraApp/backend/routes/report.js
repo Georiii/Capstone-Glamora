@@ -42,15 +42,15 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'You cannot report yourself.' });
     }
 
-    // Check if this user has already reported the same user
-    const existingReport = await Report.findOne({
+    // Check if this user has already reported the same user (allow up to 3 reports)
+    const reportCount = await Report.countDocuments({
       reporterId,
       reportedUserId,
       status: { $in: ['pending', 'reviewed'] }
     });
 
-    if (existingReport) {
-      return res.status(400).json({ message: 'You have already reported this user.' });
+    if (reportCount >= 3) {
+      return res.status(400).json({ message: 'You have already reported this user 3 times. Maximum reports reached.' });
     }
 
     const sanitizedDescription = typeof description === 'string' ? description.trim() : '';
