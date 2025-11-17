@@ -1,0 +1,88 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:  # Allows manual triggering
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+          cache-dependency-path: GlamoraApp/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        working-directory: ./GlamoraApp
+        run: npm ci
+
+      - name: Install Expo CLI
+        run: npm install -g expo-cli eas-cli
+
+      - name: Setup Expo
+        working-directory: ./GlamoraApp
+        run: |
+          npm install -g @expo/cli
+          npx expo install --fix
+
+      - name: Generate native Android project
+        working-directory: ./GlamoraApp
+        run: npx expo prebuild --platform android --clean
+
+      - name: Build APK
+        working-directory: ./GlamoraApp/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Find APK
+        id: find-apk
+        working-directory: ./GlamoraApp/android
+        run: |
+          APK_PATH=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "Found APK: $APK_PATH"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: GlamoraApp/android/app/build/outputs/apk/**/*.apk
+          retention-days: 30
+
+      - name: Get APK info
+        working-directory: ./GlamoraApp/android
+        run: |
+          APK_PATH=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
+          if [ -f "$APK_PATH" ]; then
+            echo "✅ APK built successfully!"
+            echo "📦 APK location: $APK_PATH"
+            ls -lh "$APK_PATH"
+          else
+            echo "❌ APK not found!"
+            exit 1
+          fi
+
