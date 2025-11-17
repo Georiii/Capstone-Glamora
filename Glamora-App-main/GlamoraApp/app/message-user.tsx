@@ -93,11 +93,32 @@ const uploadEvidencePhoto = async (uri: string | any) => {
   const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 
   const form = new FormData();
-  form.append('file', {
-    uri: uriString,
-    type: 'image/jpeg',
-    name: `evidence-${Date.now()}.jpg`,
-  } as any);
+  
+  // Web platform requires File/Blob object, mobile uses URI object
+  if (Platform.OS === 'web') {
+    // Convert data URI to File/Blob for web
+    let file: File | Blob;
+    if (uriString.startsWith('data:')) {
+      // Convert data URI to Blob
+      const response = await fetch(uriString);
+      const blob = await response.blob();
+      file = new File([blob], `evidence-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    } else {
+      // If it's already a web URL, fetch and convert to File
+      const response = await fetch(uriString);
+      const blob = await response.blob();
+      file = new File([blob], `evidence-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    }
+    form.append('file', file);
+  } else {
+    // Mobile: keep existing code unchanged
+    form.append('file', {
+      uri: uriString,
+      type: 'image/jpeg',
+      name: `evidence-${Date.now()}.jpg`,
+    } as any);
+  }
+  
   form.append('api_key', String(apiKey));
   form.append('timestamp', String(timestamp));
   form.append('signature', String(signature));
