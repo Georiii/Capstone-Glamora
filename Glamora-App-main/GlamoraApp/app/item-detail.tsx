@@ -41,7 +41,7 @@ const uploadImageToCloudinary = async (uri: string, folder: string, token: strin
 export default function ItemDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { itemId, imageUrl, clothName, description, occasion, category, weather } = params;
+  const { itemId, imageUrl, clothName, description, occasion, category, weather, style, color, categories } = params;
   const itemIdStr = itemId as string;
   const imageSrc = Array.isArray(imageUrl) ? imageUrl[0] : imageUrl;
   const clothNameStr = Array.isArray(clothName) ? clothName[0] : clothName;
@@ -49,6 +49,10 @@ export default function ItemDetail() {
   const occasionStr = Array.isArray(occasion) ? occasion[0] : occasion;
   const weatherStr = Array.isArray(weather) ? weather[0] : weather;
   const categoryStr = Array.isArray(category) ? category[0] : category;
+  const styleStr = Array.isArray(style) ? style[0] : style;
+  const colorStr = Array.isArray(color) ? color[0] : color;
+  const categoriesStr = Array.isArray(categories) ? categories[0] : categories;
+  const categoriesArray = categoriesStr ? categoriesStr.split(',').filter(c => c.trim()) : [];
   const [loading, setLoading] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
   const [showMarketModal, setShowMarketModal] = useState(false);
@@ -300,19 +304,55 @@ export default function ItemDetail() {
         {/* Details */}
         <Text style={styles.clothName}>{clothNameStr}</Text>
         <Text style={styles.description}>{descriptionStr}</Text>
+        
+        {/* Categories Tags */}
+        {categoriesArray.length > 0 && (
+          <View style={styles.tagSection}>
+            <Text style={styles.tagSectionLabel}>Categories</Text>
+            <View style={styles.tagRow}>
+              {categoriesArray.map((cat, index) => (
+                <View key={index} style={[styles.tagPill, { marginHorizontal: 8, marginBottom: 8 }]}>
+                  <Text style={styles.tagText}>{cat.trim()}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Tags Row */}
         <View style={styles.tagRow}>
-          <View style={styles.tagBlock}>
-            <Text style={styles.tagLabel}>Occasion</Text>
-            <View style={styles.tagPill}>
-              <Text style={styles.tagText}>{occasionStr || 'N/A'}</Text>
+          {occasionStr && (
+            <View style={[styles.tagBlock, { marginHorizontal: 8, marginBottom: 8 }]}>
+              <Text style={styles.tagLabel}>Occasion</Text>
+              <View style={styles.tagPill}>
+                <Text style={styles.tagText}>{occasionStr}</Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.tagBlock}>
-            <Text style={styles.tagLabel}>Weather</Text>
-            <View style={styles.tagPill}>
-              <Text style={styles.tagText}>{weatherStr || 'N/A'}</Text>
+          )}
+          {weatherStr && (
+            <View style={[styles.tagBlock, { marginHorizontal: 8, marginBottom: 8 }]}>
+              <Text style={styles.tagLabel}>Weather</Text>
+              <View style={styles.tagPill}>
+                <Text style={styles.tagText}>{weatherStr}</Text>
+              </View>
             </View>
-          </View>
+          )}
+          {styleStr && (
+            <View style={[styles.tagBlock, { marginHorizontal: 8, marginBottom: 8 }]}>
+              <Text style={styles.tagLabel}>Style</Text>
+              <View style={styles.tagPill}>
+                <Text style={styles.tagText}>{styleStr}</Text>
+              </View>
+            </View>
+          )}
+          {colorStr && (
+            <View style={[styles.tagBlock, { marginHorizontal: 8, marginBottom: 8 }]}>
+              <Text style={styles.tagLabel}>Color</Text>
+              <View style={styles.tagPill}>
+                <Text style={styles.tagText}>{colorStr}</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Post to Marketplace Button */}
@@ -405,7 +445,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 6, alignSelf: 'flex-start',
   },
   occasionText: { fontSize: 15, color: '#222' },
-  tagRow: { flexDirection: 'row', justifyContent: 'flex-start', gap: 16, marginBottom: 16 },
+  tagSection: { marginBottom: 20 },
+  tagSectionLabel: { fontWeight: 'bold', fontSize: 16, marginBottom: 8, color: '#222' },
+  tagRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: 16, flexWrap: 'wrap', marginHorizontal: -8 },
   tagBlock: { },
   tagLabel: { fontWeight: 'bold', fontSize: 16, marginBottom: 4 },
   tagPill: {

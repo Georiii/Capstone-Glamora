@@ -115,11 +115,7 @@ export default function ScannedClothes() {
   const [selectedStyle, setSelectedStyle] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
-  const [showOccasionModal, setShowOccasionModal] = useState(false);
-  const [showWeatherModal, setShowWeatherModal] = useState(false);
-  const [showStyleModal, setShowStyleModal] = useState(false);
+  const [showWardrobeModal, setShowWardrobeModal] = useState(false);
   const [showMarketplaceModal, setMarketplaceModal] = useState(false);
   const [marketplaceName, setMarketplaceName] = useState('');
   const [marketplaceDescription, setMarketplaceDescription] = useState('');
@@ -162,10 +158,10 @@ export default function ScannedClothes() {
   const occasionOptions = ['Birthdays', 'Weddings', 'Work', 'Casual', 'Party', 'Sports'];
   const weatherOptions = ['Sunny', 'Rainy', 'Cold', 'Warm', 'Cloudy'];
   const styleOptions = ['Casual', 'Formal', 'Sporty', 'Vintage', 'Minimalist', 'Streetwear'];
-  const colorOptions = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple', 'Brown', 'Gray', 'Orange'];
+  const colorOptions = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple', 'Brown', 'Gray', 'Maroon', 'Khaki', 'Cream', 'Orange'];
 
   const handleAddToWardrobe = (): void => {
-    setShowCategoryModal(true);
+    setShowWardrobeModal(true);
   };
 
   const handlePostToMarketplace = (): void => {
@@ -174,19 +170,18 @@ export default function ScannedClothes() {
 
   const handleCategorySelect = (category: string): void => {
     setSelectedCategory(category);
-    setSelectedSubcategories([]);
-    setShowSubcategoryModal(true);
+    // Clear subcategories when changing main category
+    if (selectedCategory !== category) {
+      setSelectedSubcategories([]);
+    }
   };
 
   const handleSubcategorySelect = (subcategory: { name: string, type: string }): void => {
     if (!selectedSubcategories.some(s => s.type === subcategory.type)) {
       setSelectedSubcategories([...selectedSubcategories, subcategory]);
+    } else {
+      setSelectedSubcategories(selectedSubcategories.filter(s => s.type !== subcategory.type));
     }
-  };
-
-  const handleSubcategoryDone = (): void => {
-    setShowSubcategoryModal(false);
-    setShowOccasionModal(true);
   };
 
   const handleOccasionSelect = (occasion: string): void => {
@@ -197,20 +192,28 @@ export default function ScannedClothes() {
     }
   };
 
-  const handleOccasionDone = (): void => {
-    setShowOccasionModal(false);
-    setShowWeatherModal(true); // Continue to weather selection
-  };
-
   const handleWeatherSelect = (weather: string): void => {
-    setSelectedWeather(weather);
-    setShowWeatherModal(false);
-    setShowStyleModal(true); // Continue to style selection
+    if (selectedWeather === weather) {
+      setSelectedWeather('');
+    } else {
+      setSelectedWeather(weather);
+    }
   };
 
   const handleStyleSelect = (style: string): void => {
-    setSelectedStyle(style);
-    setShowStyleModal(false);
+    if (selectedStyle === style) {
+      setSelectedStyle('');
+    } else {
+      setSelectedStyle(style);
+    }
+  };
+
+  const handleColorSelect = (color: string): void => {
+    if (selectedColor === color) {
+      setSelectedColor('');
+    } else {
+      setSelectedColor(color);
+    }
   };
 
   const handleMarketplaceSubmit = async (): Promise<void> => {
@@ -494,7 +497,7 @@ export default function ScannedClothes() {
           {selectedCategory && selectedSubcategories.length > 0 && (
             <View style={styles.selectedCategoryContainer}>
               <Text style={styles.selectedCategoryText}>
-                Selected: {selectedCategory} → {selectedSubcategories.map(sub => 
+                Selected: {selectedCategory} &apos;n {selectedSubcategories.map(sub => 
                   categoryData[selectedCategory as keyof typeof categoryData]?.find(s => s.type === sub.type)?.name
                 ).join(', ')}
               </Text>
@@ -517,180 +520,173 @@ export default function ScannedClothes() {
         </View>
       </ScrollView>
       
-      {/* Category Selection Modal */}
-      <Modal visible={showCategoryModal} transparent animationType="slide">
+      {/* Unified Add to Wardrobe Modal */}
+      <Modal visible={showWardrobeModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Category</Text>
-              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
-                <Ionicons name="close" size={24} color="#666" />
+          <View style={styles.wardrobeModalContent}>
+            <View style={styles.wardrobeModalHeader}>
+              <Text style={styles.wardrobeModalTitle}>ADD TO WARDROBE</Text>
+              <TouchableOpacity onPress={() => setShowWardrobeModal(false)}>
+                <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.optionsContainer}>
-              {Object.keys(categoryData).map((category) => (
-                <TouchableOpacity
-                  key={category}
-                  style={styles.optionItem}
-                  onPress={() => handleCategorySelect(category)}
-                >
-                  <Text style={styles.optionText}>{category}</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#666" />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+            
+            <ScrollView style={styles.wardrobeModalScroll} showsVerticalScrollIndicator={false}>
+              {/* SELECT WARDROBE */}
+              <View style={styles.wardrobeSection}>
+                <Text style={styles.wardrobeSectionTitle}>SELECT WARDROBE</Text>
+                <View style={styles.wardrobeButtonContainer}>
+                  {Object.keys(categoryData).map((category) => (
+                    <TouchableOpacity
+                      key={category}
+                      style={[
+                        styles.wardrobeButton,
+                        selectedCategory === category && styles.wardrobeButtonSelected
+                      ]}
+                      onPress={() => handleCategorySelect(category)}
+                    >
+                      <Text style={[
+                        styles.wardrobeButtonText,
+                        selectedCategory === category && styles.wardrobeButtonTextSelected
+                      ]}>
+                        {category.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
 
-      {/* Subcategory Selection Modal */}
-      <Modal visible={showSubcategoryModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectedCategory} - Select Types</Text>
-              <TouchableOpacity onPress={() => setShowSubcategoryModal(false)}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.optionsContainer}>
-              {categoryData[selectedCategory as keyof typeof categoryData]?.map((subcategory) => (
-                <TouchableOpacity
-                  key={subcategory.type}
-                  style={[
-                    styles.optionItem,
-                    selectedSubcategories.some(s => s.type === subcategory.type) && styles.selectedOption
-                  ]}
-                  onPress={() => handleSubcategorySelect(subcategory)}
-                >
-                  <Text style={[
-                    styles.optionText,
-                    selectedSubcategories.some(s => s.type === subcategory.type) && styles.selectedOptionText
-                  ]}>
-                    {subcategory.name}
-                  </Text>
-                  {selectedSubcategories.some(s => s.type === subcategory.type) && (
-                    <Ionicons name="checkmark" size={20} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-              ))}
+              {/* SELECT CATEGORIES */}
+              {selectedCategory && (
+                <View style={styles.wardrobeSection}>
+                  <Text style={styles.wardrobeSectionTitle}>SELECT CATEGORIES</Text>
+                  <View style={styles.wardrobeButtonContainer}>
+                    {categoryData[selectedCategory as keyof typeof categoryData]?.map((subcategory) => (
+                      <TouchableOpacity
+                        key={subcategory.type}
+                        style={[
+                          styles.wardrobeButton,
+                          selectedSubcategories.some(s => s.type === subcategory.type) && styles.wardrobeButtonSelected
+                        ]}
+                        onPress={() => handleSubcategorySelect(subcategory)}
+                      >
+                        <Text style={[
+                          styles.wardrobeButtonText,
+                          selectedSubcategories.some(s => s.type === subcategory.type) && styles.wardrobeButtonTextSelected
+                        ]}>
+                          {subcategory.name.toUpperCase()}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* SELECT OCCASION */}
+              <View style={styles.wardrobeSection}>
+                <Text style={styles.wardrobeSectionTitle}>SELECT OCCASION</Text>
+                <View style={styles.wardrobeButtonContainer}>
+                  {occasionOptions.map((occasion) => (
+                    <TouchableOpacity
+                      key={occasion}
+                      style={[
+                        styles.wardrobeButton,
+                        occasions.includes(occasion) && styles.wardrobeButtonSelected
+                      ]}
+                      onPress={() => handleOccasionSelect(occasion)}
+                    >
+                      <Text style={[
+                        styles.wardrobeButtonText,
+                        occasions.includes(occasion) && styles.wardrobeButtonTextSelected
+                      ]}>
+                        {occasion.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* SELECT WEATHER */}
+              <View style={styles.wardrobeSection}>
+                <Text style={styles.wardrobeSectionTitle}>SELECT WEATHER</Text>
+                <View style={styles.wardrobeButtonContainer}>
+                  {weatherOptions.map((weather) => (
+                    <TouchableOpacity
+                      key={weather}
+                      style={[
+                        styles.wardrobeButton,
+                        selectedWeather === weather && styles.wardrobeButtonSelected
+                      ]}
+                      onPress={() => handleWeatherSelect(weather)}
+                    >
+                      <Text style={[
+                        styles.wardrobeButtonText,
+                        selectedWeather === weather && styles.wardrobeButtonTextSelected
+                      ]}>
+                        {weather.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* SELECT STYLE */}
+              <View style={styles.wardrobeSection}>
+                <Text style={styles.wardrobeSectionTitle}>SELECT STYLE</Text>
+                <View style={styles.wardrobeButtonContainer}>
+                  {styleOptions.map((style) => (
+                    <TouchableOpacity
+                      key={style}
+                      style={[
+                        styles.wardrobeButton,
+                        selectedStyle === style && styles.wardrobeButtonSelected
+                      ]}
+                      onPress={() => handleStyleSelect(style)}
+                    >
+                      <Text style={[
+                        styles.wardrobeButtonText,
+                        selectedStyle === style && styles.wardrobeButtonTextSelected
+                      ]}>
+                        {style.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* SELECT COLOR */}
+              <View style={styles.wardrobeSection}>
+                <Text style={styles.wardrobeSectionTitle}>SELECT COLOR</Text>
+                <View style={styles.wardrobeColorGrid}>
+                  {colorOptions.map((color) => (
+                    <TouchableOpacity
+                      key={color}
+                      style={[
+                        styles.wardrobeColorButton,
+                        selectedColor === color && styles.wardrobeColorButtonSelected
+                      ]}
+                      onPress={() => handleColorSelect(color)}
+                    >
+                      <Text style={[
+                        styles.wardrobeColorButtonText,
+                        selectedColor === color && styles.wardrobeColorButtonTextSelected
+                      ]}>
+                        {color.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             </ScrollView>
-            <TouchableOpacity style={styles.modalButton} onPress={handleSubcategoryDone}>
-              <Text style={styles.modalButtonText}>Done</Text>
+
+            <TouchableOpacity 
+              style={styles.wardrobeConfirmButton} 
+              onPress={() => {
+                setShowWardrobeModal(false);
+              }}
+            >
+              <Text style={styles.wardrobeConfirmButtonText}>CONFIRM</Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Occasion Selection Modal */}
-      <Modal visible={showOccasionModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Occasions</Text>
-              <TouchableOpacity onPress={() => setShowOccasionModal(false)}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.optionsContainer}>
-              {occasionOptions.map((occasion) => (
-                <TouchableOpacity
-                  key={occasion}
-                  style={[
-                    styles.optionItem,
-                    occasions.includes(occasion) && styles.selectedOption
-                  ]}
-                  onPress={() => handleOccasionSelect(occasion)}
-                >
-                  <Text style={[
-                    styles.optionText,
-                    occasions.includes(occasion) && styles.selectedOptionText
-                  ]}>
-                    {occasion}
-                  </Text>
-                  {occasions.includes(occasion) && (
-                    <Ionicons name="checkmark" size={20} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <TouchableOpacity style={styles.modalButton} onPress={handleOccasionDone}>
-              <Text style={styles.modalButtonText}>Next: Weather</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Weather Selection Modal */}
-      <Modal visible={showWeatherModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Weather Suitability</Text>
-              <TouchableOpacity onPress={() => setShowWeatherModal(false)}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalSubtitle}>When is this item suitable to wear?</Text>
-            <ScrollView style={styles.optionsContainer}>
-              {weatherOptions.map((weather) => (
-                <TouchableOpacity
-                  key={weather}
-                  style={[
-                    styles.optionItem,
-                    selectedWeather === weather && styles.selectedOption
-                  ]}
-                  onPress={() => handleWeatherSelect(weather)}
-                >
-                  <Text style={[
-                    styles.optionText,
-                    selectedWeather === weather && styles.selectedOptionText
-                  ]}>
-                    {weather}
-                  </Text>
-                  {selectedWeather === weather && (
-                    <Ionicons name="checkmark" size={20} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Style Selection Modal */}
-      <Modal visible={showStyleModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Style</Text>
-              <TouchableOpacity onPress={() => setShowStyleModal(false)}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalSubtitle}>What style category best describes this item?</Text>
-            <ScrollView style={styles.optionsContainer}>
-              {styleOptions.map((style) => (
-                <TouchableOpacity
-                  key={style}
-                  style={[
-                    styles.optionItem,
-                    selectedStyle === style && styles.selectedOption
-                  ]}
-                  onPress={() => handleStyleSelect(style)}
-                >
-                  <Text style={[
-                    styles.optionText,
-                    selectedStyle === style && styles.selectedOptionText
-                  ]}>
-                    {style}
-                  </Text>
-                  {selectedStyle === style && (
-                    <Ionicons name="checkmark" size={20} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -971,5 +967,119 @@ const styles = StyleSheet.create({
   marketplaceSubmitText: {
     fontWeight: 'bold',
     color: '#fff',
+  },
+  // Unified Wardrobe Modal Styles
+  wardrobeModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: '90%',
+    maxHeight: '85%',
+    paddingBottom: 20,
+  },
+  wardrobeModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  wardrobeModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    letterSpacing: 1,
+  },
+  wardrobeModalScroll: {
+    maxHeight: '70%',
+    paddingHorizontal: 20,
+  },
+  wardrobeSection: {
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  wardrobeSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  wardrobeButtonContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+  },
+  wardrobeButton: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  wardrobeButtonSelected: {
+    backgroundColor: '#FFE8C8',
+    borderColor: '#FFB84D',
+  },
+  wardrobeButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    letterSpacing: 0.5,
+  },
+  wardrobeButtonTextSelected: {
+    color: '#333',
+    fontWeight: '700',
+  },
+  wardrobeColorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+  },
+  wardrobeColorButton: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    minWidth: 80,
+  },
+  wardrobeColorButtonSelected: {
+    backgroundColor: '#FFE8C8',
+    borderColor: '#FFB84D',
+  },
+  wardrobeColorButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  wardrobeColorButtonTextSelected: {
+    color: '#333',
+    fontWeight: '700',
+  },
+  wardrobeConfirmButton: {
+    backgroundColor: '#FFB84D',
+    borderRadius: 25,
+    paddingVertical: 15,
+    marginHorizontal: 20,
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wardrobeConfirmButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    letterSpacing: 1,
   },
 }); 

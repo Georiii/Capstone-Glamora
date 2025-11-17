@@ -274,6 +274,9 @@ export default function Category() {
                           occasion: (item.occasions && item.occasions[0]) || item.occasion || '',
                           weather: item.weather || '',
                           category: categoryType,
+                          style: item.style || '',
+                          color: item.color || '',
+                          categories: (item.categories && Array.isArray(item.categories)) ? item.categories.join(',') : '',
                         }
                       });
                     }
