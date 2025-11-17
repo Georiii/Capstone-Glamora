@@ -1,0 +1,40 @@
+workflows:
+  android-workflow:
+    name: Android Build
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - expo_credentials
+      vars:
+        EXPO_NO_DOTENV: "true"
+      node: 18.19.0
+      npm: 10.2.3
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+      - name: Install Expo CLI
+        script: |
+          npm install -g @expo/cli eas-cli
+      - name: Setup Expo
+        script: |
+          npx expo install --fix
+      - name: Generate native Android project
+        script: |
+          npx expo prebuild --platform android --clean
+      - name: Build Android APK
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+    artifacts:
+      - android/app/build/outputs/apk/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: false
+
