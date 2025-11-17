@@ -47,17 +47,23 @@ const getOptimizedImageUrl = async (
   folder: string,
   token: string | null,
 ) => {
-  let optimizedUrl = uri;
+  // If already a web URL, return it
+  if (!isLocalUri(uri)) {
+    return uri;
+  }
 
+  // Try direct Cloudinary upload first
   if (isLocalUri(uri)) {
     try {
-      optimizedUrl = await uploadLocalImage(uri, folder);
+      const optimizedUrl = await uploadLocalImage(uri, folder);
       return optimizedUrl;
     } catch (directUploadError) {
       console.log('⚠️ Direct Cloudinary upload failed:', directUploadError);
+      // Continue to backend upload fallback
     }
   }
 
+  // Fallback to backend upload
   if (token) {
     try {
       const uploadResponse = await fetch(API_ENDPOINTS.uploadImage, {
@@ -75,19 +81,21 @@ const getOptimizedImageUrl = async (
       if (uploadResponse.ok) {
         const uploadResult = await uploadResponse.json();
         if (uploadResult?.imageUrl) {
-          optimizedUrl = uploadResult.imageUrl;
-          return optimizedUrl;
+          return uploadResult.imageUrl;
         }
       } else {
         const errorText = await uploadResponse.text();
-        console.log('⚠️ API upload failed:', errorText);
+        console.error('⚠️ API upload failed:', errorText);
+        throw new Error(`Image upload failed: ${errorText || 'Unknown error'}`);
       }
-    } catch (apiUploadError) {
-      console.log('⚠️ API upload error:', apiUploadError);
+    } catch (apiUploadError: any) {
+      console.error('⚠️ API upload error:', apiUploadError);
+      throw new Error(apiUploadError.message || 'Failed to upload image. Please try again.');
     }
   }
 
-  return optimizedUrl;
+  // If we get here, upload failed and we can't use local URI
+  throw new Error('Failed to upload image. Please ensure you have an internet connection and try again.');
 };
 
 export default function ScannedClothes() {

@@ -381,10 +381,17 @@ class ContentModerationManager {
                 return;
             }
 
+            // Validate image URL - reject local file:// URIs
+            let imageUrl = item.imageUrl || 'https://via.placeholder.com/300';
+            if (imageUrl && (imageUrl.startsWith('file://') || imageUrl.startsWith('content://'))) {
+                console.warn('Invalid local image URL detected:', imageUrl);
+                imageUrl = 'https://via.placeholder.com/300?text=Image+Not+Available';
+            }
+
             content.innerHTML = `
                 <div class="post-detail-layout">
                     <div class="post-detail-image-container">
-                        <img src="${item.imageUrl || 'https://via.placeholder.com/300'}" alt="${item.name}" class="post-detail-image">
+                        <img src="${imageUrl}" alt="${item.name}" class="post-detail-image" onerror="this.src='https://via.placeholder.com/300?text=Image+Error'">
                     </div>
                     <div class="post-detail-info">
                         <div class="post-detail-field">
@@ -1360,10 +1367,18 @@ class ContentModerationManager {
                     const photoDiv = document.createElement('div');
                     photoDiv.className = 'evidence-photo';
 
+                    // Validate photo URL - reject local file:// URIs
+                    let photoUrl = photo.url || 'https://via.placeholder.com/150?text=No+Image';
+                    if (photoUrl && (photoUrl.startsWith('file://') || photoUrl.startsWith('content://'))) {
+                        console.warn('Invalid local evidence photo URL detected:', photoUrl);
+                        photoUrl = 'https://via.placeholder.com/150?text=Image+Not+Available';
+                    }
+
                     const imgEl = document.createElement('img');
-                    imgEl.src = photo.url;
+                    imgEl.src = photoUrl;
                     imgEl.alt = `Evidence ${index + 1}`;
-                    imgEl.addEventListener('click', () => this.viewPhoto(photo.url));
+                    imgEl.onerror = function() { this.src = 'https://via.placeholder.com/150?text=Image+Error'; };
+                    imgEl.addEventListener('click', () => this.viewPhoto(photoUrl));
 
                     const captionEl = document.createElement('span');
                     captionEl.textContent = `Evidence ${index + 1}`;

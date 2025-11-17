@@ -5,6 +5,39 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 
+// Helper function to check if URI is local
+const isLocalUri = (uri?: string | null): boolean => {
+  if (!uri) return false;
+  return uri.startsWith('file://') || uri.startsWith('data:');
+};
+
+// Helper function to upload image via backend
+const uploadImageToCloudinary = async (uri: string, folder: string, token: string): Promise<string> => {
+  const uploadResponse = await fetch(API_ENDPOINTS.uploadImage, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      imageUrl: uri,
+      folder,
+    }),
+  });
+
+  if (!uploadResponse.ok) {
+    const errorText = await uploadResponse.text();
+    throw new Error(`Image upload failed: ${errorText || 'Unknown error'}`);
+  }
+
+  const uploadResult = await uploadResponse.json();
+  if (!uploadResult?.imageUrl) {
+    throw new Error('Upload response missing imageUrl');
+  }
+
+  return uploadResult.imageUrl;
+};
+
 export default function ItemDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -116,12 +149,25 @@ export default function ItemDetail() {
         throw new Error('No authentication token found. Please log in again.');
       }
       
+      // Upload image to Cloudinary first if it's a local URI
+      let finalImageUrl = imageSrc;
+      if (imageSrc && isLocalUri(imageSrc)) {
+        console.log('📤 Uploading image to Cloudinary...');
+        try {
+          finalImageUrl = await uploadImageToCloudinary(imageSrc, 'glamora/marketplace', token);
+          console.log('✅ Image uploaded successfully:', finalImageUrl.substring(0, 50) + '...');
+        } catch (uploadError: any) {
+          console.error('❌ Image upload failed:', uploadError);
+          throw new Error(uploadError.message || 'Failed to upload image. Please try again.');
+        }
+      }
+      
       console.log('📡 Making request to marketplace...');
       console.log('🔗 Full URL:', API_ENDPOINTS.marketplace);
       
       // Create request body without logging the full image URL
       const requestBody = {
-        imageUrl: imageSrc,
+        imageUrl: finalImageUrl,
         name: marketName.trim(),
         description: marketDesc.trim(),
         price: price,
