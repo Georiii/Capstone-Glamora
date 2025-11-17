@@ -231,6 +231,14 @@ export default function ScannedClothes() {
         token,
       );
 
+      // Final validation: ensure we have a valid web URL
+      if (!cloudinaryImageUrl || (!cloudinaryImageUrl.startsWith('http://') && !cloudinaryImageUrl.startsWith('https://'))) {
+        console.error('❌ Invalid image URL after upload:', cloudinaryImageUrl?.substring(0, 50));
+        setLoading(false);
+        Alert.alert('Error', 'Invalid image URL. Please try selecting the image again.');
+        return;
+      }
+
       const response = await fetch(API_ENDPOINTS.addMarketplaceItem, {
         method: 'POST',
         headers: {

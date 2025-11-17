@@ -176,8 +176,17 @@ router.post('/marketplace', auth, async (req, res) => {
     const { imageUrl, name, description, price } = req.body;
     if (!imageUrl || !name || !price) return res.status(400).json({ message: 'Missing required fields: imageUrl, name, and price' });
     
+    // Reject local file:// URIs - images must be uploaded client-side first
+    if (imageUrl.startsWith('file://') || imageUrl.startsWith('content://')) {
+      console.error('❌ Rejected local file URI in marketplace submission:', imageUrl.substring(0, 50));
+      return res.status(400).json({ 
+        message: 'Invalid image URL. Please upload the image first. Local file paths are not supported.' 
+      });
+    }
+    
+    // If it's a data URI, try to upload it (base64 images)
     let optimizedImageUrl = imageUrl;
-    if (imageUrl.startsWith('file://') || imageUrl.startsWith('data:')) {
+    if (imageUrl.startsWith('data:')) {
       try {
         const result = await cloudinary.uploader.upload(imageUrl, {
           folder: 'glamora/marketplace',
@@ -189,7 +198,18 @@ router.post('/marketplace', auth, async (req, res) => {
         optimizedImageUrl = result.secure_url;
       } catch (uploadErr) {
         console.error('❌ Cloudinary upload failed (marketplace):', uploadErr);
+        return res.status(400).json({ 
+          message: 'Failed to upload image. Please try again or use a different image.' 
+        });
       }
+    }
+    
+    // Validate that we have a valid web URL (http/https)
+    if (!optimizedImageUrl.startsWith('http://') && !optimizedImageUrl.startsWith('https://')) {
+      console.error('❌ Invalid image URL format:', optimizedImageUrl.substring(0, 50));
+      return res.status(400).json({ 
+        message: 'Invalid image URL format. Image must be a web-accessible URL.' 
+      });
     }
 
     // Get user information from database including profile picture

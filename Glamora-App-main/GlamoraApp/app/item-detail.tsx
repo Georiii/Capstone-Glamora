@@ -158,8 +158,18 @@ export default function ItemDetail() {
           console.log('✅ Image uploaded successfully:', finalImageUrl.substring(0, 50) + '...');
         } catch (uploadError: any) {
           console.error('❌ Image upload failed:', uploadError);
-          throw new Error(uploadError.message || 'Failed to upload image. Please try again.');
+          setLoading(false);
+          Alert.alert('Upload Error', uploadError.message || 'Failed to upload image. Please check your internet connection and try again.');
+          return;
         }
+      }
+      
+      // Final validation: ensure we have a valid web URL
+      if (!finalImageUrl || (!finalImageUrl.startsWith('http://') && !finalImageUrl.startsWith('https://'))) {
+        console.error('❌ Invalid image URL after upload:', finalImageUrl?.substring(0, 50));
+        setLoading(false);
+        Alert.alert('Error', 'Invalid image URL. Please try selecting the image again.');
+        return;
       }
       
       console.log('📡 Making request to marketplace...');
