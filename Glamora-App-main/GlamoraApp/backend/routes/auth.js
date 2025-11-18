@@ -3,23 +3,18 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { JWT_SECRET } = require('../config/database');
 const User = require('../models/User');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const cloudinary = require('../config/cloudinary');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
-  }
-});
+// Configure multer for file uploads - use memory storage for profile pictures to avoid file system issues
+const memoryStorage = multer.memoryStorage();
 
+// Use memory storage for profile picture uploads (better for cloud deployments)
 const upload = multer({ 
-  storage: storage,
+  storage: memoryStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: function (req, file, cb) {
     const allowedTypes = /jpeg|jpg|png|gif/;
@@ -260,8 +255,11 @@ router.post('/profile/picture', upload.single('image'), async (req, res) => {
     // Handle file upload (from FormData)
     if (req.file) {
       try {
-        // Upload to Cloudinary
-        const result = await cloudinary.uploader.upload(req.file.path, {
+        // Upload to Cloudinary using buffer (memory storage)
+        // Convert buffer to data URI for Cloudinary
+        const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        
+        const result = await cloudinary.uploader.upload(dataUri, {
           folder: 'glamora/profile-pictures',
           transformation: [
             { width: 400, height: 400, crop: 'fill', gravity: 'face' },
@@ -272,8 +270,7 @@ router.post('/profile/picture', upload.single('image'), async (req, res) => {
         publicId = result.public_id;
       } catch (cloudinaryError) {
         console.error('Cloudinary upload error:', cloudinaryError);
-        // Fallback to local path if Cloudinary fails
-        finalImageUrl = req.file.path;
+        throw new Error('Failed to upload image to Cloudinary: ' + cloudinaryError.message);
       }
     } else if (imageUrl) {
       // Handle direct imageUrl (for base64 or external URLs)

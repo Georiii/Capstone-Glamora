@@ -5,42 +5,11 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 
-const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dtjtjlqte';
-const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'glamora_wardrobe';
-const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
-
 const isLocalUri = (uri?: string | null): uri is string => {
   if (!uri) {
     return false;
   }
   return uri.startsWith('file://') || uri.startsWith('data:');
-};
-
-const uploadLocalImage = async (uri: string, folder: string) => {
-  const formData = new FormData();
-  formData.append('file', {
-    uri,
-    type: 'image/jpeg',
-    name: `upload-${Date.now()}.jpg`,
-  } as any);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-  formData.append('folder', folder);
-
-  const response = await fetch(CLOUDINARY_UPLOAD_URL, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || 'Failed to upload image to Cloudinary');
-  }
-
-  const uploadResult = await response.json();
-  if (!uploadResult?.secure_url) {
-    throw new Error('Cloudinary response missing secure_url');
-  }
-  return uploadResult.secure_url as string;
 };
 
 const getOptimizedImageUrl = async (
@@ -53,18 +22,7 @@ const getOptimizedImageUrl = async (
     return uri;
   }
 
-  // Try direct Cloudinary upload first
-  if (isLocalUri(uri)) {
-    try {
-      const optimizedUrl = await uploadLocalImage(uri, folder);
-      return optimizedUrl;
-    } catch (directUploadError) {
-      console.log('⚠️ Direct Cloudinary upload failed:', directUploadError);
-      // Continue to backend upload fallback
-    }
-  }
-
-  // Fallback to backend upload
+  // Upload to Cloudinary via backend
   if (token) {
     try {
       const uploadResponse = await fetch(API_ENDPOINTS.uploadImage, {
