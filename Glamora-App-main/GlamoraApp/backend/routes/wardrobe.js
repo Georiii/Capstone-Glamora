@@ -31,7 +31,16 @@ router.post('/upload-image', auth, async (req, res) => {
       return res.status(400).json({ message: 'Image URL is required.' });
     }
 
+    // Reject file:// URIs - they should be converted to base64 on client side
+    if (imageUrl.startsWith('file://') || imageUrl.startsWith('content://')) {
+      console.error('❌ Rejected file:// URI in upload-image:', imageUrl.substring(0, 50));
+      return res.status(400).json({ 
+        message: 'Invalid image format. File URIs must be converted to base64 before upload.' 
+      });
+    }
+
     // Upload to Cloudinary with optimization
+    // Cloudinary can handle: http/https URLs, data URIs (base64), and file paths (server-side only)
     const result = await cloudinary.uploader.upload(imageUrl, {
       folder: folder,
       transformation: [
@@ -50,7 +59,14 @@ router.post('/upload-image', auth, async (req, res) => {
 
   } catch (err) {
     console.error('Cloudinary upload error:', err);
-    res.status(500).json({ message: 'Failed to upload image.', error: err.message });
+    // Provide more specific error messages
+    let errorMessage = 'Failed to upload image.';
+    if (err.message && err.message.includes('Invalid image file')) {
+      errorMessage = 'Invalid image format. Please ensure the image is a valid JPEG or PNG file.';
+    } else if (err.message && err.message.includes('API key')) {
+      errorMessage = 'Image upload service configuration error. Please contact support.';
+    }
+    res.status(500).json({ message: errorMessage, error: err.message });
   }
 });
 

@@ -52,7 +52,8 @@
     "react-native-webview": "13.13.5",
     "socket.io-client": "^4.8.1",
     "expo-camera": "~16.1.11",
-    "expo-updates": "~0.28.17"
+    "expo-updates": "~0.28.17",
+    "expo-file-system": "~18.1.11"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

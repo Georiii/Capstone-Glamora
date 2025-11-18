@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import * as FileSystem from 'expo-file-system';
 import { API_ENDPOINTS } from '../config/api';
 
 const isLocalUri = (uri?: string | null): uri is string => {
@@ -10,6 +11,59 @@ const isLocalUri = (uri?: string | null): uri is string => {
     return false;
   }
   return uri.startsWith('file://') || uri.startsWith('data:');
+};
+
+// Convert file:// URI to base64 data URI
+const convertFileToBase64 = async (uri: string): Promise<string> => {
+  // If already a data URI, return it
+  if (uri.startsWith('data:')) {
+    return uri;
+  }
+
+  // If it's a file:// URI, convert it to base64
+  if (uri.startsWith('file://')) {
+    try {
+      if (Platform.OS === 'web') {
+        // For web, file:// URIs are not accessible due to browser security
+        // Try to fetch if it's a blob URL, otherwise throw error
+        try {
+          const response = await fetch(uri);
+          const blob = await response.blob();
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64data = reader.result as string;
+              resolve(base64data);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch (fetchError) {
+          throw new Error('Cannot access local file on web. Please use a different image source.');
+        }
+      } else {
+        // For React Native, use FileSystem
+        try {
+          const base64 = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          // Determine MIME type from file extension or default to jpeg
+          const mimeType = uri.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+          return `data:${mimeType};base64,${base64}`;
+        } catch (fileSystemError: any) {
+          console.error('FileSystem read error:', fileSystemError);
+          // Fallback: try to use the URI directly (some platforms support this)
+          throw new Error('Failed to read image file. Please try selecting the image again.');
+        }
+      }
+    } catch (error: any) {
+      console.error('Error converting file to base64:', error);
+      throw new Error(error.message || 'Failed to process image file');
+    }
+  }
+
+  // If it's already a web URL, return it
+  return uri;
 };
 
 const getOptimizedImageUrl = async (
@@ -25,6 +79,14 @@ const getOptimizedImageUrl = async (
   // Upload to Cloudinary via backend
   if (token) {
     try {
+      // Convert file:// URI to base64 data URI before sending
+      let imageData = uri;
+      if (uri.startsWith('file://')) {
+        console.log('🔄 Converting file:// URI to base64...');
+        imageData = await convertFileToBase64(uri);
+        console.log('✅ Converted to base64 data URI');
+      }
+
       const uploadResponse = await fetch(API_ENDPOINTS.uploadImage, {
         method: 'POST',
         headers: {
@@ -32,7 +94,7 @@ const getOptimizedImageUrl = async (
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          imageUrl: uri,
+          imageUrl: imageData,
           folder,
         }),
       });
