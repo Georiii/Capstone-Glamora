@@ -127,6 +127,7 @@ const clothingUsageRoutes = require('./routes/clothing-usage');
 const policyRoutes = require('./routes/policy');
 const subscriptionRoutes = require('./routes/subscription');
 const paypalWebhookRoutes = require('./routes/paypal-webhook');
+const paypalPaymentRoutes = require('./routes/paypal-payment');
 // Lightweight admin bridge routes to expose moderation endpoints and metrics
 const adminBridgeRoutes = require('./routes/admin-bridge');
 
@@ -153,6 +154,7 @@ app.use('/api/clothing-usage', clothingUsageRoutes);
 app.use('/api/policy', policyRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/paypal', paypalWebhookRoutes);
+app.use('/api/paypal', paypalPaymentRoutes);
 app.use('/api/admin', adminBridgeRoutes);
 if (adminRoutes) {
   app.use('/api/admin', adminRoutes);

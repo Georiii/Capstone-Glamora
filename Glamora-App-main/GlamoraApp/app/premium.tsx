@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal, ActivityIndicator, Platform } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal, ActivityIndicator, Platform, Linking } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 export default function Premium() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
@@ -18,17 +19,46 @@ export default function Premium() {
   const PAYPAL_CLIENT_ID = process.env.EXPO_PUBLIC_PAYPAL_CLIENT_ID || '';
   const PAYPAL_PLAN_ID = process.env.EXPO_PUBLIC_PAYPAL_PLAN_ID || '';
   const PAYPAL_ENV = process.env.EXPO_PUBLIC_PAYPAL_ENV || 'sandbox';
-  const isPayPalConfigured = Boolean(PAYPAL_CLIENT_ID && PAYPAL_PLAN_ID);
+
+  const checkSubscriptionStatus = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        setCheckingStatus(false);
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.subscriptionStatus, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsSubscribed(data.isSubscribed || false);
+      }
+    } catch (error) {
+      console.error('Error checking subscription status:', error);
+    } finally {
+      setCheckingStatus(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Minimal, non-sensitive confirmation that envs are present on device
-    console.log('PayPal env present?', {
-      clientId: !!PAYPAL_CLIENT_ID,
-      planId: !!PAYPAL_PLAN_ID,
-      env: PAYPAL_ENV
-    });
     checkSubscriptionStatus();
-  }, []);
+    
+    // Handle return from payment page
+    if (params.payment === 'success') {
+      Alert.alert(
+        'Payment Successful!',
+        'Thank you for subscribing to Glamora PLUS! Your subscription is being activated.',
+        [{ text: 'OK', onPress: () => checkSubscriptionStatus() }]
+      );
+    } else if (params.payment === 'cancelled') {
+      Alert.alert('Payment Cancelled', 'You cancelled the payment.');
+    }
+  }, [params.payment, checkSubscriptionStatus]);
 
   // ---------- Web (browser) helpers ----------
   const isWeb = typeof window !== 'undefined' && Platform.OS === 'web';
@@ -91,31 +121,6 @@ export default function Premium() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webPaypalVisible]);
-
-  const checkSubscriptionStatus = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        setCheckingStatus(false);
-        return;
-      }
-
-      const response = await fetch(API_ENDPOINTS.subscriptionStatus, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setIsSubscribed(data.isSubscribed || false);
-      }
-    } catch (error) {
-      console.error('Error checking subscription status:', error);
-    } finally {
-      setCheckingStatus(false);
-    }
-  };
 
   const activateSubscription = async (paypalSubscriptionId: string) => {
     if (!paypalSubscriptionId) {
@@ -185,21 +190,29 @@ export default function Premium() {
     setPaypalWebViewKey((prev) => prev + 1);
   };
 
-  const startPayPalCheckout = () => {
-    if (!isPayPalConfigured) {
-      Alert.alert(
-        'PayPal Not Configured',
-        'PayPal client ID or plan ID is missing. Please set EXPO_PUBLIC_PAYPAL_CLIENT_ID and EXPO_PUBLIC_PAYPAL_PLAN_ID.'
-      );
-      return;
-    }
+  const startPayPalCheckout = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Please log in to subscribe');
+        router.push('/login');
+        return;
+      }
 
-    if (Platform.OS === 'web') {
-      setWebPaypalVisible(true);
-      return;
+      // Build payment page URL with token
+      const paymentUrl = `${API_ENDPOINTS.baseUrl}/api/paypal/subscribe?token=${encodeURIComponent(token)}`;
+      
+      // Open payment page in browser/app
+      const canOpen = await Linking.canOpenURL(paymentUrl);
+      if (canOpen) {
+        await Linking.openURL(paymentUrl);
+      } else {
+        Alert.alert('Error', 'Unable to open payment page. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Error opening payment page:', error);
+      Alert.alert('Error', 'Failed to open payment page. Please try again.');
     }
-
-    setPaypalModalVisible(true);
   };
 
   const handlePayPalMessage = async (event: WebViewMessageEvent) => {
@@ -222,7 +235,7 @@ export default function Premium() {
         Alert.alert('PayPal Error', data.message || 'Something went wrong with PayPal checkout.');
         return;
       }
-    } catch (err) {
+    } catch {
       resetPayPalModal();
       Alert.alert('PayPal Error', 'Failed to process PayPal response. Please try again.');
     }
