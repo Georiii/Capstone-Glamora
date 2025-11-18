@@ -6,6 +6,7 @@ const path = require('path');
 const { JWT_SECRET } = require('../config/database');
 const User = require('../models/User');
 const { sendPasswordResetEmail } = require('../services/emailService');
+const cloudinary = require('../config/cloudinary');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -242,7 +243,7 @@ router.get('/profile/:email', async (req, res) => {
 // Upload profile picture
 router.post('/profile/picture', upload.single('image'), async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, imageUrl } = req.body;
     
     if (!email) {
       return res.status(400).json({ message: 'Email is required.' });
@@ -253,22 +254,61 @@ router.post('/profile/picture', upload.single('image'), async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
     
-    let imageUrl = '';
+    let finalImageUrl = '';
+    let publicId = null;
     
+    // Handle file upload (from FormData)
     if (req.file) {
-      // If file was uploaded, use the file path
-      imageUrl = req.file.path;
-    } else if (req.body.imageUrl) {
-      // If imageUrl was provided directly (for base64 or external URLs)
-      imageUrl = req.body.imageUrl;
+      try {
+        // Upload to Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'glamora/profile-pictures',
+          transformation: [
+            { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+            { quality: 'auto' }
+          ]
+        });
+        finalImageUrl = result.secure_url;
+        publicId = result.public_id;
+      } catch (cloudinaryError) {
+        console.error('Cloudinary upload error:', cloudinaryError);
+        // Fallback to local path if Cloudinary fails
+        finalImageUrl = req.file.path;
+      }
+    } else if (imageUrl) {
+      // Handle direct imageUrl (for base64 or external URLs)
+      if (imageUrl.startsWith('data:') || imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        try {
+          // Upload to Cloudinary
+          const result = await cloudinary.uploader.upload(imageUrl, {
+            folder: 'glamora/profile-pictures',
+            transformation: [
+              { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+              { quality: 'auto' }
+            ]
+          });
+          finalImageUrl = result.secure_url;
+          publicId = result.public_id;
+        } catch (cloudinaryError) {
+          console.error('Cloudinary upload error:', cloudinaryError);
+          // If it's already a web URL, use it directly
+          if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+            finalImageUrl = imageUrl;
+          } else {
+            throw new Error('Failed to upload image to Cloudinary');
+          }
+        }
+      } else {
+        finalImageUrl = imageUrl;
+      }
     } else {
       return res.status(400).json({ message: 'Image file or imageUrl is required.' });
     }
     
     // Update profile picture
     user.profilePicture = {
-      url: imageUrl,
-      publicId: null // Can be set if using Cloudinary
+      url: finalImageUrl,
+      publicId: publicId
     };
     
     await user.save();

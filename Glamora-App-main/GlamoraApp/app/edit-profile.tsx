@@ -24,7 +24,7 @@ export default function EditProfile() {
   const [name, setName] = useState('Name');
   const [email, setEmail] = useState('Email');
   const [role, setRole] = useState('User');
-  const [profileImage, setProfileImage] = useState('https://randomuser.me/api/portraits/men/1.jpg');
+  const [profileImage, setProfileImage] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -129,10 +129,31 @@ export default function EditProfile() {
       
       // For React Native, we need to handle the file differently
       if (Platform.OS === 'web') {
-        // For web, we need to fetch the image and create a blob
-        const response = await fetch(imageUri);
-        const blob = await response.blob();
-        formData.append('image', blob, 'profile-picture.jpg');
+        // For web, handle data URIs and file URIs
+        if (imageUri.startsWith('data:')) {
+          // Convert data URI to blob
+          const response = await fetch(imageUri);
+          const blob = await response.blob();
+          formData.append('image', blob, 'profile-picture.jpg');
+        } else if (imageUri.startsWith('blob:')) {
+          // Handle blob URLs
+          const response = await fetch(imageUri);
+          const blob = await response.blob();
+          formData.append('image', blob, 'profile-picture.jpg');
+        } else if (imageUri.startsWith('http://') || imageUri.startsWith('https://')) {
+          // For web URLs, send as imageUrl instead
+          formData.append('imageUrl', imageUri);
+        } else {
+          // Try to fetch and convert
+          try {
+            const response = await fetch(imageUri);
+            const blob = await response.blob();
+            formData.append('image', blob, 'profile-picture.jpg');
+          } catch {
+            // Fallback: send as imageUrl
+            formData.append('imageUrl', imageUri);
+          }
+        }
       } else {
         // For React Native, use the file object format
         formData.append('image', {
@@ -163,6 +184,14 @@ export default function EditProfile() {
         
         // Update global user context
         updateUser({ profilePicture: data.profilePicture });
+        
+        // Update AsyncStorage to persist the change
+        try {
+          const updatedUser = { ...user, profilePicture: data.profilePicture };
+          await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        } catch (storageError) {
+          console.error('Error updating user in storage:', storageError);
+        }
         
         Alert.alert('Success', 'Profile picture updated successfully!');
       } else {
@@ -206,7 +235,7 @@ export default function EditProfile() {
           name: name.trim(),
           email: email.trim(),
           role: role,
-          profilePicture: user.profilePicture, // Keep existing profile picture
+          profilePicture: user.profilePicture || { url: profileImage }, // Use current profile picture
         }),
       });
 
@@ -276,7 +305,10 @@ export default function EditProfile() {
           onPress={pickImage}
           disabled={isUploading}
         >
-          <Image source={{ uri: profileImage }} style={styles.profileImage} />
+          <Image 
+            source={profileImage ? { uri: profileImage } : require('../assets/avatar.png')} 
+            style={styles.profileImage} 
+          />
           {isUploading && (
             <View style={styles.uploadingOverlay}>
               <ActivityIndicator size="small" color="#fff" />

@@ -22,6 +22,10 @@ interface Conversation {
     _id: string;
     name: string;
     email: string;
+    profilePicture?: {
+      url: string;
+      publicId?: string;
+    };
   };
   lastMessage: {
     text: string;
@@ -213,7 +217,8 @@ export default function MessageBox() {
         sellerId: conversation.user._id,
         sellerEmail: conversation.user.email,
         productName: conversation.context?.productName || 'Conversation',
-        productImage: conversation.context?.productImage || 'https://randomuser.me/api/portraits/men/32.jpg',
+        productImage: conversation.context?.productImage || null,
+        sellerProfilePicture: conversation.user?.profilePicture?.url || null,
         itemId: conversation.context?.productId || '',
       }
     });
@@ -245,7 +250,9 @@ export default function MessageBox() {
           </View>
         ) : (
           <Image
-            source={{ uri: 'https://randomuser.me/api/portraits/men/32.jpg' }}
+            source={item.user?.profilePicture?.url 
+              ? { uri: item.user.profilePicture.url } 
+              : require('../assets/avatar.png')}
             style={styles.avatar}
           />
         )}

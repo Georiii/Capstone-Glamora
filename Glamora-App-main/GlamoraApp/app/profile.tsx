@@ -35,7 +35,7 @@ export default function Profile() {
   const [measurements, setMeasurements] = useState<any>(null);
   const [recentOutfits, setRecentOutfits] = useState<Outfit[]>([]);
   // Get profile image from user context or use default
-  const profileImage = user?.profilePicture?.url || 'https://randomuser.me/api/portraits/men/1.jpg';
+  const profileImage = user?.profilePicture?.url || require('../assets/avatar.png');
 
   useEffect(() => {
     // Update local state from user context
@@ -128,7 +128,10 @@ export default function Profile() {
       </View>
       {/* Profile Info */}
       <View style={styles.profileInfo}>
-        <Image source={{ uri: profileImage }} style={styles.avatar} />
+        <Image 
+          source={typeof profileImage === 'string' ? { uri: profileImage } : profileImage} 
+          style={styles.avatar} 
+        />
         <View style={{ marginLeft: 12 }}>
           <Text style={styles.profileName}>{name}</Text>
           <Text style={styles.profileEmail}>{email}</Text>

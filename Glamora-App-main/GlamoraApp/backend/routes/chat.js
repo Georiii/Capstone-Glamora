@@ -42,8 +42,8 @@ router.get('/:userId', auth, async (req, res) => {
       ]
     })
     .sort({ timestamp: 1 })
-    .populate('senderId', 'name email')
-    .populate('receiverId', 'name email');
+    .populate('senderId', 'name email profilePicture')
+    .populate('receiverId', 'name email profilePicture');
 
     const contextHash = getParticipantsHash(currentUserId, userId);
     const context = await ConversationContext.findOne({ participantsHash: contextHash });
@@ -84,8 +84,8 @@ router.post('/send', auth, async (req, res) => {
     await message.save();
 
     // Populate sender and receiver info for response
-    await message.populate('senderId', 'name email');
-    await message.populate('receiverId', 'name email');
+    await message.populate('senderId', 'name email profilePicture');
+    await message.populate('receiverId', 'name email profilePicture');
 
     res.status(201).json({ message: 'Message sent successfully.', chatMessage: message });
   } catch (err) {
@@ -159,7 +159,7 @@ router.get('/conversations/list', auth, async (req, res) => {
     // Populate user information for each conversation
     const populatedConversations = await Promise.all(
       conversations.map(async (conv) => {
-        const user = await User.findById(conv._id).select('name email');
+        const user = await User.findById(conv._id).select('name email profilePicture');
         const participantsHash = getParticipantsHash(currentUserId, conv._id);
         const context = await ConversationContext.findOne({ participantsHash });
         return {

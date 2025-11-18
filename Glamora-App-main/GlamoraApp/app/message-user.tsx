@@ -24,7 +24,7 @@ interface Message {
   text: string;
   senderId: string;
   senderName: string;
-  senderAvatar: string;
+  senderAvatar: string | number | { uri: string };
   timestamp: Date;
   isFromCurrentUser: boolean;
 }
@@ -248,12 +248,17 @@ export default function MessageUser() {
                            (msg.senderId && msg.senderId._id === currentUser.id) ||
                            (msg.senderId && msg.senderId._id === currentUser._id);
             
+            // Get profile picture from populated senderId or fallback
+            const senderProfilePicture = msg.senderId?.profilePicture?.url || 
+                                        (isFromMe ? currentUser?.profilePicture?.url : sellerData.user?.profilePicture?.url);
+            
             console.log('🔍 Message transformation:', {
               msgSenderId,
               currentUserId: currentUser.id,
               currentUser_id: currentUser._id,
               isFromMe,
-              messageText: msg.text
+              messageText: msg.text,
+              senderProfilePicture: senderProfilePicture ? 'Found' : 'Not found'
             });
             
             return {
@@ -262,10 +267,10 @@ export default function MessageUser() {
               senderId: msgSenderId,
               senderName: isFromMe ? 
                 (currentUser.name || 'You') : 
-                (sellerData.user.name || sellerData.user.email?.split('@')[0] || 'Other User'),
-              senderAvatar: isFromMe ?
-                (currentUser.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg') :
-                (sellerData.user.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg'),
+                (msg.senderId?.name || sellerData.user.name || sellerData.user.email?.split('@')[0] || 'Other User'),
+              senderAvatar: senderProfilePicture 
+                ? { uri: senderProfilePicture }
+                : require('../assets/avatar.png'),
               timestamp: new Date(msg.timestamp),
               isFromCurrentUser: isFromMe
             };
@@ -279,7 +284,7 @@ export default function MessageUser() {
             text: 'Hello',
             senderId: sellerUserId,
             senderName: sellerId as string,
-            senderAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+            senderAvatar: require('../assets/avatar.png'),
             timestamp: new Date(),
             isFromCurrentUser: false
           }]);
@@ -292,7 +297,7 @@ export default function MessageUser() {
           text: 'Hello',
           senderId: sellerId as string,
           senderName: sellerId as string,
-          senderAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+          senderAvatar: require('../assets/avatar.png'),
           timestamp: new Date(),
           isFromCurrentUser: false
         }]);
@@ -310,7 +315,7 @@ export default function MessageUser() {
         text: 'Hello',
         senderId: sellerId as string,
         senderName: sellerId as string,
-        senderAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+        senderAvatar: require('../assets/avatar.png'),
         timestamp: new Date(),
         isFromCurrentUser: false
       }]);
@@ -420,8 +425,8 @@ export default function MessageUser() {
             senderId: data.fromUserId,
             senderName: isFromMe ? currentUser?.name || 'You' : otherUser?.name || 'Other User',
             senderAvatar: isFromMe ? 
-              (currentUser?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg') :
-              (otherUser?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg'),
+              (currentUser?.profilePicture?.url ? { uri: currentUser.profilePicture.url } : require('../assets/avatar.png')) :
+              (otherUser?.profilePicture?.url ? { uri: otherUser.profilePicture.url } : require('../assets/avatar.png')),
             timestamp: new Date(data.timestamp),
             isFromCurrentUser: isFromMe
           };
@@ -509,7 +514,7 @@ export default function MessageUser() {
       text: messageText,
       senderId: currentUser?.id || currentUser?._id || 'currentUser',
       senderName: currentUser?.name || 'You',
-      senderAvatar: currentUser?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg',
+      senderAvatar: currentUser?.profilePicture?.url ? { uri: currentUser.profilePicture.url } : require('../assets/avatar.png'),
       timestamp: new Date(),
       isFromCurrentUser: true
     };
@@ -897,11 +902,12 @@ export default function MessageUser() {
         
         <View style={styles.headerCenter}>
           <Image
-            source={{ 
-              uri: (sellerProfilePicture && (Array.isArray(sellerProfilePicture) ? sellerProfilePicture[0] : sellerProfilePicture)) || 
-                   otherUser?.profilePicture?.url || 
-                   'https://randomuser.me/api/portraits/men/32.jpg' 
-            }}
+            source={
+              (sellerProfilePicture && (Array.isArray(sellerProfilePicture) ? sellerProfilePicture[0] : sellerProfilePicture)) || 
+              otherUser?.profilePicture?.url
+                ? { uri: (sellerProfilePicture && (Array.isArray(sellerProfilePicture) ? sellerProfilePicture[0] : sellerProfilePicture)) || otherUser?.profilePicture?.url }
+                : require('../assets/avatar.png')
+            }
             style={styles.headerAvatar}
           />
           <Text style={styles.headerName}>

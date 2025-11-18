@@ -8,7 +8,7 @@ export default function PostedItem() {
   const { imageUrl, name, description, price, userName, userEmail, userProfilePicture } = params;
   const imageSrc = Array.isArray(imageUrl) ? imageUrl[0] : imageUrl;
   const sellerProfilePic = Array.isArray(userProfilePicture) ? userProfilePicture[0] : userProfilePicture;
-  const defaultAvatar = 'https://randomuser.me/api/portraits/men/32.jpg';
+  const defaultAvatar = require('../assets/avatar.png');
 
   return (
     <View style={styles.container}>
@@ -32,7 +32,7 @@ export default function PostedItem() {
       {/* User Info */}
       <View style={styles.userInfoContainer}>
         <Image 
-          source={{ uri: sellerProfilePic || defaultAvatar }} 
+          source={sellerProfilePic ? { uri: sellerProfilePic } : defaultAvatar} 
           style={styles.userAvatar} 
         />
         <View style={styles.sellerTextContainer}>

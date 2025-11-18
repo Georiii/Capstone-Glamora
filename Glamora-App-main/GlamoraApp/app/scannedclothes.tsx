@@ -5,8 +5,9 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 
-const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dq8wzujfj/image/upload';
-const CLOUDINARY_UPLOAD_PRESET = 'glamora_wardrobe';
+const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dtjtjlqte';
+const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'glamora_wardrobe';
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
 const isLocalUri = (uri?: string | null): uri is string => {
   if (!uri) {
