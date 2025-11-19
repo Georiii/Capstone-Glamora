@@ -14,6 +14,9 @@ export default function BottomsCategory() {
   const categoryType = params.type || 'Bottoms';
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Subcategories for Bottoms
   const subcategories = [
@@ -89,6 +92,97 @@ export default function BottomsCategory() {
     router.push('/scan');
   };
 
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  const toggleDeleteMode = () => {
+    setIsDeleteMode(!isDeleteMode);
+    setSelectedItems([]);
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedItems.length === 0) {
+      Alert.alert('Error', 'Please select items to delete');
+      return;
+    }
+
+    Alert.alert(
+      'Delete Items',
+      `Are you sure you want to delete ${selectedItems.length} item(s)?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: confirmDeleteSelected
+        }
+      ]
+    );
+  };
+
+  const confirmDeleteSelected = async () => {
+    setDeleteLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Please login again');
+        setDeleteLoading(false);
+        return;
+      }
+
+      const deletePromises = selectedItems.map(async (itemId) => {
+        try {
+          const response = await fetch(API_ENDPOINTS.deleteWardrobeItem(itemId), {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            throw new Error(`Failed to delete item: ${errorData.message || response.status}`);
+          }
+
+          return { itemId, success: true };
+        } catch (error) {
+          console.error(`Failed to delete item ${itemId}:`, error);
+          return { itemId, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+      });
+
+      // Wait for all deletions to complete
+      const results = await Promise.all(deletePromises);
+      const successful = results.filter(r => r.success);
+      const failed = results.filter(r => !r.success);
+
+      // Refresh items
+      await fetchWardrobe();
+      setSelectedItems([]);
+      setIsDeleteMode(false);
+
+      // Show appropriate message
+      if (successful.length === selectedItems.length) {
+        Alert.alert('Success', `${successful.length} item(s) deleted successfully`);
+      } else if (successful.length > 0) {
+        Alert.alert('Partial Success', `${successful.length} item(s) deleted, ${failed.length} failed`);
+      } else {
+        Alert.alert('Error', 'Failed to delete items. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting items:', error);
+      Alert.alert('Error', 'Failed to delete items. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   // If on the main category page (not filtered), show subcategories
   if (!params.type || params.type === 'Bottoms') {
     return (
@@ -140,8 +234,20 @@ export default function BottomsCategory() {
           <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
         <Text style={styles.categoryTitle}>{categoryType}</Text>
-        <TouchableOpacity style={{ position: 'absolute', right: 20, top: 55, zIndex: 2 }}>
-          <Ionicons name="trash" size={24} color="#E74C3C" />
+        <TouchableOpacity 
+          style={{ position: 'absolute', right: 20, top: 55, zIndex: 2 }}
+          onPress={isDeleteMode ? handleDeleteSelected : toggleDeleteMode}
+          disabled={deleteLoading}
+        >
+          {deleteLoading ? (
+            <ActivityIndicator size="small" color="#E74C3C" />
+          ) : (
+            <Ionicons 
+              name={isDeleteMode ? "trash" : "trash-outline"} 
+              size={24} 
+              color={isDeleteMode ? "#E74C3C" : "#666"} 
+            />
+          )}
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.gridContainer}>
@@ -153,23 +259,38 @@ export default function BottomsCategory() {
               {items.map((item, index) => (
                 <TouchableOpacity
                   key={item._id || index}
-                  style={styles.itemCard}
-                  onPress={() => router.push({
-                    pathname: '/item-detail',
-                    params: {
-                      itemId: item._id,
-                      imageUrl: item.imageUrl,
-                      clothName: item.clothName,
-                      description: item.description,
-                      occasion: (item.occasions && item.occasions[0]) || item.occasion || '',
-                      weather: item.weather || '',
-                      category: categoryType,
-                      style: item.style || '',
-                      color: item.color || '',
-                      categories: (item.categories && Array.isArray(item.categories)) ? item.categories.join(',') : '',
+                  style={[styles.itemCard, isDeleteMode && selectedItems.includes(item._id) && styles.selectedItemCard]}
+                  onPress={() => {
+                    if (isDeleteMode) {
+                      toggleItemSelection(item._id);
+                    } else {
+                      router.push({
+                        pathname: '/item-detail',
+                        params: {
+                          itemId: item._id,
+                          imageUrl: item.imageUrl,
+                          clothName: item.clothName,
+                          description: item.description,
+                          occasion: (item.occasions && item.occasions[0]) || item.occasion || '',
+                          weather: item.weather || '',
+                          category: categoryType,
+                          style: item.style || '',
+                          color: item.color || '',
+                          categories: (item.categories && Array.isArray(item.categories)) ? item.categories.join(',') : '',
+                        }
+                      });
                     }
-                  })}
+                  }}
                 >
+                  {isDeleteMode && (
+                    <View style={styles.checkboxContainer}>
+                      <Ionicons 
+                        name={selectedItems.includes(item._id) ? "checkbox" : "square-outline"} 
+                        size={24} 
+                        color={selectedItems.includes(item._id) ? "#007AFF" : "#666"} 
+                      />
+                    </View>
+                  )}
                   <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
                   <Text style={styles.itemLabel}>{item.clothName || 'Cloth name'}</Text>
                 </TouchableOpacity>
@@ -345,5 +466,18 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     marginRight: 12,
   },
-
+  // Delete mode styles
+  selectedItemCard: {
+    borderColor: '#007AFF',
+    borderWidth: 2,
+  },
+  checkboxContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 4,
+  },
 }); 
