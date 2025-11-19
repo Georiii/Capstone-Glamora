@@ -57,6 +57,11 @@ export const API_ENDPOINTS = {
   deleteWardrobeItem: (id: string) => `${API_BASE_URL}/api/wardrobe/${id}`,
   uploadImage: `${API_BASE_URL}/api/wardrobe/upload-image`,
   
+  // Subcategories
+  subcategories: (categoryType: string) => `${API_BASE_URL}/api/subcategories/${categoryType}`,
+  createSubcategory: `${API_BASE_URL}/api/subcategories`,
+  deleteSubcategory: (id: string) => `${API_BASE_URL}/api/subcategories/${id}`,
+  
   // Marketplace
   marketplace: `${API_BASE_URL}/api/wardrobe/marketplace`,
   marketplaceSearch: (query: string) => `${API_BASE_URL}/api/wardrobe/marketplace?search=${encodeURIComponent(query)}`,

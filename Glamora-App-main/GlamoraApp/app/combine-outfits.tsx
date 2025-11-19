@@ -47,15 +47,65 @@ export default function CombineOutfits() {
   const [missingCategories, setMissingCategories] = useState<string[]>([]);
   const [pendingGeneration, setPendingGeneration] = useState<boolean>(false);
 
-  // Available options - exclude generic "Top" and "Bottom" from choices
-  const topCategories = ['T-shirt', 'Formals', 'Jackets/sweatshirt', 'Shirt/camisole'];
-  const bottomCategories = ['Jeans', 'Trousers', 'Shorts', 'Skirts', 'Leggings', 'Joggers'];
+  // Base available options
+  const baseTopCategories = ['T-shirt', 'Formals', 'Jackets/sweatshirt', 'Shirt/camisole'];
+  const baseBottomCategories = ['Jeans', 'Trousers', 'Shorts', 'Skirts', 'Leggings', 'Joggers'];
+  
+  const [customSubcategories, setCustomSubcategories] = useState<{[key: string]: any[]}>({
+    'Tops': [],
+    'Bottoms': [],
+  });
+
+  // Merge base and custom subcategories
+  const topCategories = [
+    ...baseTopCategories,
+    ...customSubcategories['Tops'].map(sub => sub.type)
+  ];
+  const bottomCategories = [
+    ...baseBottomCategories,
+    ...customSubcategories['Bottoms'].map(sub => sub.type)
+  ];
   const weatherOptions = ['Sunny', 'Rainy', 'Cold', 'Warm', 'Cloudy'];
   const occasionOptions = ['Casual', 'Work', 'Party', 'Sports', 'Formal', 'Birthdays', 'Weddings'];
   const styleOptions = ['Casual', 'Formal', 'Sporty', 'Vintage', 'Minimalist', 'Streetwear'];
 
+  const fetchCustomSubcategories = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const categories = ['Tops', 'Bottoms'];
+      const fetched: {[key: string]: any[]} = {
+        'Tops': [],
+        'Bottoms': [],
+      };
+
+      for (const category of categories) {
+        try {
+          const response = await fetch(API_ENDPOINTS.subcategories(category), {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            fetched[category] = data.subcategories || [];
+          }
+        } catch (error) {
+          console.error(`Error fetching custom subcategories for ${category}:`, error);
+        }
+      }
+
+      setCustomSubcategories(fetched);
+    } catch (error) {
+      console.error('Error fetching custom subcategories:', error);
+    }
+  };
+
   useEffect(() => {
     loadWardrobeItems();
+    fetchCustomSubcategories();
   }, []);
 
   const loadWardrobeItems = async () => {

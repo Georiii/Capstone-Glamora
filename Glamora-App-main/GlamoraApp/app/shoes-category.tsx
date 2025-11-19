@@ -2,7 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter, usePathname } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { API_ENDPOINTS } from '../config/api';
 
 export default function ShoesCategory() {
@@ -17,15 +19,30 @@ export default function ShoesCategory() {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [customSubcategories, setCustomSubcategories] = useState<any[]>([]);
+  const [showAddSubcategoryModal, setShowAddSubcategoryModal] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState('');
+  const [newSubcategoryImage, setNewSubcategoryImage] = useState<string | null>(null);
+  const [creatingSubcategory, setCreatingSubcategory] = useState(false);
 
-  // Subcategories for Shoes
-  const subcategories = [
+  // Base subcategories for Shoes
+  const baseSubcategories = [
     { name: 'Sneakers', type: 'Sneakers', image: require('../assets/sneakers-sample.png') },
     { name: 'Heels', type: 'Heels', image: require('../assets/heels-sample.png') },
     { name: 'Boots', type: 'Boots', image: require('../assets/boots-sample.png') },
     { name: 'Sandals', type: 'Sandals', image: require('../assets/sandals-sample.png') },
     { name: 'Flats', type: 'Flats', image: require('../assets/flats-sample.png') },
     { name: 'Loafers', type: 'Loafers', image: require('../assets/loafers-sample.png') },
+  ];
+
+  // Merge base and custom subcategories
+  const subcategories = [
+    ...baseSubcategories,
+    ...customSubcategories.map(sub => ({
+      name: sub.name,
+      type: sub.type,
+      image: { uri: sub.imageUrl }
+    }))
   ];
 
   const handleSubcategoryPress = (subcategory: { name: string, type: string }) => {
@@ -84,12 +101,158 @@ export default function ShoesCategory() {
     }
   }, [categoryType]);
 
+  const fetchCustomSubcategories = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(API_ENDPOINTS.subcategories('Shoes'), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCustomSubcategories(data.subcategories || []);
+      }
+    } catch (error) {
+      console.error('Error fetching custom subcategories:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchWardrobe();
-  }, [fetchWardrobe]);
+    fetchCustomSubcategories();
+  }, [fetchWardrobe, fetchCustomSubcategories]);
 
   const handleAddMore = () => {
     router.push('/scan');
+  };
+
+  const convertFileToBase64 = async (uri: string): Promise<string> => {
+    if (uri.startsWith('data:')) {
+      return uri;
+    }
+
+    if (uri.startsWith('file://')) {
+      try {
+        if (Platform.OS === 'web') {
+          try {
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64data = reader.result as string;
+                resolve(base64data);
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } catch (fetchError) {
+            throw new Error('Cannot access local file on web.');
+          }
+        } else {
+          const base64 = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          const mimeType = uri.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+          return `data:${mimeType};base64,${base64}`;
+        }
+      } catch (error: any) {
+        throw new Error(error.message || 'Failed to process image file');
+      }
+    }
+
+    return uri;
+  };
+
+  const pickSubcategoryImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera roll permissions to add images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: false,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setNewSubcategoryImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const handleCreateSubcategory = async () => {
+    if (!newSubcategoryName.trim()) {
+      Alert.alert('Error', 'Please enter a subcategory name');
+      return;
+    }
+
+    if (!newSubcategoryImage) {
+      Alert.alert('Error', 'Please select an image for the subcategory');
+      return;
+    }
+
+    setCreatingSubcategory(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Please login again');
+        setCreatingSubcategory(false);
+        return;
+      }
+
+      // Convert image to base64 if needed
+      let imageData = newSubcategoryImage;
+      if (newSubcategoryImage.startsWith('file://')) {
+        imageData = await convertFileToBase64(newSubcategoryImage);
+      }
+
+      // Create subcategory type from name (remove spaces, special chars)
+      const subcategoryType = newSubcategoryName.trim().replace(/[^a-zA-Z0-9]/g, '');
+
+      const response = await fetch(API_ENDPOINTS.createSubcategory, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          categoryType: 'Shoes',
+          name: newSubcategoryName.trim(),
+          type: subcategoryType,
+          imageUrl: imageData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || 'Failed to create subcategory');
+      }
+
+      const data = await response.json();
+      setCustomSubcategories([...customSubcategories, data.subcategory]);
+      setShowAddSubcategoryModal(false);
+      setNewSubcategoryName('');
+      setNewSubcategoryImage(null);
+      Alert.alert('Success', 'Subcategory created successfully');
+    } catch (error: any) {
+      console.error('Error creating subcategory:', error);
+      Alert.alert('Error', error.message || 'Failed to create subcategory. Please try again.');
+    } finally {
+      setCreatingSubcategory(false);
+    }
   };
 
   const toggleItemSelection = (itemId: string) => {
@@ -203,7 +366,77 @@ export default function ShoesCategory() {
               <Text style={styles.subcategoryLabel}>{sub.name}</Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={styles.addSubcategoryCard}
+            onPress={() => setShowAddSubcategoryModal(true)}
+          >
+            <Ionicons name="add-circle-outline" size={40} color="#666" />
+            <Text style={styles.addSubcategoryLabel}>Add More</Text>
+          </TouchableOpacity>
         </View>
+        
+        {/* Add Subcategory Modal */}
+        <Modal
+          visible={showAddSubcategoryModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowAddSubcategoryModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Create New Subcategory</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowAddSubcategoryModal(false);
+                    setNewSubcategoryName('');
+                    setNewSubcategoryImage(null);
+                  }}
+                >
+                  <Ionicons name="close" size={28} color="#000" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                <Text style={styles.modalLabel}>Subcategory Name</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter subcategory name"
+                  value={newSubcategoryName}
+                  onChangeText={setNewSubcategoryName}
+                  maxLength={30}
+                />
+
+                <Text style={styles.modalLabel}>Subcategory Image</Text>
+                <TouchableOpacity
+                  style={styles.imagePickerButton}
+                  onPress={pickSubcategoryImage}
+                >
+                  {newSubcategoryImage ? (
+                    <Image source={{ uri: newSubcategoryImage }} style={styles.previewImage} />
+                  ) : (
+                    <View style={styles.imagePickerPlaceholder}>
+                      <Ionicons name="image-outline" size={40} color="#666" />
+                      <Text style={styles.imagePickerText}>Tap to select image</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.createButton, creatingSubcategory && styles.createButtonDisabled]}
+                  onPress={handleCreateSubcategory}
+                  disabled={creatingSubcategory}
+                >
+                  {creatingSubcategory ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.createButtonText}>Create</Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
         {/* Bottom Navigation (reuse from wardrobe) */}
         <View style={styles.navigation}>
           <TouchableOpacity style={styles.navItem} onPress={() => router.push('/wardrobe')}>
@@ -480,5 +713,112 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 12,
     padding: 4,
+  },
+  // Add Subcategory styles
+  addSubcategoryCard: {
+    width: 90,
+    alignItems: 'center',
+    margin: 12,
+    justifyContent: 'center',
+    minHeight: 120,
+  },
+  addSubcategoryLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#222',
+  },
+  modalBody: {
+    flex: 1,
+  },
+  modalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222',
+    marginBottom: 8,
+    marginTop: 10,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+    marginBottom: 15,
+  },
+  imagePickerButton: {
+    width: '100%',
+    height: 200,
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+  },
+  imagePickerPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  imagePickerText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  createButton: {
+    backgroundColor: '#8B4513',
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  createButtonDisabled: {
+    opacity: 0.6,
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

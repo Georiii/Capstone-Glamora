@@ -142,8 +142,8 @@ export default function ScannedClothes() {
   const [marketplaceDescription, setMarketplaceDescription] = useState('');
   const [marketplacePrice, setMarketplacePrice] = useState('');
 
-  // Category and subcategory mapping
-  const categoryData = {
+  // Base category and subcategory mapping
+  const baseCategoryData = {
     'Tops': [
       { name: 'T-shirts', type: 'T-shirt' },
       { name: 'Formals', type: 'Formals' },
@@ -174,6 +174,21 @@ export default function ScannedClothes() {
       { name: 'Hats', type: 'Hats' },
       { name: 'Sunglasses', type: 'Sunglasses' },
     ],
+  };
+
+  const [customSubcategories, setCustomSubcategories] = useState<{[key: string]: any[]}>({
+    'Tops': [],
+    'Bottoms': [],
+    'Shoes': [],
+    'Accessories': [],
+  });
+
+  // Merge base and custom subcategories
+  const categoryData: {[key: string]: { name: string, type: string }[]} = {
+    'Tops': [...baseCategoryData['Tops'], ...customSubcategories['Tops'].map(sub => ({ name: sub.name, type: sub.type }))],
+    'Bottoms': [...baseCategoryData['Bottoms'], ...customSubcategories['Bottoms'].map(sub => ({ name: sub.name, type: sub.type }))],
+    'Shoes': [...baseCategoryData['Shoes'], ...customSubcategories['Shoes'].map(sub => ({ name: sub.name, type: sub.type }))],
+    'Accessories': [...baseCategoryData['Accessories'], ...customSubcategories['Accessories'].map(sub => ({ name: sub.name, type: sub.type }))],
   };
 
   const occasionOptions = ['Birthdays', 'Weddings', 'Work', 'Casual', 'Party', 'Sports'];
@@ -455,6 +470,46 @@ export default function ScannedClothes() {
       }
     }
   };
+
+  const fetchCustomSubcategories = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const categories = ['Tops', 'Bottoms', 'Shoes', 'Accessories'];
+      const fetched: {[key: string]: any[]} = {
+        'Tops': [],
+        'Bottoms': [],
+        'Shoes': [],
+        'Accessories': [],
+      };
+
+      for (const category of categories) {
+        try {
+          const response = await fetch(API_ENDPOINTS.subcategories(category), {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            fetched[category] = data.subcategories || [];
+          }
+        } catch (error) {
+          console.error(`Error fetching custom subcategories for ${category}:`, error);
+        }
+      }
+
+      setCustomSubcategories(fetched);
+    } catch (error) {
+      console.error('Error fetching custom subcategories:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomSubcategories();
+  }, []);
 
   useEffect(() => {
     fetchMarketplaceItems();
