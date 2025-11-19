@@ -75,6 +75,20 @@ const userSchema = new mongoose.Schema({
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date },
   
+  // Push Notifications
+  notificationPreferences: {
+    messages: { type: Boolean, default: true },
+    announcements: { type: Boolean, default: true },
+    subscription: { type: Boolean, default: true },
+    punishments: { type: Boolean, default: true },
+    enabled: { type: Boolean, default: true }
+  },
+  deviceTokens: [{ 
+    token: { type: String, required: true },
+    platform: { type: String, enum: ['ios', 'android', 'web'], required: true },
+    registeredAt: { type: Date, default: Date.now }
+  }],
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

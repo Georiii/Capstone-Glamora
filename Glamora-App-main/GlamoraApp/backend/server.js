@@ -71,6 +71,30 @@ io.on('connection', (socket) => {
       
       console.log('✅ Message saved to database:', savedMessage._id);
       
+      // Send push notification to receiver
+      try {
+        const User = require('./models/User');
+        const { sendNotificationToUser } = require('./utils/notifications');
+        const receiverUser = await User.findById(toUserId);
+        if (receiverUser) {
+          await sendNotificationToUser(
+            receiverUser,
+            'messages',
+            `New message from ${savedMessage.senderId.name}`,
+            message.length > 50 ? message.substring(0, 50) + '...' : message,
+            {
+              type: 'message',
+              userId: fromUserId,
+              messageId: savedMessage._id.toString(),
+              senderName: savedMessage.senderId.name,
+            }
+          );
+        }
+      } catch (notifError) {
+        // Don't fail the message send if notification fails
+        console.error('Error sending push notification for socket message:', notifError);
+      }
+      
       // Send message only to the receiver (not the sender)
       socket.to(roomId).emit('new-message', {
         _id: savedMessage._id,
@@ -128,6 +152,7 @@ const policyRoutes = require('./routes/policy');
 const subscriptionRoutes = require('./routes/subscription');
 const paypalWebhookRoutes = require('./routes/paypal-webhook');
 const paypalPaymentRoutes = require('./routes/paypal-payment');
+const notificationRoutes = require('./routes/notifications');
 // Lightweight admin bridge routes to expose moderation endpoints and metrics
 const adminBridgeRoutes = require('./routes/admin-bridge');
 
@@ -155,6 +180,7 @@ app.use('/api/policy', policyRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/paypal', paypalWebhookRoutes);
 app.use('/api/paypal', paypalPaymentRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminBridgeRoutes);
 if (adminRoutes) {
   app.use('/api/admin', adminRoutes);

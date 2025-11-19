@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { JWT_SECRET } = require('../config/database');
 const { getSubscriptionDetails } = require('../utils/paypal');
+const { sendNotificationToUser } = require('../utils/notifications');
 
 const router = express.Router();
 
@@ -40,6 +41,55 @@ function normalizeSubscription(user) {
   }
 }
 
+async function handleSubscriptionNotifications(user) {
+  if (!user.subscription) {
+    return;
+  }
+
+  const { isSubscribed, expiresAt } = user.subscription;
+  if (isSubscribed && expiresAt) {
+    const expirationDate = new Date(expiresAt);
+    const now = new Date();
+    const daysUntilExpiration = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+    
+    // Check if subscription has expired
+    if (expirationDate < now) {
+      // Send expiration notification
+      try {
+        await sendNotificationToUser(
+          user,
+          'subscription',
+          'Subscription Expired',
+          'Your Glamora PLUS subscription has expired. Subscribe again to continue enjoying premium features.',
+          {
+            type: 'subscription',
+            action: 'expired',
+          }
+        );
+      } catch (notifError) {
+        console.error('Error sending subscription expiration notification:', notifError);
+      }
+    } else if (daysUntilExpiration <= 7 && daysUntilExpiration > 0) {
+      // Send warning notification if expiring within 7 days
+      try {
+        await sendNotificationToUser(
+          user,
+          'subscription',
+          'Subscription Expiring Soon',
+          `Your Glamora PLUS subscription will expire in ${daysUntilExpiration} day${daysUntilExpiration > 1 ? 's' : ''}. Renew now to continue enjoying premium features.`,
+          {
+            type: 'subscription',
+            action: 'expiring_soon',
+            daysRemaining: daysUntilExpiration,
+          }
+        );
+      } catch (notifError) {
+        console.error('Error sending subscription expiration warning:', notifError);
+      }
+    }
+  }
+}
+
 router.get('/status', auth, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -49,6 +99,7 @@ router.get('/status', auth, async (req, res) => {
 
     normalizeSubscription(user);
     await user.save();
+    await handleSubscriptionNotifications(user);
 
     res.json({
       isSubscribed: user.subscription?.isSubscribed || false,
@@ -109,6 +160,22 @@ router.post('/subscribe', auth, async (req, res) => {
     };
 
     await user.save();
+
+    // Send subscription activation notification
+    try {
+      await sendNotificationToUser(
+        user,
+        'subscription',
+        'Welcome to Glamora PLUS!',
+        'Your subscription has been activated. Enjoy unlimited wardrobe storage, outfit suggestions, and an ad-free experience!',
+        {
+          type: 'subscription',
+          action: 'activated',
+        }
+      );
+    } catch (notifError) {
+      console.error('Error sending subscription activation notification:', notifError);
+    }
 
     res.json({
       message: 'Subscription activated via PayPal.',

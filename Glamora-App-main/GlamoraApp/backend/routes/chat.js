@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Report = require('../models/Report');
 const ConversationContext = require('../models/ConversationContext');
 const { JWT_SECRET } = require('../config/database');
+const { sendNotificationToUser } = require('../utils/notifications');
 
 const router = express.Router();
 
@@ -86,6 +87,28 @@ router.post('/send', auth, async (req, res) => {
     // Populate sender and receiver info for response
     await message.populate('senderId', 'name email profilePicture');
     await message.populate('receiverId', 'name email profilePicture');
+
+    // Send push notification to receiver
+    try {
+      const receiverUser = await User.findById(receiverId);
+      if (receiverUser) {
+        await sendNotificationToUser(
+          receiverUser,
+          'messages',
+          `New message from ${message.senderId.name}`,
+          text.length > 50 ? text.substring(0, 50) + '...' : text,
+          {
+            type: 'message',
+            userId: senderId.toString(),
+            messageId: message._id.toString(),
+            senderName: message.senderId.name,
+          }
+        );
+      }
+    } catch (notifError) {
+      // Don't fail the message send if notification fails
+      console.error('Error sending push notification for message:', notifError);
+    }
 
     res.status(201).json({ message: 'Message sent successfully.', chatMessage: message });
   } catch (err) {

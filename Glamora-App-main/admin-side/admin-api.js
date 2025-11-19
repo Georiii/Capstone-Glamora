@@ -806,6 +806,26 @@ router.put('/reports/:id/restrict', adminAuth, async (req, res) => {
                         restrictionStartDate: now
                     });
                 }
+
+                // Send push notification
+                try {
+                    const { sendNotificationToUser } = require('../GlamoraApp/backend/utils/notifications');
+                    await sendNotificationToUser(
+                        reportedUser,
+                        'punishments',
+                        'Account Restricted',
+                        noticeMessage,
+                        {
+                            type: 'punishment',
+                            action: 'restricted',
+                            restrictionDuration,
+                            restrictionReason,
+                            restrictionEndDate: restrictionEndDate ? restrictionEndDate.toISOString() : null,
+                        }
+                    );
+                } catch (pushError) {
+                    console.error('Failed to send push notification for restriction:', pushError);
+                }
             }
         } catch (notifyError) {
             console.error('Failed to notify user about restriction:', notifyError);

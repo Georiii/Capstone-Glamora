@@ -109,6 +109,14 @@ export const API_ENDPOINTS = {
 
   // Policies
   policies: `${API_BASE_URL}/api/policy`,
+
+  // Notifications
+  notifications: {
+    register: `${API_BASE_URL}/api/notifications/register`,
+    preferences: `${API_BASE_URL}/api/notifications/preferences`,
+    unregister: `${API_BASE_URL}/api/notifications/unregister`,
+    send: `${API_BASE_URL}/api/notifications/send`,
+  },
 };
 
 // Helper function to get full URL for any endpoint
