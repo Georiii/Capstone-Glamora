@@ -5,11 +5,13 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import RateUsModal from './components/RateUsModal';
 import { useSocket } from './contexts/SocketContext';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function Settings() {
   const router = useRouter();
   const [showRateUsModal, setShowRateUsModal] = useState(false);
   const { disconnectSocket } = useSocket();
+  const { theme } = useTheme();
 
   const handleLogout = async () => {
     console.log('🔌 Logout button clicked');
@@ -57,46 +59,51 @@ export default function Settings() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.headerText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Settings</Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Settings Options */}
       <View style={styles.settingsContainer}>
-        <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/edit-profile')}>
-          <Text style={styles.settingText}>Account profile</Text>
-          <Ionicons name="chevron-forward" size={20} color="#666" />
+        <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.divider }]} onPress={() => router.push('/edit-profile')}>
+          <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Account profile</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.secondaryText} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/security')}>
-          <Text style={styles.settingText}>Security</Text>
-          <Ionicons name="chevron-forward" size={20} color="#666" />
+        <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.divider }]} onPress={() => router.push('/security')}>
+          <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Security</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.secondaryText} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/manage-posts')}>
-          <Text style={styles.settingText}>Manage post</Text>
-          <Ionicons name="chevron-forward" size={20} color="#666" />
+        <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.divider }]} onPress={() => router.push('/manage-posts')}>
+          <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Manage post</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.secondaryText} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/notification')}>
-          <Text style={styles.settingText}>Notification</Text>
-          <Ionicons name="chevron-forward" size={20} color="#666" />
+        <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.divider }]} onPress={() => router.push('/themes')}>
+          <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Change Theme</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.secondaryText} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.settingItem} onPress={handleRateUs}>
-          <Text style={styles.settingText}>Ratings</Text>
-          <Ionicons name="chevron-forward" size={20} color="#666" />
+        <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.divider }]} onPress={() => router.push('/notification')}>
+          <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Notification</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.secondaryText} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
-          <Text style={styles.settingText}>Logout</Text>
-          <Ionicons name="chevron-forward" size={20} color="#666" />
+        <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.divider }]} onPress={handleRateUs}>
+          <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Ratings</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.secondaryText} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.divider }]} onPress={handleLogout}>
+          <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Logout</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.secondaryText} />
         </TouchableOpacity>
       </View>
 
@@ -113,7 +120,6 @@ export default function Settings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4C2C2',
   },
   header: {
     flexDirection: 'row',
@@ -145,11 +151,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
   },
   settingText: {
     fontSize: 18,
-    color: '#333',
     fontWeight: '500',
   },
 });
