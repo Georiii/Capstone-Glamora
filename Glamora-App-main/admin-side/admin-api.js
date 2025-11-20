@@ -393,9 +393,10 @@ router.post('/announcements', adminAuth, async (req, res) => {
         await ChatMessage.insertMany(chatPayload, { ordered: false });
 
         const io = req.app?.get?.('io');
+        const senderId = String(adminUser._id);
+        const senderName = adminUser.name || 'Admin';
+        
         if (io) {
-            const senderId = String(adminUser._id);
-            const senderName = adminUser.name || 'Admin';
             recipients.forEach((user) => {
                 const receiverId = String(user._id);
                 const roomId = [senderId, receiverId].sort().join('-');
@@ -417,6 +418,43 @@ router.post('/announcements', adminAuth, async (req, res) => {
                     timestamp: createdAt
                 });
             });
+        }
+
+        // Send push notifications to all recipients
+        try {
+            const { sendNotificationToUser } = require('../GlamoraApp/backend/utils/notifications');
+            
+            // Fetch full user documents with notification preferences and device tokens
+            const fullRecipients = await User.find({ 
+                _id: { $in: recipients.map(u => u._id) },
+                role: 'user', 
+                isActive: true 
+            }).select('_id name email notificationPreferences deviceTokens');
+            
+            // Send push notification to each user
+            for (const user of fullRecipients) {
+                try {
+                    await sendNotificationToUser(
+                        user,
+                        'announcements',
+                        `Announcement from ${senderName}`,
+                        trimmedMessage.length > 100 ? trimmedMessage.substring(0, 100) + '...' : trimmedMessage,
+                        {
+                            type: 'announcement',
+                            senderId,
+                            senderName,
+                            message: trimmedMessage,
+                            timestamp: createdAt.toISOString(),
+                        }
+                    );
+                } catch (userNotifError) {
+                    // Continue with other users if one fails
+                    console.error(`Failed to send push notification to user ${user._id}:`, userNotifError);
+                }
+            }
+        } catch (pushError) {
+            // Don't fail the entire request if push notifications fail
+            console.error('Failed to send push notifications for announcement:', pushError);
         }
 
         res.json({

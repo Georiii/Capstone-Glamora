@@ -771,6 +771,8 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     maxHeight: '80%',
     padding: 20,
+    flexDirection: 'column',
+    minHeight: 300,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -788,6 +790,7 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     flex: 1,
+    minHeight: 200,
   },
   modalLabel: {
     fontSize: 16,

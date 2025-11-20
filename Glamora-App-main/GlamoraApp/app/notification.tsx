@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useTheme } from './contexts/ThemeContext';
@@ -14,12 +14,15 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
 export default function Notification() {
   const router = useRouter();
   const { theme } = useTheme();
+  // expoPushToken is stored for potential future use (debugging, display, etc.)
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [messagesEnabled, setMessagesEnabled] = useState(true);
@@ -27,50 +30,44 @@ export default function Notification() {
   const [subscriptionEnabled, setSubscriptionEnabled] = useState(true);
   const [punishmentsEnabled, setPunishmentsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
 
-  useEffect(() => {
-    registerForPushNotificationsAsync();
-    loadNotificationPreferences();
-
-    // Listen for notifications received while app is foregrounded
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('📬 Notification received:', notification);
-    });
-
-    // Listen for user tapping on notification
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('👆 Notification tapped:', response);
-      const data = response.notification.request.content.data;
-      
-      // Handle navigation based on notification type
-      if (data?.type === 'message') {
-        // Navigate to chat
-        router.push(`/message-user?userId=${data.userId}`);
-      } else if (data?.type === 'announcement') {
-        // Navigate to announcements or home
-        router.push('/');
-      } else if (data?.type === 'subscription') {
-        // Navigate to premium page
-        router.push('/premium');
-      } else if (data?.type === 'punishment') {
-        // Navigate to profile or show alert
-        Alert.alert('Account Restriction', data.message || 'Your account has been restricted.');
+  const registerDeviceToken = useCallback(async (token: string) => {
+    try {
+      const userToken = await AsyncStorage.getItem('token');
+      if (!userToken) {
+        console.log('⚠️ No user token found, skipping device registration');
+        return;
       }
-    });
 
-    return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+      const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
+
+      const response = await fetch(API_ENDPOINTS.notifications.register, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`,
+        },
+        body: JSON.stringify({
+          token,
+          platform,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to register device token:', errorText);
+        return;
       }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
-    };
+
+      console.log('✅ Device token registered successfully');
+    } catch (error) {
+      console.error('Error registering device token:', error);
+    }
   }, []);
 
-  const registerForPushNotificationsAsync = async () => {
+  const registerForPushNotificationsAsync = useCallback(async () => {
     try {
       // Check if device is physical (not simulator/emulator)
       if (Platform.OS === 'web') {
@@ -118,43 +115,9 @@ export default function Notification() {
     } catch (error) {
       console.error('Error registering for push notifications:', error);
     }
-  };
+  }, [registerDeviceToken]);
 
-  const registerDeviceToken = async (token: string) => {
-    try {
-      const userToken = await AsyncStorage.getItem('token');
-      if (!userToken) {
-        console.log('⚠️ No user token found, skipping device registration');
-        return;
-      }
-
-      const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
-
-      const response = await fetch(API_ENDPOINTS.notifications.register, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`,
-        },
-        body: JSON.stringify({
-          token,
-          platform,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to register device token:', errorText);
-        return;
-      }
-
-      console.log('✅ Device token registered successfully');
-    } catch (error) {
-      console.error('Error registering device token:', error);
-    }
-  };
-
-  const loadNotificationPreferences = async () => {
+  const loadNotificationPreferences = useCallback(async () => {
     try {
       setLoading(true);
       const userToken = await AsyncStorage.getItem('token');
@@ -188,7 +151,47 @@ export default function Notification() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    registerForPushNotificationsAsync();
+    loadNotificationPreferences();
+
+    // Listen for notifications received while app is foregrounded
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      console.log('📬 Notification received:', notification);
+    });
+
+    // Listen for user tapping on notification
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('👆 Notification tapped:', response);
+      const data = response.notification.request.content.data;
+      
+      // Handle navigation based on notification type
+      if (data?.type === 'message') {
+        // Navigate to chat
+        router.push(`/message-user?userId=${data.userId}`);
+      } else if (data?.type === 'announcement') {
+        // Navigate to announcements or home
+        router.push('/');
+      } else if (data?.type === 'subscription') {
+        // Navigate to premium page
+        router.push('/premium');
+      } else if (data?.type === 'punishment') {
+        // Navigate to profile or show alert
+        Alert.alert('Account Restriction', String(data.message || 'Your account has been restricted.'));
+      }
+    });
+
+    return () => {
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
+    };
+  }, [router, registerForPushNotificationsAsync, loadNotificationPreferences]);
 
   const updateNotificationPreferences = async (updates: {
     enabled?: boolean;
@@ -256,7 +259,16 @@ export default function Notification() {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
         <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => {
+            try {
+              // Navigate to settings page instead of using router.back() to avoid navigation errors
+              router.push('/settings');
+            } catch (error) {
+              console.error('Navigation error:', error);
+              // Fallback to home if settings route fails
+              router.push('/');
+            }
+          }}>
             <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Notification</Text>
@@ -273,7 +285,16 @@ export default function Notification() {
     <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => {
+          try {
+            // Navigate to settings page instead of using router.back() to avoid navigation errors
+            router.push('/settings');
+          } catch (error) {
+            console.error('Navigation error:', error);
+            // Fallback to home if settings route fails
+            router.push('/');
+          }
+        }}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Notification</Text>
