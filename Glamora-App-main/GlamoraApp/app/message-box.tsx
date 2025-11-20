@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useSocket } from './contexts/SocketContext';
+import { useTheme } from './contexts/ThemeContext';
 
 interface Conversation {
   _id: string;
@@ -43,6 +44,7 @@ interface Conversation {
 
 export default function MessageBox() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -240,13 +242,13 @@ export default function MessageBox() {
 
   const renderConversation = ({ item }: { item: Conversation }) => (
     <TouchableOpacity
-      style={styles.conversationItem}
+      style={[styles.conversationItem, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }]}
       onPress={() => handleConversationPress(item)}
     >
       <View style={styles.avatarContainer}>
         {item.user.name === 'Admin' ? (
-          <View style={styles.adminIcon}>
-            <Ionicons name="notifications" size={20} color="#666" />
+          <View style={[styles.adminIcon, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+            <Ionicons name="notifications" size={20} color={theme.colors.secondaryText} />
           </View>
         ) : (
           <Image
@@ -260,8 +262,8 @@ export default function MessageBox() {
       
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
-          <Text style={styles.userName}>{item.user.name}</Text>
-          <Text style={styles.timestamp}>
+          <Text style={[styles.userName, { color: theme.colors.primaryText }]}>{item.user.name}</Text>
+          <Text style={[styles.timestamp, { color: theme.colors.secondaryText }]}>
             {formatTimestamp(item.lastMessage.timestamp)}
           </Text>
         </View>
@@ -269,13 +271,14 @@ export default function MessageBox() {
         <View style={styles.messagePreview}>
           <Text style={[
             styles.lastMessage, 
-            item.unreadCount > 0 && styles.unreadMessage
+            { color: theme.colors.secondaryText },
+            item.unreadCount > 0 && [styles.unreadMessage, { color: theme.colors.accent }]
           ]} numberOfLines={1}>
             {item.lastMessage.text}
           </Text>
           {item.unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadCount}>{item.unreadCount}</Text>
+            <View style={[styles.unreadBadge, { backgroundColor: theme.colors.accent }]}>
+              <Text style={[styles.unreadCount, { color: theme.colors.buttonText }]}>{item.unreadCount}</Text>
             </View>
           )}
         </View>
@@ -283,7 +286,7 @@ export default function MessageBox() {
         {/* Message status indicator */}
         <View style={styles.messageStatus}>
           {item.lastMessage.senderId === currentUser?.id ? (
-            <Ionicons name="checkmark-done" size={14} color="#4CAF50" />
+            <Ionicons name="checkmark-done" size={14} color={theme.colors.accent} />
           ) : null}
         </View>
       </View>
@@ -292,31 +295,31 @@ export default function MessageBox() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B9D" />
-        <Text style={styles.loadingText}>Loading conversations...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bodyBackground }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <Text style={[styles.loadingText, { color: theme.colors.secondaryText }]}>Loading conversations...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>MESSAGES</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>MESSAGES</Text>
         <View style={styles.headerRight} />
       </View>
 
       {/* Real-time Connection Status */}
       {socket && (
-        <View style={[styles.connectionStatus, { backgroundColor: isConnected ? '#4CAF50' : '#FF9800' }]}>
-          <Text style={styles.connectionStatusText}>
+        <View style={[styles.connectionStatus, { backgroundColor: isConnected ? theme.colors.accent : '#FF9800' }]}>
+          <Text style={[styles.connectionStatusText, { color: theme.colors.buttonText }]}>
             {isConnected ? '🟢 Real-time updates active' : '🟡 Connecting...'}
           </Text>
         </View>
@@ -333,15 +336,15 @@ export default function MessageBox() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#FF6B9D']}
-            tintColor="#FF6B9D"
+            colors={[theme.colors.accent]}
+            tintColor={theme.colors.accent}
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubbles-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyTitle}>No conversations yet</Text>
-            <Text style={styles.emptySubtitle}>
+            <Ionicons name="chatbubbles-outline" size={64} color={theme.colors.secondaryText} />
+            <Text style={[styles.emptyTitle, { color: theme.colors.primaryText }]}>No conversations yet</Text>
+            <Text style={[styles.emptySubtitle, { color: theme.colors.secondaryText }]}>
               Start messaging users from the marketplace!
             </Text>
           </View>

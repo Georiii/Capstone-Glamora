@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTheme } from './contexts/ThemeContext';
 
 interface OutfitCombination {
   id: string;
@@ -73,6 +74,7 @@ interface OutfitCombination {
 
 export default function OutfitSuggestions() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [outfits, setOutfits] = useState<OutfitCombination[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -110,26 +112,26 @@ export default function OutfitSuggestions() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading outfit suggestions...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bodyBackground }]}>
+        <Text style={[styles.loadingText, { color: theme.colors.primaryText }]}>Loading outfit suggestions...</Text>
       </View>
     );
   }
 
   if (outfits.length === 0) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.headerBackground, borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => (router as any).push('/combine-outfits')}>
-            <Ionicons name="arrow-back" size={24} color="#4B2E2B" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Outfit Suggestions</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Outfit Suggestions</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No outfit suggestions found</Text>
-          <TouchableOpacity style={styles.backToCombineButton} onPress={() => router.back()}>
-            <Text style={styles.backToCombineButtonText}>Go Back to Combine</Text>
+          <Text style={[styles.emptyText, { color: theme.colors.primaryText }]}>No outfit suggestions found</Text>
+          <TouchableOpacity style={[styles.backToCombineButton, { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border }]} onPress={() => router.back()}>
+            <Text style={[styles.backToCombineButtonText, { color: theme.colors.primaryText }]}>Go Back to Combine</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -137,27 +139,27 @@ export default function OutfitSuggestions() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Weather Banner */}
       {outfits[0]?.weatherMeta ? (
-        <View style={styles.weatherBanner}>
+        <View style={[styles.weatherBanner, { backgroundColor: theme.colors.containerBackground }]}>
           <View style={styles.weatherLeft}>
             {outfits[0].weatherMeta?.icon ? (
               <Image source={{ uri: `https:${outfits[0].weatherMeta.icon}` }} style={styles.weatherIcon} />
             ) : (
-              <Ionicons name="partly-sunny" size={20} color="#4B2E2B" />
+              <Ionicons name="partly-sunny" size={20} color={theme.colors.icon} />
             )}
-            <Text style={styles.weatherText}>
+            <Text style={[styles.weatherText, { color: theme.colors.primaryText }]}>
               {outfits[0].weatherMeta?.location || 'Current location'} • {outfits[0].weatherMeta?.description || outfits[0].weather}
             </Text>
           </View>
-          <Text style={styles.weatherTemp}>{outfits[0].weatherMeta?.temperature}°C</Text>
+          <Text style={[styles.weatherTemp, { color: theme.colors.primaryText }]}>{outfits[0].weatherMeta?.temperature}°C</Text>
         </View>
       ) : (
-        <View style={styles.weatherBanner}>
+        <View style={[styles.weatherBanner, { backgroundColor: theme.colors.containerBackground }]}>
           <View style={styles.weatherLeft}>
-            <Ionicons name="information-circle" size={20} color="#4B2E2B" />
-            <Text style={styles.weatherText}>
+            <Ionicons name="information-circle" size={20} color={theme.colors.icon} />
+            <Text style={[styles.weatherText, { color: theme.colors.primaryText }]}>
               Weather data unavailable • Using general recommendations
             </Text>
           </View>
@@ -165,11 +167,11 @@ export default function OutfitSuggestions() {
       )}
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground, borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => (router as any).push('/combine-outfits')}>
-          <Ionicons name="arrow-back" size={24} color="#4B2E2B" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Outfit Suggestions</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Outfit Suggestions</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -178,20 +180,20 @@ export default function OutfitSuggestions() {
         {outfits.map((outfit, index) => (
           <TouchableOpacity 
             key={outfit.id} 
-            style={styles.outfitCard}
+            style={[styles.outfitCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}
             onPress={() => handleOutfitPress(outfit)}
             activeOpacity={0.7}
           >
             {/* Outfit Header */}
             <View style={styles.outfitHeader}>
               <View style={styles.outfitTitleContainer}>
-                <Text style={styles.outfitName}>
+                <Text style={[styles.outfitName, { color: theme.colors.primaryText }]}>
                   {outfit.name}
-                  <Text style={styles.weatherOptimizedLabel}>  • Weather-Optimized Outfit</Text>
+                  <Text style={[styles.weatherOptimizedLabel, { color: theme.colors.secondaryText }]}>  • Weather-Optimized Outfit</Text>
                 </Text>
               </View>
-              <View style={styles.outfitBadge}>
-                <Text style={styles.outfitBadgeText}>{outfit.occasion}</Text>
+              <View style={[styles.outfitBadge, { backgroundColor: theme.colors.buttonBackground }]}>
+                <Text style={[styles.outfitBadgeText, { color: theme.colors.buttonText }]}>{outfit.occasion}</Text>
               </View>
             </View>
 
@@ -205,8 +207,8 @@ export default function OutfitSuggestions() {
                   onError={() => console.log('Top image failed to load:', outfit.top.imageUrl)}
                 />
                 {!outfit.top.imageUrl && (
-                  <View style={[styles.outfitImage, styles.outfitImagePlaceholder]}>
-                    <Ionicons name="shirt" size={24} color="#999" />
+                  <View style={[styles.outfitImage, styles.outfitImagePlaceholder, { backgroundColor: theme.colors.containerBackground }]}>
+                    <Ionicons name="shirt" size={24} color={theme.colors.secondaryText} />
                   </View>
                 )}
               </View>
@@ -218,8 +220,8 @@ export default function OutfitSuggestions() {
                   onError={() => console.log('Bottom image failed to load:', outfit.bottom.imageUrl)}
                 />
                 {!outfit.bottom.imageUrl && (
-                  <View style={[styles.outfitImage, styles.outfitImagePlaceholder]}>
-                    <Ionicons name="shirt" size={24} color="#999" />
+                  <View style={[styles.outfitImage, styles.outfitImagePlaceholder, { backgroundColor: theme.colors.containerBackground }]}>
+                    <Ionicons name="shirt" size={24} color={theme.colors.secondaryText} />
                   </View>
                 )}
               </View>
@@ -238,7 +240,7 @@ export default function OutfitSuggestions() {
 
             {/* Quick Preview Info */}
             <View style={styles.quickPreview}>
-              <Text style={styles.quickPreviewText}>
+              <Text style={[styles.quickPreviewText, { color: theme.colors.secondaryText }]}>
                 {outfit.top.clothName} + {outfit.bottom.clothName}
                 {outfit.shoes && ` + ${outfit.shoes.clothName}`}
                 {outfit.accessories && outfit.accessories.length > 0 && ` + ${outfit.accessories.length} accessories`}
@@ -247,18 +249,18 @@ export default function OutfitSuggestions() {
 
             {/* Tap to view details hint */}
             <View style={styles.tapHint}>
-              <Ionicons name="chevron-forward" size={16} color="#666" />
-              <Text style={styles.tapHintText}>Tap to view details</Text>
+              <Ionicons name="chevron-forward" size={16} color={theme.colors.secondaryText} />
+              <Text style={[styles.tapHintText, { color: theme.colors.secondaryText }]}>Tap to view details</Text>
             </View>
           </TouchableOpacity>
         ))}
 
         {/* View All Outfits Button */}
         <TouchableOpacity 
-          style={styles.viewAllButton}
+          style={[styles.viewAllButton, { backgroundColor: theme.colors.buttonBackground }]}
           onPress={() => (router as any).push('/outfit-history')}
         >
-          <Text style={styles.viewAllButtonText}>View Combine History</Text>
+          <Text style={[styles.viewAllButtonText, { color: theme.colors.buttonText }]}>View Combine History</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

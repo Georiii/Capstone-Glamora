@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 // Helper function to check if URI is local
 const isLocalUri = (uri?: string | null): boolean => {
@@ -40,6 +41,7 @@ const uploadImageToCloudinary = async (uri: string, folder: string, token: strin
 
 export default function ItemDetail() {
   const router = useRouter();
+  const { theme } = useTheme();
   const params = useLocalSearchParams();
   const { itemId, imageUrl, clothName, description, occasion, category, weather, style, color, categories } = params;
   const itemIdStr = itemId as string;
@@ -270,49 +272,49 @@ export default function ItemDetail() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
       </View>
     );
   }
 
   if (!imageSrc || !clothNameStr) {
     return (
-      <View style={styles.container}>
-        <Text>Item not found</Text>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
+        <Text style={{ color: theme.colors.primaryText }}>Item not found</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       <ScrollView style={styles.scrollView}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color="#000" />
+            <Ionicons name="arrow-back" size={28} color={theme.colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.title}>{categoryStr || 'Item'}</Text>
+          <Text style={[styles.title, { color: theme.colors.headerText }]}>{categoryStr || 'Item'}</Text>
           <TouchableOpacity onPress={handleDelete}>
-            <Ionicons name="trash" size={24} color="#E74C3C" />
+            <Ionicons name="trash" size={24} color={theme.colors.accent} />
           </TouchableOpacity>
         </View>
 
         {/* Image */}
-        <Image source={{ uri: imageSrc }} style={styles.image} />
+        <Image source={{ uri: imageSrc }} style={[styles.image, { borderColor: theme.colors.border }]} />
 
         {/* Details */}
-        <Text style={styles.clothName}>{clothNameStr}</Text>
-        <Text style={styles.description}>{descriptionStr}</Text>
+        <Text style={[styles.clothName, { color: theme.colors.primaryText }]}>{clothNameStr}</Text>
+        <Text style={[styles.description, { color: theme.colors.secondaryText }]}>{descriptionStr}</Text>
         
         {/* Categories Tags */}
         {categoriesArray.length > 0 && (
           <View style={styles.tagSection}>
-            <Text style={styles.tagSectionLabel}>Categories</Text>
+            <Text style={[styles.tagSectionLabel, { color: theme.colors.primaryText }]}>Categories</Text>
             <View style={styles.tagRow}>
               {categoriesArray.map((cat, index) => (
-                <View key={index} style={[styles.tagPill, { marginHorizontal: 8, marginBottom: 8 }]}>
-                  <Text style={styles.tagText}>{cat.trim()}</Text>
+                <View key={index} style={[styles.tagPill, { marginHorizontal: 8, marginBottom: 8, backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+                  <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{cat.trim()}</Text>
                 </View>
               ))}
             </View>
@@ -323,44 +325,44 @@ export default function ItemDetail() {
         <View style={styles.tagRow}>
           {occasionStr && (
             <View style={[styles.tagBlock, { marginHorizontal: 8, marginBottom: 8 }]}>
-              <Text style={styles.tagLabel}>Occasion</Text>
-              <View style={styles.tagPill}>
-                <Text style={styles.tagText}>{occasionStr}</Text>
+              <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Occasion</Text>
+              <View style={[styles.tagPill, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+                <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{occasionStr}</Text>
               </View>
             </View>
           )}
           {weatherStr && (
             <View style={[styles.tagBlock, { marginHorizontal: 8, marginBottom: 8 }]}>
-              <Text style={styles.tagLabel}>Weather</Text>
-              <View style={styles.tagPill}>
-                <Text style={styles.tagText}>{weatherStr}</Text>
+              <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Weather</Text>
+              <View style={[styles.tagPill, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+                <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{weatherStr}</Text>
               </View>
             </View>
           )}
           {styleStr && (
             <View style={[styles.tagBlock, { marginHorizontal: 8, marginBottom: 8 }]}>
-              <Text style={styles.tagLabel}>Style</Text>
-              <View style={styles.tagPill}>
-                <Text style={styles.tagText}>{styleStr}</Text>
+              <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Style</Text>
+              <View style={[styles.tagPill, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+                <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{styleStr}</Text>
               </View>
             </View>
           )}
           {colorStr && (
             <View style={[styles.tagBlock, { marginHorizontal: 8, marginBottom: 8 }]}>
-              <Text style={styles.tagLabel}>Color</Text>
-              <View style={styles.tagPill}>
-                <Text style={styles.tagText}>{colorStr}</Text>
+              <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Color</Text>
+              <View style={[styles.tagPill, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+                <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{colorStr}</Text>
               </View>
             </View>
           )}
         </View>
 
         {/* Post to Marketplace Button */}
-        <TouchableOpacity style={styles.marketButton} onPress={() => {
+        <TouchableOpacity style={[styles.marketButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={() => {
           setShowMarketModal(true);
           setPostSuccess(false);
         }}>
-          <Text style={styles.marketButtonText}>Post to Marketplace</Text>
+          <Text style={[styles.marketButtonText, { color: theme.colors.buttonText }]}>Post to Marketplace</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -371,50 +373,50 @@ export default function ItemDetail() {
         animationType="fade"
         onRequestClose={() => setShowMarketModal(false)}
       >
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={styles.marketModalContent}>
+        <KeyboardAvoidingView style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[styles.marketModalContent, { backgroundColor: theme.colors.containerBackground }]}>
             <TouchableOpacity style={styles.closeButton} onPress={() => setShowMarketModal(false)}>
-              <Ionicons name="close" size={24} color="#333" />
+              <Ionicons name="close" size={24} color={theme.colors.icon} />
             </TouchableOpacity>
-            <Text style={styles.marketModalTitle}>Marketplace Details</Text>
+            <Text style={[styles.marketModalTitle, { color: theme.colors.primaryText }]}>Marketplace Details</Text>
             
             <TextInput
-              style={styles.marketInput}
+              style={[styles.marketInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               placeholder="Name"
               value={marketName}
               onChangeText={setMarketName}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.placeholderText}
             />
             
             <TextInput
-              style={styles.marketTextarea}
+              style={[styles.marketTextarea, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               placeholder="Description"
               value={marketDesc}
               onChangeText={setMarketDesc}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.placeholderText}
               multiline
               numberOfLines={3}
             />
             
             <TextInput
-              style={styles.marketInput}
+              style={[styles.marketInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               placeholder="Price"
               value={marketPrice}
               onChangeText={setMarketPrice}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
             
-            <TouchableOpacity style={styles.marketPostButton} onPress={handlePostToMarketplace} disabled={loading || postSuccess}>
+            <TouchableOpacity style={[styles.marketPostButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={handlePostToMarketplace} disabled={loading || postSuccess}>
               {loading ? (
                 <View style={styles.buttonLoadingContainer}>
-                  <ActivityIndicator size="small" color="#fff" />
-                  <Text style={styles.marketPostButtonText}>Posting...</Text>
+                  <ActivityIndicator size="small" color={theme.colors.buttonText} />
+                  <Text style={[styles.marketPostButtonText, { color: theme.colors.buttonText }]}>Posting...</Text>
                 </View>
               ) : postSuccess ? (
-                <Text style={styles.marketPostButtonText}>Posted ✓</Text>
+                <Text style={[styles.marketPostButtonText, { color: theme.colors.buttonText }]}>Posted ✓</Text>
               ) : (
-                <Text style={styles.marketPostButtonText}>Post</Text>
+                <Text style={[styles.marketPostButtonText, { color: theme.colors.buttonText }]}>Post</Text>
               )}
             </TouchableOpacity>
           </View>

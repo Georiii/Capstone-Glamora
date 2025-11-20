@@ -15,9 +15,11 @@ import {
     View
 } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function ResetPassword() {
   const router = useRouter();
+  const { theme } = useTheme();
   const { token } = useLocalSearchParams();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -129,39 +131,39 @@ export default function ResetPassword() {
 
   if (isVerifying) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4B2E2B" />
-        <Text style={styles.loadingText}>Verifying reset link...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bodyBackground }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <Text style={[styles.loadingText, { color: theme.colors.primaryText }]}>Verifying reset link...</Text>
       </View>
     );
   }
 
   if (!tokenValid) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           
-          <View style={styles.errorContainer}>
+          <View style={[styles.errorContainer, { backgroundColor: theme.colors.containerBackground }]}>
             <Text style={styles.errorIcon}>⚠️</Text>
-            <Text style={styles.errorTitle}>Link Expired</Text>
-            <Text style={styles.errorMessage}>
+            <Text style={[styles.errorTitle, { color: theme.colors.primaryText }]}>Link Expired</Text>
+            <Text style={[styles.errorMessage, { color: theme.colors.secondaryText }]}>
               This password reset link has expired or is invalid. 
               Please request a new one to reset your password.
             </Text>
           </View>
 
           <TouchableOpacity 
-            style={styles.button} 
+            style={[styles.button, { backgroundColor: theme.colors.buttonBackground }]} 
             onPress={() => router.push('/forgotpass')}
           >
-            <Text style={styles.buttonText}>Request New Reset Link</Text>
+            <Text style={[styles.buttonText, { color: theme.colors.buttonText }]}>Request New Reset Link</Text>
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Remember your password? </Text>
+            <Text style={[styles.footerText, { color: theme.colors.secondaryText }]}>Remember your password? </Text>
             <TouchableOpacity onPress={() => router.push('/login')}>
-              <Text style={styles.loginText}>Login</Text>
+              <Text style={[styles.loginText, { color: theme.colors.linkText }]}>Login</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -171,22 +173,22 @@ export default function ResetPassword() {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container} 
+      style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
         
-        <Text style={styles.header}>Reset Password</Text>
-        <Text style={styles.subtext}>
+        <Text style={[styles.header, { color: theme.colors.primaryText }]}>Reset Password</Text>
+        <Text style={[styles.subtext, { color: theme.colors.secondaryText }]}>
           Enter your new password for {userEmail}
         </Text>
 
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
             placeholder="New Password"
-            placeholderTextColor="rgba(255, 255, 255, 0.7)"
+            placeholderTextColor={theme.colors.placeholderText}
             value={newPassword}
             onChangeText={setNewPassword}
             secureTextEntry
@@ -194,9 +196,9 @@ export default function ResetPassword() {
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
             placeholder="Confirm New Password"
-            placeholderTextColor="rgba(255, 255, 255, 0.7)"
+            placeholderTextColor={theme.colors.placeholderText}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
@@ -205,21 +207,21 @@ export default function ResetPassword() {
         </View>
 
         <TouchableOpacity 
-          style={[styles.resetButton, isLoading && styles.resetButtonDisabled]} 
+          style={[styles.resetButton, isLoading && styles.resetButtonDisabled, { backgroundColor: theme.colors.buttonBackground }]} 
           onPress={handleResetPassword}
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#000" />
+            <ActivityIndicator size="small" color={theme.colors.buttonText} />
           ) : (
-            <Text style={styles.resetButtonText}>Reset Password</Text>
+            <Text style={[styles.resetButtonText, { color: theme.colors.buttonText }]}>Reset Password</Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Remember your password? </Text>
+          <Text style={[styles.footerText, { color: theme.colors.secondaryText }]}>Remember your password? </Text>
           <TouchableOpacity onPress={() => router.push('/login')}>
-            <Text style={styles.loginText}>Login</Text>
+            <Text style={[styles.loginText, { color: theme.colors.linkText }]}>Login</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -234,25 +236,25 @@ export default function ResetPassword() {
           router.push('/login');
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.successIconContainer}>
-              <Text style={styles.successIcon}>✓</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay }]}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.colors.containerBackground }]}>
+            <View style={[styles.successIconContainer, { backgroundColor: theme.colors.accent }]}>
+              <Text style={[styles.successIcon, { color: theme.colors.buttonText }]}>✓</Text>
             </View>
             
-            <Text style={styles.modalTitle}>Success!</Text>
-            <Text style={styles.modalMessage}>
+            <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>Success!</Text>
+            <Text style={[styles.modalMessage, { color: theme.colors.secondaryText }]}>
               Your password has been reset successfully. You can now log in with your new password.
             </Text>
             
             <TouchableOpacity 
-              style={styles.doneButton}
+              style={[styles.doneButton, { backgroundColor: theme.colors.buttonBackground }]}
               onPress={() => {
                 setShowSuccessModal(false);
                 router.push('/login');
               }}
             >
-              <Text style={styles.doneButtonText}>Done</Text>
+              <Text style={[styles.doneButtonText, { color: theme.colors.buttonText }]}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>

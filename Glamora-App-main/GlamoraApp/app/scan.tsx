@@ -4,10 +4,12 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from './contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
 export default function Scan() {
+  const { theme } = useTheme();
   const [image, setImage] = useState<string | null>(null);
   const [facing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
@@ -50,17 +52,17 @@ export default function Scan() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.bodyBackground} />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.push('/wardrobe')}>
-          <Ionicons name="close" size={24} color="#fff" />
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.colors.containerBackground }]} onPress={() => router.push('/wardrobe')}>
+          <Ionicons name="close" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>GLAMORA SCAN</Text>
-        <TouchableOpacity style={styles.flashButton}>
-          <Ionicons name="flash" size={24} color="#fff" />
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>GLAMORA SCAN</Text>
+        <TouchableOpacity style={[styles.flashButton, { backgroundColor: theme.colors.containerBackground }]}>
+          <Ionicons name="flash" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
       </View>
 
@@ -81,13 +83,13 @@ export default function Scan() {
               <View style={styles.cornerBottomLeft} />
               <View style={styles.cornerBottomRight} />
             </View>
-            <Text style={styles.instructionText}>
+            <Text style={[styles.instructionText, { color: theme.colors.primaryText }]}>
               Position clothing item within the frame
             </Text>
           </View>
         ) : (
           <View style={styles.cameraPlaceholder}>
-            <Text style={styles.instructionText}>
+            <Text style={[styles.instructionText, { color: theme.colors.primaryText }]}>
               No access to camera
             </Text>
           </View>
@@ -95,14 +97,14 @@ export default function Scan() {
       </View>
 
       {/* Bottom Controls */}
-      <View style={styles.bottomControls}>
-        <TouchableOpacity style={styles.galleryButton} onPress={pickFromGallery}>
-          <Text style={styles.galleryText}>Gallery</Text>
+      <View style={[styles.bottomControls, { backgroundColor: theme.colors.headerBackground }]}>
+        <TouchableOpacity style={[styles.galleryButton, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]} onPress={pickFromGallery}>
+          <Text style={[styles.galleryText, { color: theme.colors.primaryText }]}>Gallery</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
-          <View style={styles.captureButtonInner}>
-            <Ionicons name="camera" size={32} color="#fff" />
+        <TouchableOpacity style={[styles.captureButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={takePicture}>
+          <View style={[styles.captureButtonInner, { backgroundColor: theme.colors.accent }]}>
+            <Ionicons name="camera" size={32} color={theme.colors.buttonText} />
           </View>
         </TouchableOpacity>
         
@@ -115,7 +117,6 @@ export default function Scan() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
   },
   header: {
     flexDirection: 'row',
@@ -124,27 +125,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
-    backgroundColor: '#1a1a1a',
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
     letterSpacing: 1,
   },
   flashButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -207,7 +204,6 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   instructionText: {
-    color: '#fff',
     fontSize: 16,
     marginTop: 30,
     textAlign: 'center',
@@ -225,19 +221,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 40,
     paddingBottom: 40,
-    backgroundColor: '#1a1a1a',
     paddingTop: 20,
   },
   galleryButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   galleryText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '500',
   },
@@ -245,7 +237,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -261,7 +252,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -13,6 +13,7 @@ import {
     View,
 } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 interface OutfitItem {
   wardrobeItemId: string;
@@ -36,6 +37,7 @@ interface Outfit {
 
 export default function OutfitHistory() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -104,21 +106,21 @@ export default function OutfitHistory() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4B2E2B" />
-        <Text style={styles.loadingText}>Loading your outfit history...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bodyBackground }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <Text style={[styles.loadingText, { color: theme.colors.primaryText }]}>Loading your outfit history...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground, borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#4B2E2B" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Combine History</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Combine History</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -126,36 +128,36 @@ export default function OutfitHistory() {
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => loadOutfits(true)} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => loadOutfits(true)} tintColor={theme.colors.accent} />
         }
       >
         {outfits.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="shirt-outline" size={64} color="#E5D1C0" />
-            <Text style={styles.emptyTitle}>No Outfits Yet</Text>
-            <Text style={styles.emptySubtitle}>
+            <Ionicons name="shirt-outline" size={64} color={theme.colors.secondaryText} />
+            <Text style={[styles.emptyTitle, { color: theme.colors.primaryText }]}>No Outfits Yet</Text>
+            <Text style={[styles.emptySubtitle, { color: theme.colors.secondaryText }]}>
               Start creating outfits by combining your wardrobe items
             </Text>
             <TouchableOpacity 
-              style={styles.createOutfitButton}
+              style={[styles.createOutfitButton, { backgroundColor: theme.colors.buttonBackground }]}
               onPress={() => (router as any).push('/combine-outfits')}
             >
-              <Text style={styles.createOutfitButtonText}>Create Your First Outfit</Text>
+              <Text style={[styles.createOutfitButtonText, { color: theme.colors.buttonText }]}>Create Your First Outfit</Text>
             </TouchableOpacity>
           </View>
         ) : (
           outfits.map((outfit) => (
             <TouchableOpacity 
               key={outfit._id} 
-              style={styles.historyRow}
+              style={[styles.historyRow, { borderBottomColor: theme.colors.border }]}
               onPress={() => handleOutfitPress(outfit)}
               activeOpacity={0.7}
             >
-              <Text style={styles.historyDate}>
+              <Text style={[styles.historyDate, { color: theme.colors.primaryText }]}>
                 {formatDate(outfit.wornDate || outfit.createdAt)}
               </Text>
-              <Text style={styles.historyOutfit}>{outfit.outfitName}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#4B2E2B" />
+              <Text style={[styles.historyOutfit, { color: theme.colors.primaryText }]}>{outfit.outfitName}</Text>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.icon} />
             </TouchableOpacity>
           ))
         )}

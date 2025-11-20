@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 interface ClothingItem {
   id: string;
@@ -28,6 +29,7 @@ type TimeRange = 'This Week' | 'This Month' | 'This Year';
 
 export default function Analytics() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('This Week');
   const [showTimeRangeModal, setShowTimeRangeModal] = useState(false);
   const [frequentData, setFrequentData] = useState<FrequentData>({
@@ -176,15 +178,16 @@ export default function Analytics() {
       animationType="fade"
       onRequestClose={() => setShowTimeRangeModal(false)}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Select Time Range</Text>
+      <View style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay }]}>
+        <View style={[styles.modalContent, { backgroundColor: theme.colors.containerBackground }]}>
+          <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>Select Time Range</Text>
           {timeRanges.map((range) => (
             <TouchableOpacity
               key={range}
               style={[
                 styles.modalOption,
-                selectedTimeRange === range && styles.modalOptionSelected,
+                { backgroundColor: theme.colors.buttonSecondary },
+                selectedTimeRange === range && { backgroundColor: theme.colors.accent },
               ]}
               onPress={() => {
                 setSelectedTimeRange(range);
@@ -194,7 +197,8 @@ export default function Analytics() {
               <Text
                 style={[
                   styles.modalOptionText,
-                  selectedTimeRange === range && styles.modalOptionTextSelected,
+                  { color: theme.colors.primaryText },
+                  selectedTimeRange === range && { color: theme.colors.buttonText },
                 ]}
               >
                 {range}
@@ -207,37 +211,37 @@ export default function Analytics() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Frequent Data</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Frequent Data</Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Time Range Selector and Refresh */}
       <View style={styles.timeRangeContainer}>
         <TouchableOpacity
-          style={styles.timeRangeButton}
+          style={[styles.timeRangeButton, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}
           onPress={() => setShowTimeRangeModal(true)}
         >
-          <Text style={styles.timeRangeText}>Date: {selectedTimeRange}</Text>
-          <Ionicons name="chevron-down" size={16} color="#666" />
+          <Text style={[styles.timeRangeText, { color: theme.colors.primaryText }]}>Date: {selectedTimeRange}</Text>
+          <Ionicons name="chevron-down" size={16} color={theme.colors.secondaryText} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.refreshButton} onPress={loadFrequentData}>
-          <Text style={styles.refreshText}>Refresh</Text>
+        <TouchableOpacity style={[styles.refreshButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={loadFrequentData}>
+          <Text style={[styles.refreshText, { color: theme.colors.buttonText }]}>Refresh</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {getCurrentData().map((categoryData, categoryIndex) => (
-          <View key={categoryIndex} style={styles.categorySection}>
-            <Text style={styles.categoryTitle}>{categoryData.category}</Text>
+          <View key={categoryIndex} style={[styles.categorySection, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+            <Text style={[styles.categoryTitle, { color: theme.colors.primaryText }]}>{categoryData.category}</Text>
             {categoryData.items.map((item) => (
               <View key={item.id} style={styles.itemContainer}>
-                <Text style={styles.itemName}>{item.name}</Text>
+                <Text style={[styles.itemName, { color: theme.colors.primaryText }]}>{item.name}</Text>
                 {renderUsageBar(item)}
               </View>
             ))}
@@ -282,6 +286,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 20,
+    gap: 12,
   },
   timeRangeButton: {
     flexDirection: 'row',

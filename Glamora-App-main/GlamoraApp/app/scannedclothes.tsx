@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 const isLocalUri = (uri?: string | null): uri is string => {
   if (!uri) {
@@ -122,6 +123,7 @@ const getOptimizedImageUrl = async (
 export default function ScannedClothes() {
   const { imageUri } = useLocalSearchParams();
   const router = useRouter();
+  const { theme } = useTheme();
   const normalizedImageUri = Array.isArray(imageUri) ? imageUri[0] : imageUri;
   
   // Debug router
@@ -516,13 +518,13 @@ export default function ScannedClothes() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.push('/wardrobe')}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>GLAMORA SCAN</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>GLAMORA SCAN</Text>
         <View style={styles.placeholder} />
       </View>
       {/* Image Display - always below header */}
@@ -531,63 +533,63 @@ export default function ScannedClothes() {
       </View>
       {loading && (
         <View style={{ position: 'absolute', top: '50%', left: 0, right: 0, alignItems: 'center' }}>
-          {/* <ActivityIndicator size="large" color="#007AFF" /> */}
+          {/* <ActivityIndicator size="large" color={theme.colors.accent} /> */}
         </View>
       )}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Form Section */}
-        <View style={styles.formContainer}>
+        <View style={[styles.formContainer, { backgroundColor: theme.colors.containerBackground }]}>
           <View style={styles.inputSection}>
-            <Text style={styles.sectionTitle}>Cloth name</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Cloth name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
               value={clothName}
               onChangeText={setClothName}
               placeholder="Enter cloth name"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.secondaryText}
             />
           </View>
           <View style={styles.inputSection}>
-            <Text style={styles.sectionTitle}>Description</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Description</Text>
             <TextInput
-              style={[styles.input, styles.multilineInput]}
+              style={[styles.input, styles.multilineInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
               value={description}
               onChangeText={setDescription}
               placeholder="Add a description..."
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.secondaryText}
               multiline
               numberOfLines={4}
             />
           </View>
           {/* Action Buttons */}
           <View style={styles.buttonsContainer}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleAddToWardrobe}>
-              <Text style={styles.buttonText}>Add to Wardrobe</Text>
+            <TouchableOpacity style={[styles.actionButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={handleAddToWardrobe}>
+              <Text style={[styles.buttonText, { color: theme.colors.buttonText }]}>Add to Wardrobe</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={handlePostToMarketplace}>
-              <Text style={styles.buttonText}>Post to Marketplace</Text>
+            <TouchableOpacity style={[styles.actionButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={handlePostToMarketplace}>
+              <Text style={[styles.buttonText, { color: theme.colors.buttonText }]}>Post to Marketplace</Text>
             </TouchableOpacity>
           </View>
           
           {/* Show selected category info and save button */}
           {selectedCategory && selectedSubcategories.length > 0 && (
-            <View style={styles.selectedCategoryContainer}>
-              <Text style={styles.selectedCategoryText}>
+            <View style={[styles.selectedCategoryContainer, { backgroundColor: theme.colors.buttonBackground }]}>
+              <Text style={[styles.selectedCategoryText, { color: theme.colors.buttonText }]}>
                 Selected: {selectedCategory} &apos;n {selectedSubcategories.map(sub => 
                   categoryData[selectedCategory as keyof typeof categoryData]?.find(s => s.type === sub.type)?.name
                 ).join(', ')}
               </Text>
               {occasions.length > 0 && (
-                <Text style={styles.selectedOccasionText}>
+                <Text style={[styles.selectedOccasionText, { color: theme.colors.buttonText }]}>
                   Occasions: {occasions.join(', ')}
                 </Text>
               )}
               <TouchableOpacity 
-                style={styles.saveButton} 
+                style={[styles.saveButton, { backgroundColor: theme.colors.accent }]} 
                 onPress={handleFinalSubmit}
                 disabled={loading}
               >
-                <Text style={styles.saveButtonText}>
+                <Text style={[styles.saveButtonText, { color: theme.colors.buttonText }]}>
                   {loading ? 'Saving...' : 'Save Item'}
                 </Text>
               </TouchableOpacity>
@@ -599,31 +601,33 @@ export default function ScannedClothes() {
       {/* Unified Add to Wardrobe Modal */}
       <Modal visible={showWardrobeModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.wardrobeModalContent}>
+          <View style={[styles.wardrobeModalContent, { backgroundColor: theme.colors.containerBackground }]}>
             <View style={styles.wardrobeModalHeader}>
-              <Text style={styles.wardrobeModalTitle}>ADD TO WARDROBE</Text>
+              <Text style={[styles.wardrobeModalTitle, { color: theme.colors.primaryText }]}>ADD TO WARDROBE</Text>
               <TouchableOpacity onPress={() => setShowWardrobeModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={theme.colors.icon} />
               </TouchableOpacity>
             </View>
             
             <ScrollView style={styles.wardrobeModalScroll} showsVerticalScrollIndicator={false}>
               {/* SELECT WARDROBE */}
               <View style={styles.wardrobeSection}>
-                <Text style={styles.wardrobeSectionTitle}>SELECT WARDROBE</Text>
+                <Text style={[styles.wardrobeSectionTitle, { color: theme.colors.primaryText }]}>SELECT WARDROBE</Text>
                 <View style={styles.wardrobeButtonContainer}>
                   {Object.keys(categoryData).map((category) => (
                     <TouchableOpacity
                       key={category}
                       style={[
                         styles.wardrobeButton,
-                        selectedCategory === category && styles.wardrobeButtonSelected
+                        { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                        selectedCategory === category && [styles.wardrobeButtonSelected, { backgroundColor: theme.colors.buttonBackground, borderColor: theme.colors.accent }]
                       ]}
                       onPress={() => handleCategorySelect(category)}
                     >
                       <Text style={[
                         styles.wardrobeButtonText,
-                        selectedCategory === category && styles.wardrobeButtonTextSelected
+                        { color: theme.colors.secondaryText },
+                        selectedCategory === category && [styles.wardrobeButtonTextSelected, { color: theme.colors.buttonText }]
                       ]}>
                         {category.toUpperCase()}
                       </Text>
@@ -635,20 +639,22 @@ export default function ScannedClothes() {
               {/* SELECT CATEGORIES */}
               {selectedCategory && (
                 <View style={styles.wardrobeSection}>
-                  <Text style={styles.wardrobeSectionTitle}>SELECT CATEGORIES</Text>
+                  <Text style={[styles.wardrobeSectionTitle, { color: theme.colors.primaryText }]}>SELECT CATEGORIES</Text>
                   <View style={styles.wardrobeButtonContainer}>
                     {categoryData[selectedCategory as keyof typeof categoryData]?.map((subcategory) => (
                       <TouchableOpacity
                         key={subcategory.type}
                         style={[
                           styles.wardrobeButton,
-                          selectedSubcategories.some(s => s.type === subcategory.type) && styles.wardrobeButtonSelected
+                          { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                          selectedSubcategories.some(s => s.type === subcategory.type) && [styles.wardrobeButtonSelected, { backgroundColor: theme.colors.buttonBackground, borderColor: theme.colors.accent }]
                         ]}
                         onPress={() => handleSubcategorySelect(subcategory)}
                       >
                         <Text style={[
                           styles.wardrobeButtonText,
-                          selectedSubcategories.some(s => s.type === subcategory.type) && styles.wardrobeButtonTextSelected
+                          { color: theme.colors.secondaryText },
+                          selectedSubcategories.some(s => s.type === subcategory.type) && [styles.wardrobeButtonTextSelected, { color: theme.colors.buttonText }]
                         ]}>
                           {subcategory.name.toUpperCase()}
                         </Text>
@@ -660,20 +666,22 @@ export default function ScannedClothes() {
 
               {/* SELECT OCCASION */}
               <View style={styles.wardrobeSection}>
-                <Text style={styles.wardrobeSectionTitle}>SELECT OCCASION</Text>
+                <Text style={[styles.wardrobeSectionTitle, { color: theme.colors.primaryText }]}>SELECT OCCASION</Text>
                 <View style={styles.wardrobeButtonContainer}>
                   {occasionOptions.map((occasion) => (
                     <TouchableOpacity
                       key={occasion}
                       style={[
                         styles.wardrobeButton,
-                        occasions.includes(occasion) && styles.wardrobeButtonSelected
+                        { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                        occasions.includes(occasion) && [styles.wardrobeButtonSelected, { backgroundColor: theme.colors.buttonBackground, borderColor: theme.colors.accent }]
                       ]}
                       onPress={() => handleOccasionSelect(occasion)}
                     >
                       <Text style={[
                         styles.wardrobeButtonText,
-                        occasions.includes(occasion) && styles.wardrobeButtonTextSelected
+                        { color: theme.colors.secondaryText },
+                        occasions.includes(occasion) && [styles.wardrobeButtonTextSelected, { color: theme.colors.buttonText }]
                       ]}>
                         {occasion.toUpperCase()}
                       </Text>
@@ -684,20 +692,22 @@ export default function ScannedClothes() {
 
               {/* SELECT WEATHER */}
               <View style={styles.wardrobeSection}>
-                <Text style={styles.wardrobeSectionTitle}>SELECT WEATHER</Text>
+                <Text style={[styles.wardrobeSectionTitle, { color: theme.colors.primaryText }]}>SELECT WEATHER</Text>
                 <View style={styles.wardrobeButtonContainer}>
                   {weatherOptions.map((weather) => (
                     <TouchableOpacity
                       key={weather}
                       style={[
                         styles.wardrobeButton,
-                        selectedWeather === weather && styles.wardrobeButtonSelected
+                        { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                        selectedWeather === weather && [styles.wardrobeButtonSelected, { backgroundColor: theme.colors.buttonBackground, borderColor: theme.colors.accent }]
                       ]}
                       onPress={() => handleWeatherSelect(weather)}
                     >
                       <Text style={[
                         styles.wardrobeButtonText,
-                        selectedWeather === weather && styles.wardrobeButtonTextSelected
+                        { color: theme.colors.secondaryText },
+                        selectedWeather === weather && [styles.wardrobeButtonTextSelected, { color: theme.colors.buttonText }]
                       ]}>
                         {weather.toUpperCase()}
                       </Text>
@@ -708,20 +718,22 @@ export default function ScannedClothes() {
 
               {/* SELECT STYLE */}
               <View style={styles.wardrobeSection}>
-                <Text style={styles.wardrobeSectionTitle}>SELECT STYLE</Text>
+                <Text style={[styles.wardrobeSectionTitle, { color: theme.colors.primaryText }]}>SELECT STYLE</Text>
                 <View style={styles.wardrobeButtonContainer}>
                   {styleOptions.map((style) => (
                     <TouchableOpacity
                       key={style}
                       style={[
                         styles.wardrobeButton,
-                        selectedStyle === style && styles.wardrobeButtonSelected
+                        { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                        selectedStyle === style && [styles.wardrobeButtonSelected, { backgroundColor: theme.colors.buttonBackground, borderColor: theme.colors.accent }]
                       ]}
                       onPress={() => handleStyleSelect(style)}
                     >
                       <Text style={[
                         styles.wardrobeButtonText,
-                        selectedStyle === style && styles.wardrobeButtonTextSelected
+                        { color: theme.colors.secondaryText },
+                        selectedStyle === style && [styles.wardrobeButtonTextSelected, { color: theme.colors.buttonText }]
                       ]}>
                         {style.toUpperCase()}
                       </Text>
@@ -732,20 +744,22 @@ export default function ScannedClothes() {
 
               {/* SELECT COLOR */}
               <View style={styles.wardrobeSection}>
-                <Text style={styles.wardrobeSectionTitle}>SELECT COLOR</Text>
+                <Text style={[styles.wardrobeSectionTitle, { color: theme.colors.primaryText }]}>SELECT COLOR</Text>
                 <View style={styles.wardrobeColorGrid}>
                   {colorOptions.map((color) => (
                     <TouchableOpacity
                       key={color}
                       style={[
                         styles.wardrobeColorButton,
-                        selectedColor === color && styles.wardrobeColorButtonSelected
+                        { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                        selectedColor === color && [styles.wardrobeColorButtonSelected, { backgroundColor: theme.colors.buttonBackground, borderColor: theme.colors.accent }]
                       ]}
                       onPress={() => handleColorSelect(color)}
                     >
                       <Text style={[
                         styles.wardrobeColorButtonText,
-                        selectedColor === color && styles.wardrobeColorButtonTextSelected
+                        { color: theme.colors.secondaryText },
+                        selectedColor === color && [styles.wardrobeColorButtonTextSelected, { color: theme.colors.buttonText }]
                       ]}>
                         {color.toUpperCase()}
                       </Text>
@@ -756,12 +770,12 @@ export default function ScannedClothes() {
             </ScrollView>
 
             <TouchableOpacity 
-              style={styles.wardrobeConfirmButton} 
+              style={[styles.wardrobeConfirmButton, { backgroundColor: theme.colors.buttonBackground }]} 
               onPress={() => {
                 setShowWardrobeModal(false);
               }}
             >
-              <Text style={styles.wardrobeConfirmButtonText}>CONFIRM</Text>
+              <Text style={[styles.wardrobeConfirmButtonText, { color: theme.colors.buttonText }]}>CONFIRM</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -770,50 +784,50 @@ export default function ScannedClothes() {
       {/* Marketplace Modal */}
       <Modal visible={showMarketplaceModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.containerBackground }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Post to Marketplace</Text>
+              <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>Post to Marketplace</Text>
               <TouchableOpacity onPress={() => setMarketplaceModal(false)}>
-                <Ionicons name="close" size={24} color="#666" />
+                <Ionicons name="close" size={24} color={theme.colors.icon} />
               </TouchableOpacity>
             </View>
             <View style={styles.marketplaceForm}>
-              <Text style={styles.inputLabel}>Item Name</Text>
+              <Text style={[styles.inputLabel, { color: theme.colors.primaryText }]}>Item Name</Text>
               <TextInput
-                style={styles.marketplaceInput}
+                style={[styles.marketplaceInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
                 value={marketplaceName}
                 onChangeText={setMarketplaceName}
                 placeholder="Enter item name"
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.colors.secondaryText}
               />
               
-              <Text style={styles.inputLabel}>Description</Text>
+              <Text style={[styles.inputLabel, { color: theme.colors.primaryText }]}>Description</Text>
               <TextInput
-                style={[styles.marketplaceInput, styles.marketplaceTextarea]}
+                style={[styles.marketplaceInput, styles.marketplaceTextarea, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
                 value={marketplaceDescription}
                 onChangeText={setMarketplaceDescription}
                 placeholder="Enter description"
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.colors.secondaryText}
                 multiline
                 numberOfLines={3}
               />
               
-              <Text style={styles.inputLabel}>Price (₱)</Text>
+              <Text style={[styles.inputLabel, { color: theme.colors.primaryText }]}>Price (₱)</Text>
               <TextInput
-                style={styles.marketplaceInput}
+                style={[styles.marketplaceInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
                 value={marketplacePrice}
                 onChangeText={setMarketplacePrice}
                 placeholder="Enter price"
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.colors.secondaryText}
                 keyboardType="numeric"
               />
             </View>
             <TouchableOpacity 
-              style={styles.marketplaceSubmitButton} 
+              style={[styles.marketplaceSubmitButton, { backgroundColor: theme.colors.buttonBackground }]} 
               onPress={handleMarketplaceSubmit}
               disabled={loading}
             >
-              <Text style={styles.marketplaceSubmitText}>
+              <Text style={[styles.marketplaceSubmitText, { color: theme.colors.buttonText }]}>
                 {loading ? 'Posting...' : 'Post to Marketplace'}
               </Text>
             </TouchableOpacity>
@@ -827,7 +841,6 @@ export default function ScannedClothes() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4C2C2',
   },
   header: {
     flexDirection: 'row',
@@ -835,7 +848,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 40,
-    backgroundColor: '#F5E6D3',
   },
   backButton: {
     padding: 10,
@@ -863,7 +875,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     margin: 20,
-    backgroundColor: '#FDE6D6',
     borderRadius: 16,
     padding: 16,
   },
@@ -877,10 +888,8 @@ const styles = StyleSheet.create({
   },
   input: {
     borderBottomWidth: 1,
-    borderColor: '#333',
     fontSize: 16,
     padding: 4,
-    color: '#333',
   },
   multilineInput: {
     minHeight: 80,
@@ -892,7 +901,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   actionButton: {
-    backgroundColor: '#FFE8C8',
     borderRadius: 20,
     paddingVertical: 12,
     paddingHorizontal: 20,
@@ -902,7 +910,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontWeight: 'bold',
-    color: '#333',
   },
   modalOverlay: {
     flex: 1,
@@ -911,7 +918,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 24,
     width: '80%',
@@ -930,7 +936,6 @@ const styles = StyleSheet.create({
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#666',
     textAlign: 'center',
     marginBottom: 15,
     paddingHorizontal: 10,
@@ -945,19 +950,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   optionText: {
     fontSize: 16,
-    color: '#333',
     flex: 1,
   },
   selectedOption: {
-    backgroundColor: '#F0F0F0',
     borderRadius: 8,
   },
   selectedOptionText: {
-    color: '#007AFF',
     fontWeight: 'bold',
   },
   sectionHeader: {
@@ -965,10 +966,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginTop: 15,
     marginBottom: 5,
-    color: '#555',
   },
   modalButton: {
-    backgroundColor: '#FFE8C8',
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -978,23 +977,20 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     fontWeight: 'bold',
-    color: '#333',
   },
   selectedCategoryContainer: {
     marginTop: 20,
     padding: 15,
-    backgroundColor: '#FFE8C8',
     borderRadius: 12,
     alignItems: 'center',
+    backgroundColor: '#FFE8C8', // Keep default for backward compatibility
   },
   selectedCategoryText: {
     fontSize: 16,
-    color: '#333',
     marginBottom: 10,
     textAlign: 'center',
   },
   saveButton: {
-    backgroundColor: '#007AFF',
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 25,
@@ -1002,11 +998,9 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontWeight: 'bold',
-    color: '#fff',
   },
   selectedOccasionText: {
     fontSize: 16,
-    color: '#333',
     marginBottom: 10,
     textAlign: 'center',
   },
@@ -1018,14 +1012,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 5,
-    color: '#333',
   },
   marketplaceInput: {
     borderBottomWidth: 1,
-    borderColor: '#333',
     fontSize: 16,
     padding: 4,
-    color: '#333',
     marginBottom: 15,
   },
   marketplaceTextarea: {
@@ -1033,7 +1024,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   marketplaceSubmitButton: {
-    backgroundColor: '#007AFF',
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 25,
@@ -1042,7 +1032,6 @@ const styles = StyleSheet.create({
   },
   marketplaceSubmitText: {
     fontWeight: 'bold',
-    color: '#fff',
   },
   // Unified Wardrobe Modal Styles
   wardrobeModalContent: {
@@ -1079,7 +1068,6 @@ const styles = StyleSheet.create({
   wardrobeSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
     marginBottom: 12,
     letterSpacing: 0.5,
   },
@@ -1089,27 +1077,21 @@ const styles = StyleSheet.create({
     marginHorizontal: -5,
   },
   wardrobeButton: {
-    backgroundColor: '#F5F5F5',
     borderRadius: 20,
     paddingVertical: 12,
     paddingHorizontal: 20,
     marginBottom: 10,
     marginHorizontal: 5,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
   wardrobeButtonSelected: {
-    backgroundColor: '#FFE8C8',
-    borderColor: '#FFB84D',
   },
   wardrobeButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#666',
     letterSpacing: 0.5,
   },
   wardrobeButtonTextSelected: {
-    color: '#333',
     fontWeight: '700',
   },
   wardrobeColorGrid: {
@@ -1118,33 +1100,26 @@ const styles = StyleSheet.create({
     marginHorizontal: -5,
   },
   wardrobeColorButton: {
-    backgroundColor: '#F5F5F5',
     borderRadius: 20,
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginBottom: 10,
     marginHorizontal: 5,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     minWidth: 80,
   },
   wardrobeColorButtonSelected: {
-    backgroundColor: '#FFE8C8',
-    borderColor: '#FFB84D',
   },
   wardrobeColorButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
     letterSpacing: 0.5,
     textAlign: 'center',
   },
   wardrobeColorButtonTextSelected: {
-    color: '#333',
     fontWeight: '700',
   },
   wardrobeConfirmButton: {
-    backgroundColor: '#FFB84D',
     borderRadius: 25,
     paddingVertical: 15,
     marginHorizontal: 20,
@@ -1155,7 +1130,6 @@ const styles = StyleSheet.create({
   wardrobeConfirmButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
     letterSpacing: 1,
   },
 }); 

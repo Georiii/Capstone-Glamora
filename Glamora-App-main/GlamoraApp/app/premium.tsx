@@ -5,9 +5,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Alert, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal, ActivityIndicator, Platform, Linking } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function Premium() {
   const router = useRouter();
+  const { theme } = useTheme();
   const params = useLocalSearchParams();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -306,15 +308,15 @@ export default function Premium() {
         resizeMode="cover"
       >
         <View style={styles.overlay}>
-          <View style={styles.header}>
+          <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={24} color="#5C3E30" />
+              <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Glamora PLUS</Text>
+            <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Glamora PLUS</Text>
             <View style={styles.placeholder} />
           </View>
           <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-            <Text style={styles.loadingText}>Loading...</Text>
+            <Text style={[styles.loadingText, { color: theme.colors.primaryText }]}>Loading...</Text>
           </View>
         </View>
       </ImageBackground>
@@ -332,69 +334,69 @@ export default function Premium() {
         contentContainerStyle={styles.contentContainer}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#5C3E30" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Glamora PLUS</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Glamora PLUS</Text>
           <View style={styles.placeholder} />
         </View>
 
         {/* Subscription Content */}
-        <View style={styles.subscriptionContainer}>
+        <View style={[styles.subscriptionContainer, { backgroundColor: theme.colors.containerBackground }]}>
         {/* Title */}
         <View style={styles.titleContainer}>
-          <Text style={styles.glamoraText}>Glamora</Text>
-          <Text style={styles.plusText}>PLUS</Text>
+          <Text style={[styles.glamoraText, { color: theme.colors.primaryText }]}>Glamora</Text>
+          <Text style={[styles.plusText, { color: theme.colors.accent }]}>PLUS</Text>
         </View>
 
         {/* Price */}
         <View style={styles.priceContainer}>
-          <Text style={styles.pesoSign}>₱</Text>
-          <Text style={styles.price}>120.00</Text>
+          <Text style={[styles.pesoSign, { color: theme.colors.primaryText }]}>₱</Text>
+          <Text style={[styles.price, { color: theme.colors.primaryText }]}>120.00</Text>
         </View>
 
         {/* Divider */}
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
         {/* Features List */}
         <View style={styles.featuresContainer}>
           <View style={styles.featureItem}>
-            <View style={styles.checkmarkCircle}>
-              <Ionicons name="checkmark" size={18} color="#4CAF50" />
+            <View style={[styles.checkmarkCircle, { backgroundColor: theme.colors.accent }]}>
+              <Ionicons name="checkmark" size={18} color={theme.colors.buttonText} />
             </View>
-            <Text style={styles.featureText}>Unlimited Wardrobe storage</Text>
+            <Text style={[styles.featureText, { color: theme.colors.primaryText }]}>Unlimited Wardrobe storage</Text>
           </View>
           
           <View style={styles.featureItem}>
-            <View style={styles.checkmarkCircle}>
-              <Ionicons name="checkmark" size={18} color="#4CAF50" />
+            <View style={[styles.checkmarkCircle, { backgroundColor: theme.colors.accent }]}>
+              <Ionicons name="checkmark" size={18} color={theme.colors.buttonText} />
             </View>
-            <Text style={styles.featureText}>Unlimited Outfit suggestion</Text>
+            <Text style={[styles.featureText, { color: theme.colors.primaryText }]}>Unlimited Outfit suggestion</Text>
           </View>
           
           <View style={styles.featureItem}>
-            <View style={styles.checkmarkCircle}>
-              <Ionicons name="checkmark" size={18} color="#4CAF50" />
+            <View style={[styles.checkmarkCircle, { backgroundColor: theme.colors.accent }]}>
+              <Ionicons name="checkmark" size={18} color={theme.colors.buttonText} />
             </View>
-            <Text style={styles.featureText}>Remove ads</Text>
+            <Text style={[styles.featureText, { color: theme.colors.primaryText }]}>Remove ads</Text>
           </View>
         </View>
 
         {/* Subscribe Button */}
         {isSubscribed ? (
           <View style={styles.subscribedContainer}>
-            <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
-            <Text style={styles.subscribedText}>You&apos;re subscribed to Glamora PLUS!</Text>
-            <Text style={styles.subscribedSubtext}>Enjoy unlimited features</Text>
+            <Ionicons name="checkmark-circle" size={48} color={theme.colors.accent} />
+            <Text style={[styles.subscribedText, { color: theme.colors.primaryText }]}>You&apos;re subscribed to Glamora PLUS!</Text>
+            <Text style={[styles.subscribedSubtext, { color: theme.colors.secondaryText }]}>Enjoy unlimited features</Text>
           </View>
         ) : (
           <TouchableOpacity
-            style={[styles.subscribeButton, loading && styles.disabledButton]}
+            style={[styles.subscribeButton, loading && styles.disabledButton, { backgroundColor: theme.colors.buttonBackground }]}
             onPress={startPayPalCheckout}
             disabled={loading}
           >
-            <Text style={styles.subscribeButtonText}>
+            <Text style={[styles.subscribeButtonText, { color: theme.colors.buttonText }]}>
               {loading ? 'Processing...' : 'Subscribe'}
             </Text>
           </TouchableOpacity>
@@ -410,15 +412,15 @@ export default function Premium() {
           transparent
           onRequestClose={() => setWebPaypalVisible(false)}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Pay with PayPal</Text>
+          <View style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay }]}>
+            <View style={[styles.modalContent, { backgroundColor: theme.colors.containerBackground }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>Pay with PayPal</Text>
               <View style={styles.webViewContainer}>
                 {/* Container for PayPal JS SDK render on web */}
                 <View style={{ flex: 1 }} id="paypal-web-buttons" />
               </View>
-              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setWebPaypalVisible(false)}>
-                <Text style={styles.modalCloseButtonText}>Cancel</Text>
+              <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.colors.buttonSecondary }]} onPress={() => setWebPaypalVisible(false)}>
+                <Text style={[styles.modalCloseButtonText, { color: theme.colors.primaryText }]}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -431,9 +433,9 @@ export default function Premium() {
         transparent
         onRequestClose={resetPayPalModal}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Pay with PayPal</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.containerBackground }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>Pay with PayPal</Text>
             <View style={styles.webViewContainer}>
               <WebView
                 key={paypalWebViewKey}

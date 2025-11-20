@@ -8,7 +8,8 @@ const outfitSchema = new mongoose.Schema({
     itemName: { type: String, required: true },
     itemDescription: { type: String },
     itemImageUrl: { type: String },
-    itemCategory: { type: String }, // e.g., "Tops", "Bottoms", "Shoes", "Accessories"
+    itemCategory: { type: String }, // e.g., "Tops", "Bottoms", "Shoes", "Accessories" (wardrobe item's actual category)
+    displayCategory: { type: String }, // e.g., "top", "bottom", "shoes", "accessories" (which container the item was in when saved)
   }],
   occasion: { type: String }, // e.g., "Casual", "Work", "Party", "Formal"
   weather: { type: String }, // e.g., "Sunny", "Rainy", "Cold", "Warm"

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface RateUsModalProps {
   visible: boolean;
@@ -9,6 +10,7 @@ interface RateUsModalProps {
 }
 
 export default function RateUsModal({ visible, onClose, onSubmit }: RateUsModalProps) {
+  const { theme } = useTheme();
   const [rating, setRating] = useState(5);
   const [feedback, setFeedback] = useState('');
 
@@ -31,7 +33,7 @@ export default function RateUsModal({ visible, onClose, onSubmit }: RateUsModalP
           <Ionicons
             name={i <= rating ? "star" : "star-outline"}
             size={24}
-            color={i <= rating ? "#000" : "#ccc"}
+            color={i <= rating ? theme.colors.accent : theme.colors.secondaryText}
           />
         </TouchableOpacity>
       );
@@ -46,15 +48,15 @@ export default function RateUsModal({ visible, onClose, onSubmit }: RateUsModalP
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+      <View style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay }]}>
+        <View style={[styles.modalContent, { backgroundColor: theme.colors.containerBackground }]}>
           {/* Close Button */}
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#000" />
+            <Ionicons name="close" size={24} color={theme.colors.icon} />
           </TouchableOpacity>
 
           {/* Title */}
-          <Text style={styles.modalTitle}>Rate us</Text>
+          <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>Rate us</Text>
 
           {/* Star Rating */}
           <View style={styles.starsContainer}>
@@ -62,15 +64,15 @@ export default function RateUsModal({ visible, onClose, onSubmit }: RateUsModalP
           </View>
 
           {/* Feedback Instruction */}
-          <Text style={styles.feedbackInstruction}>
+          <Text style={[styles.feedbackInstruction, { color: theme.colors.primaryText }]}>
             Provide feedback or comment
           </Text>
 
           {/* Feedback Input */}
           <TextInput
-            style={styles.feedbackInput}
+            style={[styles.feedbackInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
             placeholder="Write feedback"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.colors.placeholderText}
             value={feedback}
             onChangeText={setFeedback}
             multiline
@@ -79,8 +81,8 @@ export default function RateUsModal({ visible, onClose, onSubmit }: RateUsModalP
           />
 
           {/* Submit Button */}
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>Submit</Text>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={handleSubmit}>
+            <Text style={[styles.submitButtonText, { color: theme.colors.buttonText }]}>Submit</Text>
           </TouchableOpacity>
         </View>
       </View>

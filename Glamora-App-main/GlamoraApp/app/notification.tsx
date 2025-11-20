@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -18,6 +19,7 @@ Notifications.setNotificationHandler({
 
 export default function Notification() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [messagesEnabled, setMessagesEnabled] = useState(true);
@@ -252,29 +254,29 @@ export default function Notification() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Notification</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Notification</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={[styles.loadingText, { color: theme.colors.primaryText }]}>Loading...</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notification</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Notification</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -282,20 +284,20 @@ export default function Notification() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.settingsContainer}>
           {/* Main Toggle */}
-          <View style={styles.settingItem}>
+          <View style={[styles.settingItem, { borderBottomColor: theme.colors.divider, backgroundColor: theme.colors.containerBackground }]}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingText}>Turn notification</Text>
+              <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Turn notification</Text>
             </View>
             <View style={styles.settingRight}>
               <Switch
                 value={notificationsEnabled}
                 onValueChange={handleToggleNotifications}
-                trackColor={{ false: '#E0E0E0', true: '#000' }}
-                thumbColor={notificationsEnabled ? '#fff' : '#fff'}
+                trackColor={{ false: theme.colors.border, true: theme.colors.buttonBackground }}
+                thumbColor={notificationsEnabled ? theme.colors.buttonText : '#fff'}
                 style={styles.switch}
                 disabled={loading}
               />
-              <Text style={styles.settingStatus}>
+              <Text style={[styles.settingStatus, { color: theme.colors.secondaryText }]}>
                 {notificationsEnabled ? 'On' : 'Off'}
               </Text>
             </View>
@@ -304,81 +306,81 @@ export default function Notification() {
           {/* Individual Notification Types */}
           {notificationsEnabled && (
             <>
-              <View style={styles.settingItem}>
+              <View style={[styles.settingItem, { borderBottomColor: theme.colors.divider, backgroundColor: theme.colors.containerBackground }]}>
                 <View style={styles.settingLeft}>
-                  <Text style={styles.settingText}>Messages</Text>
-                  <Text style={styles.settingDescription}>Get notified when you receive new messages</Text>
+                  <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Messages</Text>
+                  <Text style={[styles.settingDescription, { color: theme.colors.secondaryText }]}>Get notified when you receive new messages</Text>
                 </View>
                 <View style={styles.settingRight}>
                   <Switch
                     value={messagesEnabled}
                     onValueChange={handleToggleMessages}
-                    trackColor={{ false: '#E0E0E0', true: '#000' }}
-                    thumbColor={messagesEnabled ? '#fff' : '#fff'}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.buttonBackground }}
+                    thumbColor={messagesEnabled ? theme.colors.buttonText : '#fff'}
                     style={styles.switch}
                     disabled={loading}
                   />
-                  <Text style={styles.settingStatus}>
+                  <Text style={[styles.settingStatus, { color: theme.colors.secondaryText }]}>
                     {messagesEnabled ? 'On' : 'Off'}
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.settingItem}>
+              <View style={[styles.settingItem, { borderBottomColor: theme.colors.divider, backgroundColor: theme.colors.containerBackground }]}>
                 <View style={styles.settingLeft}>
-                  <Text style={styles.settingText}>Announcements</Text>
-                  <Text style={styles.settingDescription}>Get notified about important announcements from admin</Text>
+                  <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Announcements</Text>
+                  <Text style={[styles.settingDescription, { color: theme.colors.secondaryText }]}>Get notified about important announcements from admin</Text>
                 </View>
                 <View style={styles.settingRight}>
                   <Switch
                     value={announcementsEnabled}
                     onValueChange={handleToggleAnnouncements}
-                    trackColor={{ false: '#E0E0E0', true: '#000' }}
-                    thumbColor={announcementsEnabled ? '#fff' : '#fff'}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.buttonBackground }}
+                    thumbColor={announcementsEnabled ? theme.colors.buttonText : '#fff'}
                     style={styles.switch}
                     disabled={loading}
                   />
-                  <Text style={styles.settingStatus}>
+                  <Text style={[styles.settingStatus, { color: theme.colors.secondaryText }]}>
                     {announcementsEnabled ? 'On' : 'Off'}
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.settingItem}>
+              <View style={[styles.settingItem, { borderBottomColor: theme.colors.divider, backgroundColor: theme.colors.containerBackground }]}>
                 <View style={styles.settingLeft}>
-                  <Text style={styles.settingText}>Subscription</Text>
-                  <Text style={styles.settingDescription}>Get notified about subscription offers and expiration</Text>
+                  <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Subscription</Text>
+                  <Text style={[styles.settingDescription, { color: theme.colors.secondaryText }]}>Get notified about subscription offers and expiration</Text>
                 </View>
                 <View style={styles.settingRight}>
                   <Switch
                     value={subscriptionEnabled}
                     onValueChange={handleToggleSubscription}
-                    trackColor={{ false: '#E0E0E0', true: '#000' }}
-                    thumbColor={subscriptionEnabled ? '#fff' : '#fff'}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.buttonBackground }}
+                    thumbColor={subscriptionEnabled ? theme.colors.buttonText : '#fff'}
                     style={styles.switch}
                     disabled={loading}
                   />
-                  <Text style={styles.settingStatus}>
+                  <Text style={[styles.settingStatus, { color: theme.colors.secondaryText }]}>
                     {subscriptionEnabled ? 'On' : 'Off'}
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.settingItem}>
+              <View style={[styles.settingItem, { borderBottomColor: theme.colors.divider, backgroundColor: theme.colors.containerBackground }]}>
                 <View style={styles.settingLeft}>
-                  <Text style={styles.settingText}>Punishments</Text>
-                  <Text style={styles.settingDescription}>Get notified about account restrictions or warnings</Text>
+                  <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>Punishments</Text>
+                  <Text style={[styles.settingDescription, { color: theme.colors.secondaryText }]}>Get notified about account restrictions or warnings</Text>
                 </View>
                 <View style={styles.settingRight}>
                   <Switch
                     value={punishmentsEnabled}
                     onValueChange={handleTogglePunishments}
-                    trackColor={{ false: '#E0E0E0', true: '#000' }}
-                    thumbColor={punishmentsEnabled ? '#fff' : '#fff'}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.buttonBackground }}
+                    thumbColor={punishmentsEnabled ? theme.colors.buttonText : '#fff'}
                     style={styles.switch}
                     disabled={loading}
                   />
-                  <Text style={styles.settingStatus}>
+                  <Text style={[styles.settingStatus, { color: theme.colors.secondaryText }]}>
                     {punishmentsEnabled ? 'On' : 'Off'}
                   </Text>
                 </View>
@@ -394,7 +396,6 @@ export default function Notification() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4C2C2',
   },
   header: {
     flexDirection: 'row',
@@ -403,7 +404,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 40,
     paddingBottom: 20,
-    backgroundColor: '#F5E6D3',
   },
   backButton: {
     padding: 10,
@@ -431,8 +431,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    backgroundColor: '#F8E3D6',
     borderRadius: 12,
     paddingHorizontal: 20,
     marginBottom: 15,
@@ -444,12 +442,10 @@ const styles = StyleSheet.create({
   settingText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: 12,
-    color: '#666',
     marginTop: 2,
   },
   settingRight: {
@@ -460,7 +456,6 @@ const styles = StyleSheet.create({
   },
   settingStatus: {
     fontSize: 14,
-    color: '#333',
     fontWeight: '500',
   },
   loadingContainer: {
@@ -470,6 +465,5 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
   },
 });

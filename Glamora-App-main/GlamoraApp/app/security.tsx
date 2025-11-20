@@ -4,9 +4,11 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function Security() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [username, setUsername] = useState('Glamora');
   const [email, setEmail] = useState('Glamora@gmail.com');
   const [originalEmail, setOriginalEmail] = useState('');
@@ -198,35 +200,35 @@ export default function Security() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Security</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Security</Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Security Options */}
       <View style={styles.securityContainer}>
         {/* Username Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Username</Text>
-          <Text style={styles.sectionValue}>{username}</Text>
+        <View style={[styles.section, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Username</Text>
+          <Text style={[styles.sectionValue, { color: theme.colors.secondaryText }]}>{username}</Text>
         </View>
 
         {/* Email Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Email</Text>
-          <Text style={styles.sectionValue}>{email}</Text>
+        <View style={[styles.section, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Email</Text>
+          <Text style={[styles.sectionValue, { color: theme.colors.secondaryText }]}>{email}</Text>
           
           {showEmailChange ? (
             <View style={styles.emailChangeForm}>
               <TextInput
-                style={styles.emailInput}
+                style={[styles.emailInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
                 placeholder="New email address"
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.colors.secondaryText}
                 value={newEmail}
                 onChangeText={setNewEmail}
                 keyboardType="email-address"
@@ -236,50 +238,50 @@ export default function Security() {
               />
               <View style={styles.emailButtons}>
                 <TouchableOpacity
-                  style={styles.cancelButton}
+                  style={[styles.cancelButton, { backgroundColor: theme.colors.containerBackground }]}
                   onPress={() => {
                     setShowEmailChange(false);
                     setNewEmail('');
                   }}
                   disabled={loading}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={[styles.cancelButtonText, { color: theme.colors.primaryText }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.saveButton, loading && styles.disabledButton]}
+                  style={[styles.saveButton, { backgroundColor: theme.colors.buttonBackground }, loading && styles.disabledButton]}
                   onPress={handleRequestEmailChange}
                   disabled={loading}
                 >
                   {loading ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={theme.colors.buttonText} />
                   ) : (
-                    <Text style={styles.saveButtonText}>Send Confirmation</Text>
+                    <Text style={[styles.saveButtonText, { color: theme.colors.buttonText }]}>Send Confirmation</Text>
                   )}
                 </TouchableOpacity>
               </View>
             </View>
           ) : (
             <TouchableOpacity
-              style={styles.changeButton}
+              style={[styles.changeButton, { backgroundColor: theme.colors.buttonBackground }]}
               onPress={() => setShowEmailChange(true)}
               disabled={loading}
             >
-              <Text style={styles.changeButtonText}>Change</Text>
+              <Text style={[styles.changeButtonText, { color: theme.colors.buttonText }]}>Change</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Password Change Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Change Password</Text>
+        <View style={[styles.section, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Change Password</Text>
           
           {showPasswordChange ? (
             <View style={styles.passwordChangeForm}>
-              <View style={styles.passwordInputContainer}>
+              <View style={[styles.passwordInputContainer, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
                 <TextInput
-                  style={styles.passwordInput}
+                  style={[styles.passwordInput, { color: theme.colors.primaryText }]}
                   placeholder="Current password"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.colors.secondaryText}
                   secureTextEntry={!showCurrentPassword}
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
@@ -293,17 +295,17 @@ export default function Security() {
                     <Ionicons
                       name={showCurrentPassword ? 'eye-off' : 'eye'}
                       size={20}
-                      color="#666"
+                      color={theme.colors.secondaryText}
                     />
                   </TouchableOpacity>
                 )}
               </View>
               
-              <View style={styles.passwordInputContainer}>
+              <View style={[styles.passwordInputContainer, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
                 <TextInput
-                  style={styles.passwordInput}
+                  style={[styles.passwordInput, { color: theme.colors.primaryText }]}
                   placeholder="New password"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.colors.secondaryText}
                   secureTextEntry={!showNewPassword}
                   value={newPassword}
                   onChangeText={setNewPassword}
@@ -317,17 +319,17 @@ export default function Security() {
                     <Ionicons
                       name={showNewPassword ? 'eye-off' : 'eye'}
                       size={20}
-                      color="#666"
+                      color={theme.colors.secondaryText}
                     />
                   </TouchableOpacity>
                 )}
               </View>
               
-              <View style={styles.passwordInputContainer}>
+              <View style={[styles.passwordInputContainer, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
                 <TextInput
-                  style={styles.passwordInput}
+                  style={[styles.passwordInput, { color: theme.colors.primaryText }]}
                   placeholder="Confirm new password"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.colors.secondaryText}
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -341,7 +343,7 @@ export default function Security() {
                     <Ionicons
                       name={showConfirmPassword ? 'eye-off' : 'eye'}
                       size={20}
-                      color="#666"
+                      color={theme.colors.secondaryText}
                     />
                   </TouchableOpacity>
                 )}
@@ -349,7 +351,7 @@ export default function Security() {
               
               <View style={styles.passwordButtons}>
                 <TouchableOpacity
-                  style={styles.cancelButton}
+                  style={[styles.cancelButton, { backgroundColor: theme.colors.containerBackground }]}
                   onPress={() => {
                     setShowPasswordChange(false);
                     setCurrentPassword('');
@@ -358,28 +360,28 @@ export default function Security() {
                   }}
                   disabled={loading}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={[styles.cancelButtonText, { color: theme.colors.primaryText }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.saveButton, loading && styles.disabledButton]}
+                  style={[styles.saveButton, { backgroundColor: theme.colors.buttonBackground }, loading && styles.disabledButton]}
                   onPress={handleChangePassword}
                   disabled={loading}
                 >
                   {loading ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={theme.colors.buttonText} />
                   ) : (
-                    <Text style={styles.saveButtonText}>Save</Text>
+                    <Text style={[styles.saveButtonText, { color: theme.colors.buttonText }]}>Save</Text>
                   )}
                 </TouchableOpacity>
               </View>
             </View>
           ) : (
             <TouchableOpacity
-              style={styles.changeButton}
+              style={[styles.changeButton, { backgroundColor: theme.colors.buttonBackground }]}
               onPress={() => setShowPasswordChange(true)}
               disabled={loading}
             >
-              <Text style={styles.changeButtonText}>Change</Text>
+              <Text style={[styles.changeButtonText, { color: theme.colors.buttonText }]}>Change</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -391,7 +393,6 @@ export default function Security() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4C2C2',
   },
   header: {
     flexDirection: 'row',
@@ -420,29 +421,27 @@ const styles = StyleSheet.create({
   section: {
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderRadius: 12,
+    marginBottom: 10,
+    padding: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 8,
   },
   sectionValue: {
     fontSize: 16,
-    color: '#666',
   },
   emailChangeForm: {
     marginTop: 15,
   },
   emailInput: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     borderRadius: 8,
     padding: 12,
     marginBottom: 10,
     fontSize: 16,
-    backgroundColor: '#fff',
   },
   passwordChangeForm: {
     marginTop: 15,
@@ -450,15 +449,13 @@ const styles = StyleSheet.create({
   passwordInputContainer: {
     position: 'relative',
     marginBottom: 10,
+    borderWidth: 1,
+    borderRadius: 8,
   },
   passwordInput: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
     padding: 12,
     paddingRight: 45,
     fontSize: 16,
-    backgroundColor: '#fff',
   },
   eyeIcon: {
     position: 'absolute',
@@ -481,33 +478,30 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#fff',
   },
   cancelButtonText: {
-    color: '#666',
     fontSize: 16,
   },
   saveButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#007AFF',
   },
   disabledButton: {
     opacity: 0.6,
   },
   saveButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
   changeButton: {
     alignSelf: 'flex-start',
     marginTop: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   changeButtonText: {
-    color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
   },

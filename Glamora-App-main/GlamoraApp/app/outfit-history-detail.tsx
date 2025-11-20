@@ -12,6 +12,7 @@ import {
     View,
 } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 interface OutfitItem {
   wardrobeItemId: string;
@@ -19,6 +20,7 @@ interface OutfitItem {
   itemDescription: string;
   itemImageUrl: string;
   itemCategory: string;
+  displayCategory?: string; // Optional: indicates which container this item was in (top, bottom, shoes, accessories)
 }
 
 interface Outfit {
@@ -35,6 +37,7 @@ interface Outfit {
 
 export default function OutfitHistoryDetail() {
   const router = useRouter();
+  const { theme } = useTheme();
   const { outfitData } = useLocalSearchParams();
   const [outfit, setOutfit] = useState<Outfit | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,56 +117,162 @@ export default function OutfitHistoryDetail() {
     });
   };
 
-  // Normalize categories across saved item snapshot and populated wardrobe item
-  const categoryTokens = (raw?: string) =>
-    (raw || '')
-      .toLowerCase()
-      .split(/[\s/-]+/)
-      .filter(Boolean);
+  // Normalize category to standard form (top, bottom, shoes, accessories)
+  // This function is used as fallback for backward compatibility when displayCategory is not available
+  const normalizeCategoryToStandard = (cat?: string): string | null => {
+    if (!cat) return null;
+    const normalized = cat.toLowerCase().trim();
+    
+    // Remove special characters and spaces for better matching
+    const cleanCat = normalized.replace(/[^a-z0-9]/g, '');
+    
+    // Priority-based matching: check each category in order and return first match
+    // This ensures an item can only match one category
+    
+    // 1. Check for Accessories first (most specific keywords)
+    if (normalized === 'accessory' || normalized === 'accessories' ||
+        cleanCat === 'accessory' || cleanCat === 'accessories') {
+      return 'accessories';
+    }
+    const accessoryKeywords = ['bag', 'belt', 'scarf', 'hat', 'cap', 'sunglass', 'sunglasses', 'jewel', 'jewelry', 'umbrella'];
+    for (const keyword of accessoryKeywords) {
+      // Exact match or starts with keyword (most precise)
+      if (cleanCat === keyword || normalized === keyword || cleanCat.startsWith(keyword) || normalized.startsWith(keyword)) {
+        return 'accessories';
+      }
+    }
+    
+    // 2. Check for Shoes (specific keywords)
+    if (normalized === 'shoe' || normalized === 'shoes' || normalized === 'footwear' ||
+        cleanCat === 'shoe' || cleanCat === 'shoes' || cleanCat === 'footwear') {
+      return 'shoes';
+    }
+    const shoeKeywords = ['sneaker', 'sneakers', 'heel', 'heels', 'boot', 'boots', 'sandal', 'sandals', 'flat', 'flats', 'loafer', 'loafers'];
+    for (const keyword of shoeKeywords) {
+      if (cleanCat === keyword || normalized === keyword || cleanCat.startsWith(keyword) || normalized.startsWith(keyword)) {
+        return 'shoes';
+      }
+    }
+    
+    // 3. Check for Bottoms (specific keywords)
+    if (normalized === 'bottom' || normalized === 'bottoms' ||
+        cleanCat === 'bottom' || cleanCat === 'bottoms') {
+      return 'bottom';
+    }
+    const bottomKeywords = ['jeans', 'trousers', 'trouser', 'shorts', 'skirt', 'skirts', 'legging', 'leggings', 'jogger', 'joggers', 'pants', 'slacks'];
+    for (const keyword of bottomKeywords) {
+      if (cleanCat === keyword || normalized === keyword || cleanCat.startsWith(keyword) || normalized.startsWith(keyword)) {
+        return 'bottom';
+      }
+    }
+    
+    // 4. Check for Tops last (catch-all for upper body items)
+    if (normalized === 'top' || normalized === 'tops' ||
+        cleanCat === 'top' || cleanCat === 'tops') {
+      return 'top';
+    }
+    const topKeywords = ['tshirt', 'shirt', 'camisole', 'blouse', 'tee', 'tank', 'jacket', 'sweater', 'hoodie', 'coat', 'outerwear', 'sweatshirt', 'cardigan', 'formal'];
+    for (const keyword of topKeywords) {
+      // For tops, allow more flexible matching since it's the catch-all
+      if (cleanCat === keyword || normalized === keyword || 
+          cleanCat.startsWith(keyword) || normalized.startsWith(keyword) ||
+          cleanCat.includes(keyword) || normalized.includes(keyword)) {
+        return 'top';
+      }
+    }
+    
+    return null;
+  };
 
-  const isMatchCategory = (item: OutfitItem, targets: string[]) => {
-    const itemCat = (item?.itemCategory || '').toLowerCase();
-    const popCat = ((item as any)?.wardrobeItemId?.category || '').toLowerCase();
-    const tokens = new Set([...categoryTokens(itemCat), ...categoryTokens(popCat)]);
-    return targets.some(t => {
-      const tk = t.toLowerCase();
-      return itemCat.includes(tk) || popCat.includes(tk) || tokens.has(tk);
+  // Get all items categorized properly using displayCategory (primary) or category matching (fallback)
+  const categorizeOutfitItems = () => {
+    if (!outfit || !outfit.outfitItems) {
+      return { top: null, bottom: null, shoes: null, accessories: [] };
+    }
+
+    const categorized: { top: OutfitItem | null, bottom: OutfitItem | null, shoes: OutfitItem | null, accessories: OutfitItem[] } = {
+      top: null,
+      bottom: null,
+      shoes: null,
+      accessories: []
+    };
+
+    const usedItemIds = new Set<string>();
+
+    // First pass: Use displayCategory if available (most reliable - based on user's container placement)
+    outfit.outfitItems.forEach(item => {
+      if (!item || usedItemIds.has(item.wardrobeItemId)) return;
+
+      // Primary: Use displayCategory if available (new outfits saved with this field)
+      if (item.displayCategory) {
+        const displayCat = item.displayCategory.toLowerCase().trim();
+        
+        if (displayCat === 'top' && !categorized.top) {
+          categorized.top = item;
+          usedItemIds.add(item.wardrobeItemId);
+        } else if (displayCat === 'bottom' && !categorized.bottom) {
+          categorized.bottom = item;
+          usedItemIds.add(item.wardrobeItemId);
+        } else if (displayCat === 'shoes' && !categorized.shoes) {
+          categorized.shoes = item;
+          usedItemIds.add(item.wardrobeItemId);
+        } else if (displayCat === 'accessories') {
+          categorized.accessories.push(item);
+          usedItemIds.add(item.wardrobeItemId);
+        }
+      }
     });
-  };
 
-  const getItemByCategory = (category: string) => {
-    if (!outfit || !outfit.outfitItems) return null;
-    const targets = [category, ...(category === 'shoes' ? ['shoe', 'sneaker', 'boot', 'footwear'] : [])];
-    return outfit.outfitItems.find(item => item && isMatchCategory(item, targets));
-  };
+    // Second pass: Fallback to category matching for backward compatibility (old outfits without displayCategory)
+    outfit.outfitItems.forEach(item => {
+      if (!item || usedItemIds.has(item.wardrobeItemId)) return;
 
-  const getAccessories = () => {
-    if (!outfit || !outfit.outfitItems) return [];
-    const targetTokens = ['accessory', 'accessories', 'jewelry', 'bag', 'belt', 'scarf', 'hat'];
-    return outfit.outfitItems.filter(item => item && isMatchCategory(item, targetTokens));
+      // Skip if already categorized by displayCategory
+      if (item.displayCategory) return;
+
+      // Fallback: Use category matching for backward compatibility
+      const itemCat = (item.itemCategory || '').toLowerCase().trim();
+      const standardCategory = normalizeCategoryToStandard(itemCat);
+
+      if (standardCategory === 'top' && !categorized.top) {
+        categorized.top = item;
+        usedItemIds.add(item.wardrobeItemId);
+      } else if (standardCategory === 'bottom' && !categorized.bottom) {
+        categorized.bottom = item;
+        usedItemIds.add(item.wardrobeItemId);
+      } else if (standardCategory === 'shoes' && !categorized.shoes) {
+        categorized.shoes = item;
+        usedItemIds.add(item.wardrobeItemId);
+      } else if (standardCategory === 'accessories') {
+        categorized.accessories.push(item);
+        usedItemIds.add(item.wardrobeItemId);
+      }
+    });
+
+    return categorized;
   };
 
   const renderItemCard = (title: string, item: OutfitItem | null | undefined, icon: string) => {
     if (!item || !item.itemName) {
       return (
-        <View style={styles.itemCard}>
+        <View style={[styles.itemCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
           <View style={styles.itemCardHeader}>
-            <Ionicons name={icon as any} size={24} color="#999" />
-            <Text style={styles.itemCardTitle}>{title}</Text>
+            <Ionicons name={icon as any} size={24} color={theme.colors.secondaryText} />
+            <Text style={[styles.itemCardTitle, { color: theme.colors.primaryText }]}>{title}</Text>
           </View>
           <View style={styles.emptyItemContent}>
-            <Ionicons name="remove-circle-outline" size={32} color="#ccc" />
-            <Text style={styles.emptyItemText}>No {title.toLowerCase()} selected</Text>
+            <Ionicons name="remove-circle-outline" size={32} color={theme.colors.secondaryText} />
+            <Text style={[styles.emptyItemText, { color: theme.colors.secondaryText }]}>No {title.toLowerCase()} selected</Text>
           </View>
         </View>
       );
     }
 
     return (
-      <View style={styles.itemCard}>
+      <View style={[styles.itemCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
         <View style={styles.itemCardHeader}>
-          <Ionicons name={icon as any} size={24} color="#4B2E2B" />
-          <Text style={styles.itemCardTitle}>{title}</Text>
+          <Ionicons name={icon as any} size={24} color={theme.colors.icon} />
+          <Text style={[styles.itemCardTitle, { color: theme.colors.primaryText }]}>{title}</Text>
         </View>
         <View style={styles.itemCardContent}>
           {item.itemImageUrl ? (
@@ -174,14 +283,14 @@ export default function OutfitHistoryDetail() {
               onError={() => console.log(`${title} image failed to load:`, item.itemImageUrl)}
             />
           ) : (
-            <View style={[styles.itemImage, styles.placeholderImage]}>
-              <Ionicons name="image-outline" size={24} color="#ccc" />
+            <View style={[styles.itemImage, styles.placeholderImage, { backgroundColor: theme.colors.containerBackground }]}>
+              <Ionicons name="image-outline" size={24} color={theme.colors.secondaryText} />
             </View>
           )}
           <View style={styles.itemInfo}>
-            <Text style={styles.itemName}>{item.itemName || 'Unknown Item'}</Text>
-            <Text style={styles.itemDescription}>
-              {item.itemDescription || `${item.itemCategory || 'Unknown'} item`}
+            <Text style={[styles.itemName, { color: theme.colors.primaryText }]}>{item.itemName || 'Unknown Item'}</Text>
+            <Text style={[styles.itemDescription, { color: theme.colors.secondaryText }]}>
+              {item.itemDescription && item.itemDescription.trim() ? item.itemDescription : (item.itemCategory ? `${item.itemCategory} item` : 'Item')}
             </Text>
           </View>
         </View>
@@ -192,24 +301,24 @@ export default function OutfitHistoryDetail() {
   const renderAccessoriesCard = (accessories: OutfitItem[]) => {
     if (!accessories || accessories.length === 0) {
       return (
-        <View style={styles.itemCard}>
+        <View style={[styles.itemCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
           <View style={styles.itemCardHeader}>
-            <Ionicons name="diamond-outline" size={24} color="#999" />
-            <Text style={styles.itemCardTitle}>Accessories</Text>
+            <Ionicons name="diamond-outline" size={24} color={theme.colors.secondaryText} />
+            <Text style={[styles.itemCardTitle, { color: theme.colors.primaryText }]}>Accessories</Text>
           </View>
           <View style={styles.emptyItemContent}>
-            <Ionicons name="remove-circle-outline" size={32} color="#ccc" />
-            <Text style={styles.emptyItemText}>No accessories selected</Text>
+            <Ionicons name="remove-circle-outline" size={32} color={theme.colors.secondaryText} />
+            <Text style={[styles.emptyItemText, { color: theme.colors.secondaryText }]}>No accessories selected</Text>
           </View>
         </View>
       );
     }
 
     return (
-      <View style={styles.itemCard}>
+      <View style={[styles.itemCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
         <View style={styles.itemCardHeader}>
-          <Ionicons name="diamond-outline" size={24} color="#4B2E2B" />
-          <Text style={styles.itemCardTitle}>Accessories</Text>
+          <Ionicons name="diamond-outline" size={24} color={theme.colors.icon} />
+          <Text style={[styles.itemCardTitle, { color: theme.colors.primaryText }]}>Accessories</Text>
         </View>
         <View style={styles.accessoriesList}>
           {accessories.map((accessory, index) => (
@@ -221,9 +330,9 @@ export default function OutfitHistoryDetail() {
                 onError={() => console.log('Accessory image failed to load:', accessory.itemImageUrl)}
               />
               <View style={styles.accessoryInfo}>
-                <Text style={styles.accessoryName}>{accessory.itemName}</Text>
-                <Text style={styles.accessoryDescription}>
-                  {accessory.itemDescription || `${accessory.itemCategory} item`}
+                <Text style={[styles.accessoryName, { color: theme.colors.primaryText }]}>{accessory.itemName || 'Unknown Item'}</Text>
+                <Text style={[styles.accessoryDescription, { color: theme.colors.secondaryText }]}>
+                  {accessory.itemDescription && accessory.itemDescription.trim() ? accessory.itemDescription : (accessory.itemCategory ? `${accessory.itemCategory} item` : 'Item')}
                 </Text>
               </View>
             </View>
@@ -235,52 +344,55 @@ export default function OutfitHistoryDetail() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading outfit details...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bodyBackground }]}>
+        <Text style={[styles.loadingText, { color: theme.colors.primaryText }]}>Loading outfit details...</Text>
       </View>
     );
   }
 
   if (!outfit) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.headerBackground, borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#4B2E2B" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Combine History</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Combine History</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No outfit data available</Text>
+          <Text style={[styles.emptyText, { color: theme.colors.primaryText }]}>No outfit data available</Text>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Text style={[styles.backButtonText, { color: theme.colors.primaryText }]}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 
-  const topItem = getItemByCategory('top') || getItemByCategory('shirt') || getItemByCategory('blouse');
-  const bottomItem = getItemByCategory('bottom') || getItemByCategory('pants') || getItemByCategory('jeans') || getItemByCategory('shorts') || getItemByCategory('skirt');
-  const shoesItem = getItemByCategory('shoes') || getItemByCategory('shoe') || getItemByCategory('sneaker') || getItemByCategory('boot');
-  const accessories = getAccessories();
+  // Enhanced category matching with fallbacks
+  // Categorize all outfit items properly
+  const categorizedItems = categorizeOutfitItems();
+  const topItem = categorizedItems.top;
+  const bottomItem = categorizedItems.bottom;
+  const shoesItem = categorizedItems.shoes;
+  const accessories = categorizedItems.accessories;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground, borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#4B2E2B" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Combine History</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Combine History</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Outfit Name */}
         <View style={styles.outfitHeader}>
-          <Text style={styles.outfitName}>{outfit.outfitName}</Text>
+          <Text style={[styles.outfitName, { color: theme.colors.primaryText }]}>{outfit.outfitName}</Text>
         </View>
 
         {/* Outfit Preview Images */}
@@ -308,14 +420,14 @@ export default function OutfitHistoryDetail() {
         </View>
 
         {/* Date and Details Card */}
-        <View style={styles.detailsCard}>
+        <View style={[styles.detailsCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date:</Text>
-            <Text style={styles.detailValue}>{formatDate(outfit.wornDate || outfit.createdAt)}</Text>
+            <Text style={[styles.detailLabel, { color: theme.colors.primaryText }]}>Date:</Text>
+            <Text style={[styles.detailValue, { color: theme.colors.secondaryText }]}>{formatDate(outfit.wornDate || outfit.createdAt)}</Text>
           </View>
           
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Clothes details:</Text>
+            <Text style={[styles.detailLabel, { color: theme.colors.primaryText }]}>Clothes details:</Text>
           </View>
           
           {/* Item Cards */}
@@ -329,33 +441,33 @@ export default function OutfitHistoryDetail() {
           {/* Additional Details */}
           {outfit.occasion && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Occasion:</Text>
-              <Text style={styles.detailValue}>{outfit.occasion}</Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.primaryText }]}>Occasion:</Text>
+              <Text style={[styles.detailValue, { color: theme.colors.secondaryText }]}>{outfit.occasion}</Text>
             </View>
           )}
 
           {outfit.weather && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Weather:</Text>
-              <Text style={styles.detailValue}>{outfit.weather}</Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.primaryText }]}>Weather:</Text>
+              <Text style={[styles.detailValue, { color: theme.colors.secondaryText }]}>{outfit.weather}</Text>
             </View>
           )}
 
           {outfit.notes && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Notes:</Text>
-              <Text style={styles.detailValue}>{outfit.notes}</Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.primaryText }]}>Notes:</Text>
+              <Text style={[styles.detailValue, { color: theme.colors.secondaryText }]}>{outfit.notes}</Text>
             </View>
           )}
         </View>
 
         {/* Use It Button */}
         <TouchableOpacity 
-          style={styles.useItButton}
+          style={[styles.useItButton, { backgroundColor: theme.colors.buttonBackground }]}
           onPress={handleUseOutfit}
           disabled={trackingUsage}
         >
-          <Text style={styles.useItButtonText}>
+          <Text style={[styles.useItButtonText, { color: theme.colors.buttonText }]}>
             {trackingUsage ? 'Tracking...' : 'Use This Outfit'}
           </Text>
         </TouchableOpacity>

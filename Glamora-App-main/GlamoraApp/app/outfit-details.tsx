@@ -12,6 +12,7 @@ import {
     View,
 } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 interface OutfitCombination {
   id: string;
@@ -74,6 +75,7 @@ interface OutfitCombination {
 
 export default function OutfitDetails() {
   const router = useRouter();
+  const { theme } = useTheme();
   const { outfitData } = useLocalSearchParams();
   const [outfit, setOutfit] = useState<OutfitCombination | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,14 +111,18 @@ export default function OutfitDetails() {
           {
             wardrobeItemId: outfit.top._id,
             itemName: outfit.top.clothName,
+            itemDescription: outfit.top.description || '',
             itemImageUrl: outfit.top.imageUrl,
             itemCategory: outfit.top.category,
+            displayCategory: 'top', // Indicates this item was in the top container
           },
           {
             wardrobeItemId: outfit.bottom._id,
             itemName: outfit.bottom.clothName,
+            itemDescription: outfit.bottom.description || '',
             itemImageUrl: outfit.bottom.imageUrl,
             itemCategory: outfit.bottom.category,
+            displayCategory: 'bottom', // Indicates this item was in the bottom container
           }
         ],
         occasion: outfit.occasion,
@@ -129,8 +135,10 @@ export default function OutfitDetails() {
         outfitData.outfitItems.push({
           wardrobeItemId: outfit.shoes._id,
           itemName: outfit.shoes.clothName,
+          itemDescription: outfit.shoes.description || '',
           itemImageUrl: outfit.shoes.imageUrl,
           itemCategory: outfit.shoes.category,
+          displayCategory: 'shoes', // Indicates this item was in the shoes container
         });
       }
 
@@ -140,8 +148,10 @@ export default function OutfitDetails() {
           outfitData.outfitItems.push({
             wardrobeItemId: accessory._id,
             itemName: accessory.clothName,
+            itemDescription: accessory.description || '',
             itemImageUrl: accessory.imageUrl,
             itemCategory: accessory.category,
+            displayCategory: 'accessories', // Indicates this item was in the accessories container
           });
         });
       }
@@ -218,24 +228,24 @@ export default function OutfitDetails() {
   const renderItemCard = (title: string, item: any, icon: string) => {
     if (!item) {
       return (
-        <View style={styles.itemCard}>
+        <View style={[styles.itemCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
           <View style={styles.itemCardHeader}>
-            <Ionicons name={icon as any} size={24} color="#999" />
-            <Text style={styles.itemCardTitle}>{title}</Text>
+            <Ionicons name={icon as any} size={24} color={theme.colors.secondaryText} />
+            <Text style={[styles.itemCardTitle, { color: theme.colors.primaryText }]}>{title}</Text>
           </View>
           <View style={styles.emptyItemContent}>
-            <Ionicons name="remove-circle-outline" size={32} color="#ccc" />
-            <Text style={styles.emptyItemText}>No {title.toLowerCase()} selected</Text>
+            <Ionicons name="remove-circle-outline" size={32} color={theme.colors.secondaryText} />
+            <Text style={[styles.emptyItemText, { color: theme.colors.secondaryText }]}>No {title.toLowerCase()} selected</Text>
           </View>
         </View>
       );
     }
 
     return (
-      <View style={styles.itemCard}>
+      <View style={[styles.itemCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
         <View style={styles.itemCardHeader}>
-          <Ionicons name={icon as any} size={24} color="#4B2E2B" />
-          <Text style={styles.itemCardTitle}>{title}</Text>
+          <Ionicons name={icon as any} size={24} color={theme.colors.icon} />
+          <Text style={[styles.itemCardTitle, { color: theme.colors.primaryText }]}>{title}</Text>
         </View>
         <View style={styles.itemCardContent}>
           <Image
@@ -245,8 +255,8 @@ export default function OutfitDetails() {
             onError={() => console.log(`${title} image failed to load:`, item.imageUrl)}
           />
           <View style={styles.itemInfo}>
-            <Text style={styles.itemName}>{item.clothName}</Text>
-            <Text style={styles.itemDescription}>
+            <Text style={[styles.itemName, { color: theme.colors.primaryText }]}>{item.clothName}</Text>
+            <Text style={[styles.itemDescription, { color: theme.colors.secondaryText }]}>
               {item.description || `${item.category} - ${item.color || 'N/A'}`}
             </Text>
           </View>
@@ -258,24 +268,24 @@ export default function OutfitDetails() {
   const renderAccessoriesCard = (accessories: any[]) => {
     if (!accessories || accessories.length === 0) {
       return (
-        <View style={styles.itemCard}>
+        <View style={[styles.itemCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
           <View style={styles.itemCardHeader}>
-            <Ionicons name="diamond-outline" size={24} color="#999" />
-            <Text style={styles.itemCardTitle}>Accessories</Text>
+            <Ionicons name="diamond-outline" size={24} color={theme.colors.secondaryText} />
+            <Text style={[styles.itemCardTitle, { color: theme.colors.primaryText }]}>Accessories</Text>
           </View>
           <View style={styles.emptyItemContent}>
-            <Ionicons name="remove-circle-outline" size={32} color="#ccc" />
-            <Text style={styles.emptyItemText}>No accessories selected</Text>
+            <Ionicons name="remove-circle-outline" size={32} color={theme.colors.secondaryText} />
+            <Text style={[styles.emptyItemText, { color: theme.colors.secondaryText }]}>No accessories selected</Text>
           </View>
         </View>
       );
     }
 
     return (
-      <View style={styles.itemCard}>
+      <View style={[styles.itemCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
         <View style={styles.itemCardHeader}>
-          <Ionicons name="diamond-outline" size={24} color="#4B2E2B" />
-          <Text style={styles.itemCardTitle}>Accessories</Text>
+          <Ionicons name="diamond-outline" size={24} color={theme.colors.icon} />
+          <Text style={[styles.itemCardTitle, { color: theme.colors.primaryText }]}>Accessories</Text>
         </View>
         <View style={styles.accessoriesList}>
           {accessories.map((accessory, index) => (
@@ -287,8 +297,8 @@ export default function OutfitDetails() {
                 onError={() => console.log('Accessory image failed to load:', accessory.imageUrl)}
               />
               <View style={styles.accessoryInfo}>
-                <Text style={styles.accessoryName}>{accessory.clothName}</Text>
-                <Text style={styles.accessoryDescription}>
+                <Text style={[styles.accessoryName, { color: theme.colors.primaryText }]}>{accessory.clothName}</Text>
+                <Text style={[styles.accessoryDescription, { color: theme.colors.secondaryText }]}>
                   {accessory.description || `${accessory.category} - ${accessory.color || 'N/A'}`}
                 </Text>
               </View>
@@ -301,26 +311,26 @@ export default function OutfitDetails() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading outfit details...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bodyBackground }]}>
+        <Text style={[styles.loadingText, { color: theme.colors.primaryText }]}>Loading outfit details...</Text>
       </View>
     );
   }
 
   if (!outfit) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.headerBackground, borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#4B2E2B" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Outfit Details</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Outfit Details</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No outfit data available</Text>
+          <Text style={[styles.emptyText, { color: theme.colors.primaryText }]}>No outfit data available</Text>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Text style={[styles.backButtonText, { color: theme.colors.primaryText }]}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -328,30 +338,30 @@ export default function OutfitDetails() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground, borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#4B2E2B" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Outfit Details</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Outfit Details</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Outfit Name and Occasion */}
         <View style={styles.outfitHeader}>
-          <Text style={styles.outfitName}>{outfit.name}</Text>
-          <View style={styles.outfitBadge}>
-            <Text style={styles.outfitBadgeText}>{outfit.occasion}</Text>
+          <Text style={[styles.outfitName, { color: theme.colors.primaryText }]}>{outfit.name}</Text>
+          <View style={[styles.outfitBadge, { backgroundColor: theme.colors.buttonBackground }]}>
+            <Text style={[styles.outfitBadgeText, { color: theme.colors.buttonText }]}>{outfit.occasion}</Text>
           </View>
         </View>
 
         {/* Weather Info */}
         {outfit.weatherMeta && (
-          <View style={styles.weatherInfo}>
-            <Ionicons name="partly-sunny" size={20} color="#4B2E2B" />
-            <Text style={styles.weatherText}>
+          <View style={[styles.weatherInfo, { backgroundColor: theme.colors.containerBackground }]}>
+            <Ionicons name="partly-sunny" size={20} color={theme.colors.icon} />
+            <Text style={[styles.weatherText, { color: theme.colors.primaryText }]}>
               {outfit.weatherMeta.location || 'Current location'} • {outfit.weatherMeta.description || outfit.weather}
               {outfit.weatherMeta.temperature && ` • ${outfit.weatherMeta.temperature}°C`}
             </Text>
@@ -368,10 +378,10 @@ export default function OutfitDetails() {
 
         {/* Use It Button */}
         <TouchableOpacity 
-          style={styles.useItButton}
+          style={[styles.useItButton, { backgroundColor: theme.colors.buttonBackground }]}
           onPress={() => saveOutfit(outfit)}
         >
-          <Text style={styles.useItButtonText}>Use it</Text>
+          <Text style={[styles.useItButtonText, { color: theme.colors.buttonText }]}>Use it</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useSocket } from './contexts/SocketContext';
+import { useTheme } from './contexts/ThemeContext';
 
 interface MarketplaceItem {
   _id: string;
@@ -21,6 +22,7 @@ interface MarketplaceItem {
 export default function Marketplace() {
   const router = useRouter();
   const pathname = usePathname();
+  const { theme } = useTheme();
   const { socket } = useSocket();
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,38 +97,38 @@ export default function Marketplace() {
   }, [socket, fetchMarketplaceItems]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerText}>GLAMORA</Text>
+      <View style={[styles.headerContainer, { backgroundColor: theme.colors.headerBackground }]}>
+        <Text style={[styles.headerText, { color: theme.colors.headerText }]}>GLAMORA</Text>
       </View>
       {/* Search Bar */}
-      <View style={styles.searchBarContainer}>
-        <Ionicons name="shirt" size={20} color="#b8b0a8" style={{ marginLeft: 8 }} />
+      <View style={[styles.searchBarContainer, { backgroundColor: theme.colors.containerBackground }]}>
+        <Ionicons name="shirt" size={20} color={theme.colors.secondaryText} style={{ marginLeft: 8 }} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.colors.primaryText }]}
           placeholder="search cloth"
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#b8b0a8"
+          placeholderTextColor={theme.colors.secondaryText}
         />
         <TouchableOpacity style={styles.searchButton}>
-          <Ionicons name="search" size={20} color="#b8b0a8" />
+          <Ionicons name="search" size={20} color={theme.colors.secondaryText} />
         </TouchableOpacity>
       </View>
-      <Text style={styles.marketplaceTitle}>MARKETPLACE</Text>
+      <Text style={[styles.marketplaceTitle, { color: theme.colors.primaryText }]}>MARKETPLACE</Text>
       {loading ? (
-        <ActivityIndicator size="large" color="#8B4513" style={{ marginTop: 30 }} />
+        <ActivityIndicator size="large" color={theme.colors.accent} style={{ marginTop: 30 }} />
       ) : (
         <ScrollView contentContainerStyle={styles.gridContainer}>
           {items.length === 0 ? (
-            <Text style={{ textAlign: 'center', color: '#888', marginTop: 30 }}>No items found.</Text>
+            <Text style={{ textAlign: 'center', color: theme.colors.secondaryText, marginTop: 30 }}>No items found.</Text>
           ) : (
             <View style={[styles.gridRow, { paddingHorizontal: contentPadding / 2 }]}>
               {items.map((item, idx) => (
                 <TouchableOpacity
                   key={item._id || idx}
-                  style={[styles.itemCard, { width: cardWidth }]}
+                  style={[styles.itemCard, { width: cardWidth, backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}
                   onPress={() => router.push({
                     pathname: '/posted-item',
                     params: {
@@ -141,12 +143,12 @@ export default function Marketplace() {
                     }
                   })}
                 >
-                  <Image source={{ uri: item.imageUrl }} style={[styles.itemImage, { width: imageWidth }]} />
+                  <Image source={{ uri: item.imageUrl }} style={[styles.itemImage, { width: imageWidth, backgroundColor: theme.colors.border }]} />
                   <View style={styles.itemInfoRow}>
-                    <Text style={styles.itemLabel} numberOfLines={1} ellipsizeMode="tail">
+                    <Text style={[styles.itemLabel, { color: theme.colors.primaryText }]} numberOfLines={1} ellipsizeMode="tail">
                       {item.name}
                     </Text>
-                    <Text style={styles.itemPrice}>₱{item.price}</Text>
+                    <Text style={[styles.itemPrice, { color: theme.colors.accent }]}>₱{item.price}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -155,22 +157,22 @@ export default function Marketplace() {
         </ScrollView>
       )}
       {/* Footer Navigation */}
-      <View style={styles.navigation}>
+      <View style={[styles.navigation, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/wardrobe')}>
-          <Ionicons name="shirt" size={24} color="#B0B0B0" />
-          <Text style={styles.navText}>Wardrobe</Text>
+          <Ionicons name="shirt" size={24} color={theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Wardrobe</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/scan')}>
-          <Ionicons name="camera" size={24} color="#B0B0B0" />
-          <Text style={styles.navText}>Scan</Text>
+          <Ionicons name="camera" size={24} color={theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Scan</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="cart" size={24} color={pathname === '/marketplace' ? '#000' : '#B0B0B0'} />
-          <Text style={[styles.navText, pathname === '/marketplace' && styles.activeText]}>Market</Text>
+          <Ionicons name="cart" size={24} color={pathname === '/marketplace' ? theme.colors.icon : theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }, pathname === '/marketplace' && { color: theme.colors.primaryText, fontWeight: 'bold' }]}>Market</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
-          <Ionicons name="person" size={24} color="#B0B0B0" />
-          <Text style={styles.navText}>Profile</Text>
+          <Ionicons name="person" size={24} color={theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Profile</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -178,39 +180,36 @@ export default function Marketplace() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4C2C2', paddingBottom: 90 },
+  container: { flex: 1, paddingBottom: 90 },
   headerContainer: {
     width: '100%',
     alignItems: 'center',     
     justifyContent: 'center', 
     paddingTop: 40,
     paddingBottom: 16,
-    backgroundColor: '#FEE8D6',
     position: 'relative',
   },
-
   headerText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#4B2E2B',
     fontFamily: 'serif',
     letterSpacing: 1,
     textAlign: 'center',
     width: '100%',            
   },
   searchBarContainer: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#ece5df', borderRadius: 18,
+    flexDirection: 'row', alignItems: 'center', borderRadius: 18,
     marginHorizontal: 24, marginTop: 10, marginBottom: 10, paddingHorizontal: 8, height: 38,
   },
   searchInput: {
-    flex: 1, fontSize: 16, marginLeft: 8, color: '#222', backgroundColor: 'transparent',
+    flex: 1, fontSize: 16, marginLeft: 8, backgroundColor: 'transparent',
   },
   searchButton: {
     padding: 8,
     marginRight: 8,
   },
   marketplaceTitle: {
-    fontSize: 22, fontWeight: 'bold', color: '#222', marginLeft: 24, marginTop: 10, marginBottom: 18,
+    fontSize: 22, fontWeight: 'bold', marginLeft: 24, marginTop: 10, marginBottom: 18,
   },
   gridContainer: {
     flexDirection: 'column', alignItems: 'center', paddingBottom: 120, paddingHorizontal: 8,
@@ -219,23 +218,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%',
   },
   itemCard: {
-    backgroundColor: '#fff', borderRadius: 18, marginBottom: 16, alignItems: 'center',
+    borderRadius: 18, marginBottom: 16, alignItems: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 3,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
     paddingBottom: 12,
   },
   itemImage: {
-    height: 130, borderRadius: 12, marginTop: 10, marginBottom: 8, backgroundColor: '#eee',
+    height: 130, borderRadius: 12, marginTop: 10, marginBottom: 8,
   },
   itemInfoRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 12,
   },
-  itemLabel: { fontSize: 15, fontWeight: 'bold', color: '#222', flex: 1, marginRight: 6 },
-  itemPrice: { fontSize: 15, color: '#222', fontWeight: 'bold', marginLeft: 8 },
+  itemLabel: { fontSize: 15, fontWeight: 'bold', flex: 1, marginRight: 6 },
+  itemPrice: { fontSize: 15, fontWeight: 'bold', marginLeft: 8 },
   navigation: {
     flexDirection: 'row', 
-    backgroundColor: '#FEE8D6',
     paddingVertical: 15, 
     paddingHorizontal: 20,
     justifyContent: 'space-around', 
@@ -253,6 +250,6 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   navItem: { alignItems: 'center' },
-  navText: { fontSize: 12, color: '#666', marginTop: 5 },
-  activeText: { color: '#333', fontWeight: 'bold' },
+  navText: { fontSize: 12, marginTop: 5 },
+  activeText: { fontWeight: 'bold' },
 }); 

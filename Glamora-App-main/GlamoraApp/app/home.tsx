@@ -2,10 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
+  const { theme } = useTheme();
 
   useEffect(() => {
     // Check if user is logged in
@@ -33,19 +35,19 @@ export default function Home() {
 
   if (!user) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.loading}>Loading...</Text>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
+        <Text style={[styles.loading, { color: theme.colors.primaryText }]}>Loading...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       <Image source={require('../assets/logo.png')} style={styles.logo} />
-      <Text style={styles.title}>Welcome to Glamora!</Text>
-      <Text style={styles.email}>{user.email}</Text>
-      <TouchableOpacity style={styles.mainAppButton} onPress={() => router.push('/wardrobe')}>
-        <Text style={styles.mainAppButtonText}>Go to Main App</Text>
+      <Text style={[styles.title, { color: theme.colors.primaryText }]}>Welcome to Glamora!</Text>
+      <Text style={[styles.email, { color: theme.colors.secondaryText }]}>{user.email}</Text>
+      <TouchableOpacity style={[styles.mainAppButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={() => router.push('/wardrobe')}>
+        <Text style={[styles.mainAppButtonText, { color: theme.colors.buttonText }]}>Go to Main App</Text>
       </TouchableOpacity>
     </View>
   );

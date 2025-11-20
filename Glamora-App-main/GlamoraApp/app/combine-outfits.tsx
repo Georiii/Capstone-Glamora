@@ -14,6 +14,7 @@ import {
     View
 } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 interface WardrobeItem {
   _id: string;
@@ -29,6 +30,7 @@ interface WardrobeItem {
 
 export default function CombineOutfits() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([]);
   
@@ -41,6 +43,7 @@ export default function CombineOutfits() {
   const [useWeatherAPI, setUseWeatherAPI] = useState<boolean>(false);
   const [lastWeather, setLastWeather] = useState<any>(null); // retained for potential UI use
   const [userLocation, setUserLocation] = useState<string>('');
+  const [useColorHarmony, setUseColorHarmony] = useState<boolean>(false);
   
   // Message box state for wardrobe availability
   const [showAvailabilityModal, setShowAvailabilityModal] = useState<boolean>(false);
@@ -223,6 +226,103 @@ export default function CombineOutfits() {
       setUseWeatherAPI(false);
       setUserLocation('');
     }
+  };
+
+  const handleColorHarmonyToggle = () => {
+    setUseColorHarmony(!useColorHarmony);
+  };
+
+  // Color harmony functions
+  const areColorsComplementary = (color1: string, color2: string): boolean => {
+    if (!color1 || !color2) return false;
+    
+    const c1 = color1.toLowerCase().trim();
+    const c2 = color2.toLowerCase().trim();
+    
+    // Complementary color pairs (fashion theory)
+    const complementaryPairs = [
+      ['red', 'green'], ['blue', 'orange'], ['yellow', 'purple'],
+      ['black', 'white'], ['brown', 'beige'], ['navy', 'tan'],
+      ['pink', 'mint'], ['coral', 'teal'], ['lavender', 'yellow'],
+      ['red', 'navy'], ['blue', 'brown'], ['green', 'burgundy'],
+      ['orange', 'blue'], ['purple', 'yellow'], ['pink', 'green'],
+      ['red', 'white'], ['black', 'red'], ['white', 'navy'],
+      ['beige', 'brown'], ['gray', 'pink'], ['navy', 'white']
+    ];
+    
+    return complementaryPairs.some(pair => 
+      (pair[0] === c1 && pair[1] === c2) ||
+      (pair[1] === c1 && pair[0] === c2) ||
+      c1.includes(pair[0]) && c2.includes(pair[1]) ||
+      c1.includes(pair[1]) && c2.includes(pair[0])
+    );
+  };
+
+  const areColorsHarmonious = (colors: string[]): boolean => {
+    if (colors.length < 2) return true;
+    
+    const validColors = colors.filter(c => c && c.trim());
+    if (validColors.length < 2) return true;
+    
+    // Check if all colors are complementary or match
+    for (let i = 0; i < validColors.length; i++) {
+      for (let j = i + 1; j < validColors.length; j++) {
+        const c1 = validColors[i].toLowerCase().trim();
+        const c2 = validColors[j].toLowerCase().trim();
+        
+        // Same color (monochromatic) - harmonious
+        if (c1 === c2) continue;
+        
+        // Complementary colors - harmonious
+        if (areColorsComplementary(c1, c2)) continue;
+        
+        // Neutral colors work with anything
+        const neutrals = ['black', 'white', 'gray', 'grey', 'beige', 'tan', 'navy', 'brown'];
+        if (neutrals.includes(c1) || neutrals.includes(c2)) continue;
+        
+        // If none of the above, colors might clash
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
+  const calculateColorHarmonyScore = (outfit: any): number => {
+    const colors: string[] = [];
+    
+    if (outfit.top?.color) colors.push(outfit.top.color);
+    if (outfit.bottom?.color) colors.push(outfit.bottom.color);
+    if (outfit.shoes?.color) colors.push(outfit.shoes.color);
+    if (outfit.accessories && outfit.accessories.length > 0) {
+      outfit.accessories.forEach((acc: any) => {
+        if (acc.color) colors.push(acc.color);
+      });
+    }
+    
+    if (colors.length < 2) return 50; // Neutral score if not enough colors
+    
+    let score = 50; // Base score
+    
+    // Check complementary pairs
+    for (let i = 0; i < colors.length; i++) {
+      for (let j = i + 1; j < colors.length; j++) {
+        if (areColorsComplementary(colors[i], colors[j])) {
+          score += 20; // Complementary colors boost score
+        } else if (colors[i].toLowerCase() === colors[j].toLowerCase()) {
+          score += 15; // Matching colors boost score
+        } else {
+          const neutrals = ['black', 'white', 'gray', 'grey', 'beige', 'tan', 'navy', 'brown'];
+          if (neutrals.includes(colors[i].toLowerCase()) || neutrals.includes(colors[j].toLowerCase())) {
+            score += 10; // Neutral colors work well
+          } else {
+            score -= 5; // Different non-complementary colors reduce score
+          }
+        }
+      }
+    }
+    
+    return Math.min(100, Math.max(0, score));
   };
 
   // Check wardrobe availability for selected categories
@@ -481,6 +581,12 @@ export default function CombineOutfits() {
           if (shoe) outfit.shoes = shoe;
           else if (shoes.length > 0) outfit.shoes = shoes[0];
           outfit.accessories = accessory ? [accessory] : (accessories.length > 0 ? [accessories[0]] : []);
+          
+          // Calculate color harmony score if toggle is ON
+          if (useColorHarmony) {
+            outfit.colorHarmonyScore = calculateColorHarmonyScore(outfit);
+          }
+          
           if (weatherMetaLocal || lastWeather) {
             const meta = weatherMetaLocal || lastWeather;
             console.log('🌤️ Adding weather meta to outfit:', meta);
@@ -496,6 +602,29 @@ export default function CombineOutfits() {
           outfitCombinations.push(outfit);
           outfitCount++;
         }
+      }
+
+      // Filter and sort by color harmony if toggle is ON
+      if (useColorHarmony) {
+        // Filter out outfits with low color harmony scores (below 40)
+        const harmoniousOutfits = outfitCombinations.filter(outfit => 
+          outfit.colorHarmonyScore >= 40
+        );
+        
+        // If we have harmonious outfits, use them; otherwise use all
+        if (harmoniousOutfits.length > 0) {
+          // Sort by color harmony score (highest first)
+          harmoniousOutfits.sort((a, b) => (b.colorHarmonyScore || 0) - (a.colorHarmonyScore || 0));
+          // Take top 6 most harmonious
+          outfitCombinations.length = 0;
+          outfitCombinations.push(...harmoniousOutfits.slice(0, 6));
+        } else {
+          // If no harmonious outfits found, sort all by score and take best
+          outfitCombinations.sort((a, b) => (b.colorHarmonyScore || 0) - (a.colorHarmonyScore || 0));
+          outfitCombinations.splice(6);
+        }
+        
+        console.log('🎨 Color harmony filter applied. Outfits:', outfitCombinations.length);
       }
 
       console.log('✅ Generated manual outfits:', outfitCombinations.length);
@@ -555,30 +684,34 @@ export default function CombineOutfits() {
 
   const renderCheckboxItem = (item: string, isSelected: boolean, onPress: () => void) => (
     <TouchableOpacity style={styles.checkboxItem} onPress={onPress}>
-      <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-        {isSelected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+      <View style={[
+        styles.checkbox, 
+        { borderColor: theme.colors.border },
+        isSelected && [styles.checkboxSelected, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]
+      ]}>
+        {isSelected && <Ionicons name="checkmark" size={16} color={theme.colors.buttonText} />}
       </View>
-      <Text style={styles.checkboxText}>{item}</Text>
+      <Text style={[styles.checkboxText, { color: theme.colors.primaryText }]}>{item}</Text>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => (router as any).push('/profile')}>
-          <Ionicons name="arrow-back" size={24} color="#000000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Combine</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Combine</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* For Tops Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>For Tops</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>For Tops</Text>
             <View style={styles.filterColumn}>
-              <Text style={styles.filterLabel}>Categories</Text>
+              <Text style={[styles.filterLabel, { color: theme.colors.primaryText }]}>Categories</Text>
               <View style={styles.checkboxGrid}>
                 {topCategories.map((category) => 
                   renderCheckboxItem(
@@ -593,9 +726,9 @@ export default function CombineOutfits() {
 
         {/* For Bottoms Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>For Bottoms</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>For Bottoms</Text>
             <View style={styles.filterColumn}>
-              <Text style={styles.filterLabel}>Categories</Text>
+              <Text style={[styles.filterLabel, { color: theme.colors.primaryText }]}>Categories</Text>
               <View style={styles.checkboxGrid}>
                 {bottomCategories.map((category) => 
                   renderCheckboxItem(
@@ -610,30 +743,48 @@ export default function CombineOutfits() {
 
         {/* AI section removed */}
 
+        {/* Color Harmony Section */}
+        <View style={styles.section}>
+          <View style={styles.aiToggleContainer}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>🎨 Color Combination</Text>
+            <TouchableOpacity 
+              style={[styles.aiToggle, { backgroundColor: theme.colors.buttonSecondary }, useColorHarmony && { backgroundColor: theme.colors.accent }]}
+              onPress={handleColorHarmonyToggle}
+            >
+              <Text style={[styles.aiToggleText, { color: theme.colors.primaryText }, useColorHarmony && { color: theme.colors.buttonText }]}>
+                {useColorHarmony ? 'ON' : 'OFF'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.locationHint, { color: theme.colors.secondaryText }]}>
+            When ON, suggests outfits with colors that complement each other.
+          </Text>
+        </View>
+
         {/* Weather API Section - Always available */}
         <View style={styles.section}>
           <View style={styles.aiToggleContainer}>
-            <Text style={styles.sectionTitle}>🌤️ Real-time Weather</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>🌤️ Real-time Weather</Text>
             <TouchableOpacity 
-              style={[styles.aiToggle, useWeatherAPI && styles.aiToggleActive]}
+              style={[styles.aiToggle, { backgroundColor: theme.colors.containerBackground }, useWeatherAPI && { backgroundColor: theme.colors.buttonBackground }]}
               onPress={handleWeatherAPIToggle}
             >
-              <Text style={[styles.aiToggleText, useWeatherAPI && styles.aiToggleTextActive]}>
+              <Text style={[styles.aiToggleText, { color: theme.colors.primaryText }, useWeatherAPI && { color: theme.colors.buttonText }]}>
                 {useWeatherAPI ? 'ON' : 'OFF'}
               </Text>
             </TouchableOpacity>
           </View>
           {useWeatherAPI && (
             <View style={styles.locationInputContainer}>
-              <Text style={styles.locationLabel}>Your Location:</Text>
+              <Text style={[styles.locationLabel, { color: theme.colors.primaryText }]}>Your Location:</Text>
               <TextInput
-                style={styles.locationInput}
+                style={[styles.locationInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
                 placeholder="e.g., Manila, Philippines"
                 value={userLocation}
                 onChangeText={setUserLocation}
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.colors.secondaryText}
               />
-              <Text style={styles.locationHint}>
+              <Text style={[styles.locationHint, { color: theme.colors.secondaryText }]}>
                 Weather will influence tops, bottoms, shoes and accessories.
               </Text>
             </View>
@@ -642,10 +793,10 @@ export default function CombineOutfits() {
 
         {/* Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Preferences</Text>
           <View style={styles.filterRow}>
             <View style={styles.filterColumn}>
-              <Text style={styles.filterLabel}>Occasion</Text>
+              <Text style={[styles.filterLabel, { color: theme.colors.primaryText }]}>Occasion</Text>
               <View style={styles.checkboxGrid}>
                 {occasionOptions.slice(0, 4).map((occasion) => 
                   renderCheckboxItem(
@@ -657,7 +808,7 @@ export default function CombineOutfits() {
               </View>
             </View>
             <View style={styles.filterColumn}>
-              <Text style={styles.filterLabel}>Style</Text>
+              <Text style={[styles.filterLabel, { color: theme.colors.primaryText }]}>Style</Text>
               <View style={styles.checkboxGrid}>
                 {styleOptions.slice(0, 4).map((style) => 
                   renderCheckboxItem(
@@ -673,14 +824,14 @@ export default function CombineOutfits() {
 
         {/* Confirm Button */}
         <TouchableOpacity 
-          style={styles.confirmButton} 
+          style={[styles.confirmButton, { backgroundColor: theme.colors.buttonBackground }]} 
           onPress={generateOutfits}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#000000" />
+            <ActivityIndicator size="small" color={theme.colors.buttonText} />
           ) : (
-            <Text style={styles.confirmButtonText}>Generate Outfit Suggestions</Text>
+            <Text style={[styles.confirmButtonText, { color: theme.colors.buttonText }]}>Generate Outfit Suggestions</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -693,37 +844,37 @@ export default function CombineOutfits() {
         onRequestClose={handleCancelGeneration}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.availabilityModalContent}>
-            <Text style={styles.availabilityModalTitle}>Missing Items</Text>
-            <Text style={styles.availabilityModalText}>
+          <View style={[styles.availabilityModalContent, { backgroundColor: theme.colors.containerBackground }]}>
+            <Text style={[styles.availabilityModalTitle, { color: theme.colors.primaryText }]}>Missing Items</Text>
+            <Text style={[styles.availabilityModalText, { color: theme.colors.secondaryText }]}>
               The following items are not available in your wardrobe for the selected criteria:
             </Text>
             
             <View style={styles.missingItemsList}>
               {missingCategories.map((category, index) => (
-                <Text key={index} style={styles.missingItemText}>
+                <Text key={index} style={[styles.missingItemText, { color: theme.colors.primaryText }]}>
                   • {category}
                 </Text>
               ))}
             </View>
             
-            <Text style={styles.availabilityModalSubtext}>
+            <Text style={[styles.availabilityModalSubtext, { color: theme.colors.secondaryText }]}>
               You can continue to generate outfit suggestions without these items, or cancel to add more items to your wardrobe.
             </Text>
             
             <View style={styles.availabilityModalButtons}>
               <TouchableOpacity 
-                style={styles.availabilityCancelButton}
+                style={[styles.availabilityCancelButton, { backgroundColor: theme.colors.containerBackground }]}
                 onPress={handleCancelGeneration}
               >
-                <Text style={styles.availabilityCancelButtonText}>Cancel</Text>
+                <Text style={[styles.availabilityCancelButtonText, { color: theme.colors.primaryText }]}>Cancel</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles.availabilityContinueButton}
+                style={[styles.availabilityContinueButton, { backgroundColor: theme.colors.buttonBackground }]}
                 onPress={handleContinueWithoutMissing}
               >
-                <Text style={styles.availabilityContinueButtonText}>Continue</Text>
+                <Text style={[styles.availabilityContinueButtonText, { color: theme.colors.buttonText }]}>Continue</Text>
               </TouchableOpacity>
             </View>
           </View>

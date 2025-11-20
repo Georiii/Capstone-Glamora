@@ -2,11 +2,13 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Pressable, Keyboard, Dimensions, Platform } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function ForgotPassword() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -73,7 +75,7 @@ export default function ForgotPassword() {
 
   return (
     <Pressable onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss} style={styles.containerWrapper}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -81,14 +83,14 @@ export default function ForgotPassword() {
           bounces={false}
         >
           <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-          <Text style={styles.header}>Forgot Password</Text>
-          <Text style={styles.subtext}>Enter your email to receive a reset link</Text>
+          <Text style={[styles.header, { color: theme.colors.primaryText }]}>Forgot Password</Text>
+          <Text style={[styles.subtext, { color: theme.colors.secondaryText }]}>Enter your email to receive a reset link</Text>
           
-          <View style={styles.loginBox}>
+          <View style={[styles.loginBox, { backgroundColor: theme.colors.containerBackground }]}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               placeholder="Email"
-              placeholderTextColor="rgba(0,0,0,0.45)"
+              placeholderTextColor={theme.colors.placeholderText}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -96,22 +98,22 @@ export default function ForgotPassword() {
             />
             
             <TouchableOpacity 
-              style={[styles.resetButton, isLoading && styles.resetButtonDisabled]} 
+              style={[styles.resetButton, isLoading && styles.resetButtonDisabled, { backgroundColor: theme.colors.buttonBackground }]} 
               onPress={handleReset}
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color="#000" />
+                <ActivityIndicator size="small" color={theme.colors.buttonText} />
               ) : (
-                <Text style={styles.resetButtonText}>Send Reset Link</Text>
+                <Text style={[styles.resetButtonText, { color: theme.colors.buttonText }]}>Send Reset Link</Text>
               )}
             </TouchableOpacity>
           </View>
           
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Remember your password? </Text>
+            <Text style={[styles.footerText, { color: theme.colors.secondaryText }]}>Remember your password? </Text>
             <TouchableOpacity onPress={() => router.push('/login')}>
-              <Text style={styles.loginText}>Login</Text>
+              <Text style={[styles.loginText, { color: theme.colors.linkText }]}>Login</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

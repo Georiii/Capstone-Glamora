@@ -2,8 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function PostedItem() {
+  const { theme } = useTheme();
   const params = useLocalSearchParams();
   const { imageUrl, name, description, price, userName, userEmail, userProfilePicture } = params;
   const imageSrc = Array.isArray(imageUrl) ? imageUrl[0] : imageUrl;
@@ -11,23 +13,23 @@ export default function PostedItem() {
   const defaultAvatar = require('../assets/avatar.png');
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={28} color="#000" />
+          <Ionicons name="arrow-back" size={28} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.title}>MARKETPLACE</Text>
+        <Text style={[styles.title, { color: theme.colors.headerText }]}>MARKETPLACE</Text>
         <View style={{ width: 28 }} />
       </View>
       {/* Image */}
-      <Image source={{ uri: imageSrc }} style={styles.image} />
+      <Image source={{ uri: imageSrc }} style={[styles.image, { borderColor: theme.colors.border }]} />
       {/* Details */}
-      <Text style={styles.clothName}>{name}</Text>
-      <Text style={styles.description}>{description}</Text>
+      <Text style={[styles.clothName, { color: theme.colors.primaryText }]}>{name}</Text>
+      <Text style={[styles.description, { color: theme.colors.secondaryText }]}>{description}</Text>
       <View style={styles.priceRow}>
-        <Text style={styles.priceLabel}>Price</Text>
-        <Text style={styles.priceValue}>₱{price}</Text>
+        <Text style={[styles.priceLabel, { color: theme.colors.primaryText }]}>Price</Text>
+        <Text style={[styles.priceValue, { color: theme.colors.primaryText }]}>₱{price}</Text>
       </View>
       {/* User Info */}
       <View style={styles.userInfoContainer}>
@@ -36,15 +38,15 @@ export default function PostedItem() {
           style={styles.userAvatar} 
         />
         <View style={styles.sellerTextContainer}>
-          <Text style={styles.userName} numberOfLines={2}>
+          <Text style={[styles.userName, { color: theme.colors.primaryText }]} numberOfLines={2}>
             {userName || 'Name'}
           </Text>
-          <Text style={styles.userEmail} numberOfLines={2}>
+          <Text style={[styles.userEmail, { color: theme.colors.secondaryText }]} numberOfLines={2}>
             {userEmail || 'Email'}
           </Text>
         </View>
       </View>
-      <TouchableOpacity style={styles.messageButton} onPress={() => router.push({
+      <TouchableOpacity style={[styles.messageButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={() => router.push({
         pathname: '/message-user',
         params: {
           sellerId: userName,
@@ -54,7 +56,7 @@ export default function PostedItem() {
           productImage: imageSrc
         }
       })}>
-        <Text style={styles.messageButtonText}>Message User</Text>
+        <Text style={[styles.messageButtonText, { color: theme.colors.buttonText }]}>Message User</Text>
       </TouchableOpacity>
     </View>
   );

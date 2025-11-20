@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useUser } from './contexts/UserContext';
+import { useTheme } from './contexts/ThemeContext';
 
 interface OutfitItem {
   wardrobeItemId: string;
@@ -30,6 +31,7 @@ export default function Profile() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useUser();
+  const { theme } = useTheme();
   const [name, setName] = useState('Name');
   const [email, setEmail] = useState('Email');
   const [measurements, setMeasurements] = useState<any>(null);
@@ -111,18 +113,18 @@ export default function Profile() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerText}>GLAMORA</Text>
+          <Text style={[styles.headerText, { color: theme.colors.headerText }]}>GLAMORA</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={() => router.push('/premium')} style={{ marginRight: 16 }}>
-            <Ionicons name="trophy-outline" size={28} color="#B8860B" />
+            <Ionicons name="trophy-outline" size={28} color={theme.colors.accent} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/settings')}>
-          <Ionicons name="settings-outline" size={28} color="#4B2E2B" />
+          <Ionicons name="settings-outline" size={28} color={theme.colors.icon} />
           </TouchableOpacity>
         </View>
       </View>
@@ -133,109 +135,109 @@ export default function Profile() {
           style={styles.avatar} 
         />
         <View style={{ marginLeft: 12 }}>
-          <Text style={styles.profileName}>{name}</Text>
-          <Text style={styles.profileEmail}>{email}</Text>
+          <Text style={[styles.profileName, { color: theme.colors.primaryText }]}>{name}</Text>
+          <Text style={[styles.profileEmail, { color: theme.colors.secondaryText }]}>{email}</Text>
         </View>
       </View>
       
       {/* Measurement Summary */}
-      <View style={styles.measurementSummary}>
+      <View style={[styles.measurementSummary, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
         <View style={styles.measurementHeader}>
-          <Text style={styles.measurementTitle}>Body Measurements</Text>
+          <Text style={[styles.measurementTitle, { color: theme.colors.primaryText }]}>Body Measurements</Text>
           <TouchableOpacity onPress={() => router.push('/body-measurements')}>
-            <Text style={styles.editMeasurements}>Edit</Text>
+            <Text style={[styles.editMeasurements, { color: theme.colors.accent }]}>Edit</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.measurementGrid}>
           <View style={styles.measurementItem}>
-            <Text style={styles.measurementValue}>
+            <Text style={[styles.measurementValue, { color: theme.colors.primaryText }]}>
               {measurements?.height ? `${measurements.height}${measurements.measurementsUnit || 'cm'}` : '--'}
             </Text>
-            <Text style={styles.measurementLabel}>Height</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.secondaryText }]}>Height</Text>
           </View>
           <View style={styles.measurementItem}>
-            <Text style={styles.measurementValue}>
+            <Text style={[styles.measurementValue, { color: theme.colors.primaryText }]}>
               {measurements?.weight ? `${measurements.weight}kg` : '--'}
             </Text>
-            <Text style={styles.measurementLabel}>Weight</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.secondaryText }]}>Weight</Text>
           </View>
           <View style={styles.measurementItem}>
-            <Text style={styles.measurementValue}>
+            <Text style={[styles.measurementValue, { color: theme.colors.primaryText }]}>
               {measurements?.bust ? `${measurements.bust}${measurements.measurementsUnit || 'cm'}` : '--'}
             </Text>
-            <Text style={styles.measurementLabel}>Bust</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.secondaryText }]}>Bust</Text>
           </View>
         </View>
       </View>
       {/* Quick Actions */}
       <View style={styles.quickActions}>
         <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/message-box')}>
-          <MaterialCommunityIcons name="message-outline" size={32} color="#4B2E2B" />
-          <Text style={styles.actionLabel}>Messages</Text>
+          <MaterialCommunityIcons name="message-outline" size={32} color={theme.colors.icon} />
+          <Text style={[styles.actionLabel, { color: theme.colors.primaryText }]}>Messages</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/body-measurements')}>
-          <MaterialCommunityIcons name="ruler" size={32} color="#4B2E2B" />
-          <Text style={styles.actionLabel}>Measurements</Text>
+          <MaterialCommunityIcons name="ruler" size={32} color={theme.colors.icon} />
+          <Text style={[styles.actionLabel, { color: theme.colors.primaryText }]}>Measurements</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionItem} onPress={() => (router as any).push('/combine-outfits')}>
-          <FontAwesome5 name="layer-group" size={32} color="#4B2E2B" />
-          <Text style={styles.actionLabel}>Combine</Text>
+          <FontAwesome5 name="layer-group" size={32} color={theme.colors.icon} />
+          <Text style={[styles.actionLabel, { color: theme.colors.primaryText }]}>Combine</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/analytics')}>
-          <MaterialCommunityIcons name="chart-line" size={32} color="#4B2E2B" />
-          <Text style={styles.actionLabel}>Frequent{`\n`}Data</Text>
+          <MaterialCommunityIcons name="chart-line" size={32} color={theme.colors.icon} />
+          <Text style={[styles.actionLabel, { color: theme.colors.primaryText }]}>Frequent{`\n`}Data</Text>
         </TouchableOpacity>
       </View>
       {/* Data History */}
       <View style={styles.dataHistorySection}>
-        <Text style={styles.dataHistoryTitle}>Data History</Text>
-        <View style={styles.recentHistoryBox}>
+        <Text style={[styles.dataHistoryTitle, { color: theme.colors.primaryText }]}>Data History</Text>
+        <View style={[styles.recentHistoryBox, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]}>
           <View style={styles.recentHistoryHeader}>
-            <Text style={styles.recentHistoryTitle}>Recent combine history</Text>
+            <Text style={[styles.recentHistoryTitle, { color: theme.colors.primaryText }]}>Recent combine history</Text>
             <TouchableOpacity onPress={() => (router as any).push('/outfit-history')}>
-              <Text style={styles.viewAll}>View all</Text>
+              <Text style={[styles.viewAll, { color: theme.colors.accent }]}>View all</Text>
             </TouchableOpacity>
           </View>
           {/* Recent outfit history */}
           {recentOutfits.length === 0 ? (
             <View style={styles.emptyHistory}>
-              <Text style={styles.emptyHistoryText}>No recent outfits</Text>
+              <Text style={[styles.emptyHistoryText, { color: theme.colors.secondaryText }]}>No recent outfits</Text>
             </View>
           ) : (
             recentOutfits.map((outfit) => (
               <TouchableOpacity 
                 key={outfit._id} 
-                style={styles.historyRow}
+                style={[styles.historyRow, { borderBottomColor: theme.colors.divider }]}
                 onPress={() => handleOutfitPress(outfit)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.historyDate}>
+                <Text style={[styles.historyDate, { color: theme.colors.primaryText }]}>
                   {formatDate(outfit.wornDate || outfit.createdAt)}
                 </Text>
-                <Text style={styles.historyOutfit}>{outfit.outfitName}</Text>
-                <Ionicons name="chevron-forward" size={20} color="#4B2E2B" />
+                <Text style={[styles.historyOutfit, { color: theme.colors.primaryText }]}>{outfit.outfitName}</Text>
+                <Ionicons name="chevron-forward" size={20} color={theme.colors.icon} />
               </TouchableOpacity>
             ))
           )}
         </View>
       </View>
       {/* Footer Navigation */}
-      <View style={styles.navigation}>
+      <View style={[styles.navigation, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/wardrobe')}>
-          <Ionicons name="shirt" size={24} color="#B0B0B0" />
-          <Text style={styles.navText}>Wardrobe</Text>
+          <Ionicons name="shirt" size={24} color={theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Wardrobe</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/scan')}>
-          <Ionicons name="camera" size={24} color="#B0B0B0" />
-          <Text style={styles.navText}>Scan</Text>
+          <Ionicons name="camera" size={24} color={theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Scan</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/marketplace')}>
-          <Ionicons name="cart" size={24} color="#B0B0B0" />
-          <Text style={styles.navText}>Market</Text>
+          <Ionicons name="cart" size={24} color={theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Market</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
-          <Ionicons name="person" size={24} color={pathname === '/profile' ? '#000' : '#B0B0B0'} />
-          <Text style={[styles.navText, pathname === '/profile' && styles.activeText]}>Profile</Text>
+          <Ionicons name="person" size={24} color={pathname === '/profile' ? theme.colors.icon : theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }, pathname === '/profile' && { color: theme.colors.primaryText, fontWeight: 'bold' }]}>Profile</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -243,14 +245,13 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4C2C2', paddingBottom: 90 },
+  container: { flex: 1, paddingBottom: 90 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 40, paddingBottom: 10, paddingHorizontal: 20, backgroundColor: '#FEE8D6',
+    paddingTop: 40, paddingBottom: 10, paddingHorizontal: 20,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
-
-  headerText: { fontSize: 24, fontWeight: 'bold', color: '#4B2E2B', fontFamily: 'serif', letterSpacing: 1 },
+  headerText: { fontSize: 24, fontWeight: 'bold', fontFamily: 'serif', letterSpacing: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
   profileInfo: {
     flexDirection: 'row', alignItems: 'center', marginTop: 18, marginLeft: 20, marginBottom: 18,
@@ -258,18 +259,18 @@ const styles = StyleSheet.create({
   avatar: {
     width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: '#fff',
   },
-  profileName: { fontSize: 20, fontWeight: 'bold', color: '#222' },
-  profileEmail: { fontSize: 15, color: '#666', marginTop: 2 },
+  profileName: { fontSize: 20, fontWeight: 'bold' },
+  profileEmail: { fontSize: 15, marginTop: 2 },
   quickActions: {
     flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginVertical: 15, marginBottom: 20,
     paddingHorizontal: 20,
   },
   actionItem: { alignItems: 'center', flex: 1, paddingHorizontal: 10 },
-  actionLabel: { fontSize: 13, color: '#222', marginTop: 8, textAlign: 'center', fontWeight: '500' },
+  actionLabel: { fontSize: 13, marginTop: 8, textAlign: 'center', fontWeight: '500' },
   dataHistorySection: { marginHorizontal: 20, marginTop: 10 },
-  dataHistoryTitle: { fontSize: 18, fontWeight: 'bold', color: '#222', marginBottom: 8 },
+  dataHistoryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
   recentHistoryBox: {
-    backgroundColor: '#F8E3D6', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#FEE8D6',
+    borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -277,30 +278,28 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   recentHistoryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  recentHistoryTitle: { fontWeight: 'bold', fontSize: 15, color: '#222' },
-  viewAll: { color: '#B8860B', fontWeight: 'bold', fontSize: 13 },
+  recentHistoryTitle: { fontWeight: 'bold', fontSize: 15 },
+  viewAll: { fontWeight: 'bold', fontSize: 13 },
   historyRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#E5D1C0',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1,
   },
-  historyDate: { fontSize: 14, color: '#222', flex: 1 },
-  historyOutfit: { fontSize: 14, color: '#222', flex: 1, textAlign: 'center' },
+  historyDate: { fontSize: 14, flex: 1 },
+  historyOutfit: { fontSize: 14, flex: 1, textAlign: 'center' },
   navigation: {
-    flexDirection: 'row', backgroundColor: '#FEE8D6', paddingVertical: 18, paddingHorizontal: 20,
+    flexDirection: 'row', paddingVertical: 18, paddingHorizontal: 20,
     justifyContent: 'space-around', borderTopLeftRadius: 20, borderTopRightRadius: 20, shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 5, position: 'absolute',
     left: 0, right: 0, bottom: 0, zIndex: 100,
   },
   navItem: { alignItems: 'center' },
-  navText: { fontSize: 12, color: '#666', marginTop: 6, fontWeight: '500' },
-  activeText: { color: '#333', fontWeight: 'bold', fontSize: 13 },
+  navText: { fontSize: 12, marginTop: 6, fontWeight: '500' },
+  activeText: { fontWeight: 'bold', fontSize: 13 },
   measurementSummary: {
     marginHorizontal: 20,
     marginTop: 10,
-    backgroundColor: '#FEE8D6',
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E5D1C0',
   },
   measurementHeader: {
     flexDirection: 'row',
@@ -311,10 +310,8 @@ const styles = StyleSheet.create({
   measurementTitle: {
     fontWeight: 'bold',
     fontSize: 15,
-    color: '#222',
   },
   editMeasurements: {
-    color: '#B8860B',
     fontWeight: 'bold',
     fontSize: 13,
   },
@@ -329,11 +326,9 @@ const styles = StyleSheet.create({
   measurementValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#222',
   },
   measurementLabel: {
     fontSize: 12,
-    color: '#666',
     marginTop: 4,
   },
   emptyHistory: {
@@ -342,7 +337,6 @@ const styles = StyleSheet.create({
   },
   emptyHistoryText: {
     fontSize: 14,
-    color: '#999',
     fontStyle: 'italic',
   },
 }); 

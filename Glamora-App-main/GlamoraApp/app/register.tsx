@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,6 +29,7 @@ const DEFAULT_PRIVACY = 'Your Privacy Policy details go here.';
 
 export default function Register() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -206,7 +208,7 @@ export default function Register() {
 
   return (
     <Pressable onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss} style={styles.containerWrapper}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
           keyboardShouldPersistTaps="handled" 
@@ -217,37 +219,37 @@ export default function Register() {
           <Image source={require('../assets/logo.png')} style={styles.logo} />
         </View>
 
-        <Text style={styles.header}>Create Account</Text>
+        <Text style={[styles.header, { color: theme.colors.primaryText }]}>Create Account</Text>
 
-        <View style={styles.card}>
-          <TextInput style={styles.input} placeholder="Name" placeholderTextColor="rgba(0,0,0,0.45)" value={name} onChangeText={setName} />
-          <TextInput style={styles.input} placeholder="Surname" placeholderTextColor="rgba(0,0,0,0.45)" value={username} onChangeText={setUsername} />
-          <TextInput style={styles.input} placeholder="Email" placeholderTextColor="rgba(0,0,0,0.45)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+        <View style={[styles.card, { backgroundColor: theme.colors.containerBackground }]}>
+          <TextInput style={[styles.input, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border, color: theme.colors.primaryText }]} placeholder="Name" placeholderTextColor={theme.colors.secondaryText} value={name} onChangeText={setName} />
+          <TextInput style={[styles.input, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border, color: theme.colors.primaryText }]} placeholder="Surname" placeholderTextColor={theme.colors.secondaryText} value={username} onChangeText={setUsername} />
+          <TextInput style={[styles.input, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border, color: theme.colors.primaryText }]} placeholder="Email" placeholderTextColor={theme.colors.secondaryText} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
 
           {/* Password Input */}
           <View style={styles.passwordContainer}>
             <TextInput
-              style={[styles.input, styles.passwordInput]}
+              style={[styles.input, styles.passwordInput, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border, color: theme.colors.primaryText }]}
               placeholder="Password"
-              placeholderTextColor="rgba(0,0,0,0.45)"
+              placeholderTextColor={theme.colors.secondaryText}
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={onChangePassword}
             />
             <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} style={styles.eyeIcon}>
-              <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#6b6b6b" />
+              <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color={theme.colors.secondaryText} />
             </TouchableOpacity>
           </View>
 
           {/* Guidelines + Animated Strength */}
           <View style={styles.pwGuidelines}>
-            <Text style={styles.pwGuidelineHeader}>Password must be:</Text>
+            <Text style={[styles.pwGuidelineHeader, { color: theme.colors.primaryText }]}>Password must be:</Text>
             <View style={styles.pwRules}>
-              <Text style={styles.pwRule}>• At least 8 characters</Text>
-              <Text style={styles.pwRule}>• One uppercase letter (A-Z)</Text>
-              <Text style={styles.pwRule}>• One lowercase letter (a-z)</Text>
-              <Text style={styles.pwRule}>• One number (0-9)</Text>
-              <Text style={styles.pwRule}>• One special character (!,@,#,$, etc.)</Text>
+              <Text style={[styles.pwRule, { color: theme.colors.secondaryText }]}>• At least 8 characters</Text>
+              <Text style={[styles.pwRule, { color: theme.colors.secondaryText }]}>• One uppercase letter (A-Z)</Text>
+              <Text style={[styles.pwRule, { color: theme.colors.secondaryText }]}>• One lowercase letter (a-z)</Text>
+              <Text style={[styles.pwRule, { color: theme.colors.secondaryText }]}>• One number (0-9)</Text>
+              <Text style={[styles.pwRule, { color: theme.colors.secondaryText }]}>• One special character (!,@,#,$, etc.)</Text>
             </View>
 
             <Animated.View style={[styles.strengthRow, { transform: [{ translateX: shakeAnim }] }]}>
@@ -275,27 +277,27 @@ export default function Register() {
           {/* Confirm Password */}
           <View style={styles.passwordContainer}>
             <TextInput
-              style={[styles.input, styles.passwordInput]}
+              style={[styles.input, styles.passwordInput, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border, color: theme.colors.primaryText }]}
               placeholder="Confirm Password"
-              placeholderTextColor="rgba(0,0,0,0.45)"
+              placeholderTextColor={theme.colors.secondaryText}
               secureTextEntry={!showConfirmPassword}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
             />
             <TouchableOpacity onPress={() => setShowConfirmPassword((prev) => !prev)} style={styles.eyeIcon}>
-              <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={22} color="#6b6b6b" />
+              <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={22} color={theme.colors.secondaryText} />
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={[styles.signUpButton, loading && { opacity: 0.6 }]} onPress={handleRegister} disabled={loading}>
-            <Text style={styles.signUpButtonText}>{loading ? 'Signing up...' : 'Register'}</Text>
+          <TouchableOpacity style={[styles.signUpButton, { backgroundColor: theme.colors.buttonBackground }, loading && { opacity: 0.6 }]} onPress={handleRegister} disabled={loading}>
+            <Text style={[styles.signUpButtonText, { color: theme.colors.buttonText }]}>{loading ? 'Signing up...' : 'Register'}</Text>
           </TouchableOpacity>
 
           <View style={styles.termsRow}>
-            <TouchableOpacity onPress={() => setTermsChecked((s) => !s)} style={[styles.checkbox, termsChecked && styles.checkboxChecked]}>
-              {termsChecked ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
+            <TouchableOpacity onPress={() => setTermsChecked((s) => !s)} style={[styles.checkbox, { borderColor: theme.colors.border, backgroundColor: theme.colors.containerBackground }, termsChecked && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]}>
+              {termsChecked ? <Ionicons name="checkmark" size={16} color={theme.colors.buttonText} /> : null}
             </TouchableOpacity>
-            <Text style={styles.termsText}>
+            <Text style={[styles.termsText, { color: theme.colors.primaryText }]}>
               I have read and agree to the{' '}
               <Text style={styles.termsLink} onPress={() => setTermsModalVisible(true)}>
                 Terms and Conditions
@@ -309,7 +311,7 @@ export default function Register() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Have an Account? </Text>
+          <Text style={[styles.footerText, { color: theme.colors.primaryText }]}>Have an Account? </Text>
           <TouchableOpacity onPress={() => router.push('/login')}>
             <Text style={styles.loginText}>Login here</Text>
           </TouchableOpacity>
@@ -317,13 +319,13 @@ export default function Register() {
 
         <Modal visible={termsModalVisible} animationType="fade" transparent onRequestClose={() => setTermsModalVisible(false)}>
           <View style={styles.modalBackdrop}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalHeader}>Terms and Conditions</Text>
+            <View style={[styles.modalContainer, { backgroundColor: theme.colors.containerBackground }]}>
+              <Text style={[styles.modalHeader, { color: theme.colors.primaryText }]}>Terms and Conditions</Text>
               <ScrollView style={styles.modalScroll}>
-                <Text style={styles.modalText}>{policiesLoading ? 'Loading latest Terms and Conditions...' : termsContent}</Text>
+                <Text style={[styles.modalText, { color: theme.colors.primaryText }]}>{policiesLoading ? 'Loading latest Terms and Conditions...' : termsContent}</Text>
               </ScrollView>
-              <Pressable style={styles.modalClose} onPress={() => setTermsModalVisible(false)}>
-                <Text style={styles.modalCloseText}>Close</Text>
+              <Pressable style={[styles.modalClose, { backgroundColor: theme.colors.buttonBackground }]} onPress={() => setTermsModalVisible(false)}>
+                <Text style={[styles.modalCloseText, { color: theme.colors.buttonText }]}>Close</Text>
               </Pressable>
             </View>
           </View>
@@ -331,13 +333,13 @@ export default function Register() {
 
         <Modal visible={privacyModalVisible} animationType="fade" transparent onRequestClose={() => setPrivacyModalVisible(false)}>
           <View style={styles.modalBackdrop}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalHeader}>Privacy Policy</Text>
+            <View style={[styles.modalContainer, { backgroundColor: theme.colors.containerBackground }]}>
+              <Text style={[styles.modalHeader, { color: theme.colors.primaryText }]}>Privacy Policy</Text>
               <ScrollView style={styles.modalScroll}>
-                <Text style={styles.modalText}>{policiesLoading ? 'Loading latest Privacy Policy...' : privacyContent}</Text>
+                <Text style={[styles.modalText, { color: theme.colors.primaryText }]}>{policiesLoading ? 'Loading latest Privacy Policy...' : privacyContent}</Text>
               </ScrollView>
-              <Pressable style={styles.modalClose} onPress={() => setPrivacyModalVisible(false)}>
-                <Text style={styles.modalCloseText}>Close</Text>
+              <Pressable style={[styles.modalClose, { backgroundColor: theme.colors.buttonBackground }]} onPress={() => setPrivacyModalVisible(false)}>
+                <Text style={[styles.modalCloseText, { color: theme.colors.buttonText }]}>Close</Text>
               </Pressable>
             </View>
           </View>
@@ -354,7 +356,6 @@ const styles = StyleSheet.create({
   },
   container: { 
     flex: 1, 
-    backgroundColor: '#F4C2C2',
     minHeight: height,
   },
   scrollContent: { 
@@ -378,7 +379,6 @@ const styles = StyleSheet.create({
   header: { 
     fontSize: Math.min(28, width * 0.07), 
     fontWeight: '700', 
-    color: 'white', 
     marginTop: Platform.OS === 'web' ? 60 : 50, 
     marginBottom: 18,
     textAlign: 'center',
@@ -386,7 +386,6 @@ const styles = StyleSheet.create({
   card: {
     width: '100%', 
     maxWidth: 360, 
-    backgroundColor: 'rgba(255, 255, 255, 0.36)', 
     borderRadius: 20, 
     padding: Math.max(18, width * 0.045),
     alignItems: 'center', 
@@ -401,12 +400,9 @@ const styles = StyleSheet.create({
     height: Math.min(60, height * 0.075), 
     borderRadius: 25, 
     paddingHorizontal: 25, 
-    backgroundColor: 'rgba(255, 255, 255, 0.4)', 
     marginBottom: 12, 
-    color: '#333', 
     fontSize: Math.min(18, width * 0.045), 
-    borderWidth: 2, 
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderWidth: 2,
   },
   passwordContainer: { 
     width: '100%', 
@@ -433,7 +429,6 @@ const styles = StyleSheet.create({
   pwGuidelineHeader: { 
     fontWeight: '600', 
     marginBottom: 6, 
-    color: '#333',
     fontSize: Math.min(14, width * 0.035),
   },
   pwRules: { 
@@ -441,7 +436,6 @@ const styles = StyleSheet.create({
   },
   pwRule: { 
     fontSize: Math.min(12, width * 0.03), 
-    color: '#555', 
     marginBottom: 2,
   },
   strengthRow: { 
@@ -466,7 +460,6 @@ const styles = StyleSheet.create({
   signUpButton: {
     width: Math.min(200, width * 0.5), 
     height: Math.min(55, height * 0.07), 
-    backgroundColor: '#FFE8C8', 
     borderRadius: 25,
     justifyContent: 'center', 
     alignItems: 'center', 
@@ -480,7 +473,6 @@ const styles = StyleSheet.create({
   signUpButtonText: { 
     fontSize: Math.min(20, width * 0.05), 
     fontWeight: '700', 
-    color: '#000', 
     textDecorationLine: 'underline',
     letterSpacing: 1,
   },
@@ -496,19 +488,14 @@ const styles = StyleSheet.create({
     height: 22, 
     borderRadius: 6, 
     borderWidth: 1, 
-    borderColor: '#bdbdbd',
     marginRight: 10, 
     justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: '#fff',
+    alignItems: 'center',
   },
   checkboxChecked: { 
-    backgroundColor: '#F88379', 
-    borderColor: '#F88379',
   },
   termsText: { 
     flex: 1, 
-    color: '#333', 
     fontSize: Math.min(13, width * 0.033),
   },
   termsLink: { 
@@ -523,7 +510,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   footerText: { 
-    color: 'white', 
     fontSize: Math.min(13, width * 0.033),
   },
   loginText: { 
@@ -541,7 +527,6 @@ const styles = StyleSheet.create({
   modalContainer: { 
     width: '100%', 
     maxWidth: 720, 
-    backgroundColor: '#fff', 
     borderRadius: 12, 
     padding: 18, 
     maxHeight: '80%',
@@ -555,21 +540,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalText: { 
-    color: '#333', 
     lineHeight: 20,
     fontSize: Math.min(14, width * 0.035),
   },
   modalClose: { 
     alignSelf: 'flex-end', 
     marginTop: 6, 
-    backgroundColor: '#F4C2C2', 
     paddingHorizontal: 14, 
     paddingVertical: 8, 
     borderRadius: 8,
   },
   modalCloseText: { 
     fontWeight: '700', 
-    color: '#222',
     fontSize: Math.min(14, width * 0.035),
   },
 });

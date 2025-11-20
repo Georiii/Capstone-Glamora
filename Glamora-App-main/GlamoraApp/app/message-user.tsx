@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useSocket } from './contexts/SocketContext';
+import { useTheme } from './contexts/ThemeContext';
 
 interface Message {
   id: string;
@@ -151,6 +152,7 @@ const uploadEvidencePhoto = async (uri: string | any) => {
 
 export default function MessageUser() {
   const router = useRouter();
+  const { theme } = useTheme();
   const { sellerId, sellerEmail, sellerProfilePicture, productName, productImage, itemId } = useLocalSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -876,11 +878,15 @@ export default function MessageUser() {
     ]}>
       <View style={[
         styles.messageBubble,
-        item.isFromCurrentUser ? styles.messageBubbleRight : styles.messageBubbleLeft
+        item.isFromCurrentUser 
+          ? [styles.messageBubbleRight, { backgroundColor: theme.colors.buttonBackground }]
+          : [styles.messageBubbleLeft, { backgroundColor: theme.colors.containerBackground }]
       ]}>
         <Text style={[
           styles.messageText,
-          item.isFromCurrentUser ? styles.sentText : styles.receivedText
+          item.isFromCurrentUser 
+            ? [styles.sentText, { color: theme.colors.buttonText }]
+            : [styles.receivedText, { color: theme.colors.primaryText }]
         ]}>
           {item.text}
         </Text>
@@ -890,14 +896,14 @@ export default function MessageUser() {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
         
         <View style={styles.headerCenter}>
@@ -910,7 +916,7 @@ export default function MessageUser() {
             }
             style={styles.headerAvatar}
           />
-          <Text style={styles.headerName}>
+          <Text style={[styles.headerName, { color: theme.colors.headerText }]}>
             {otherUser?.name || otherUser?.email?.split('@')[0] || 'User'}
           </Text>
         </View>
@@ -927,10 +933,10 @@ export default function MessageUser() {
 
       {/* Product Info */}
       <View style={styles.productSection}>
-        <View style={styles.productCard}>
+        <View style={[styles.productCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }]}>
           <Image source={{ uri: (contextProductImage as string) || defaultProductImage }} style={styles.productImage} />
           <View style={styles.productInfo}>
-            <Text style={styles.productName} numberOfLines={2}>
+            <Text style={[styles.productName, { color: theme.colors.primaryText }]} numberOfLines={2}>
               {contextProductName || 'Conversation'}
             </Text>
           </View>
@@ -965,8 +971,8 @@ export default function MessageUser() {
         {/* Typing Indicator */}
         {otherUserTyping && (
           <View style={[styles.messageContainer, styles.receivedMessageContainer]}>
-            <View style={[styles.messageBubble, styles.messageBubbleLeft, styles.typingBubble]}>
-              <Text style={styles.typingText}>Typing...</Text>
+            <View style={[styles.messageBubble, styles.messageBubbleLeft, styles.typingBubble, { backgroundColor: theme.colors.containerBackground }]}>
+              <Text style={[styles.typingText, { color: theme.colors.secondaryText }]}>Typing...</Text>
               <View style={styles.typingDots}>
                 <View style={[styles.typingDot, styles.typingDot1]} />
                 <View style={[styles.typingDot, styles.typingDot2]} />
@@ -978,12 +984,12 @@ export default function MessageUser() {
       </ScrollView>
 
       {/* Message Input */}
-      <View style={styles.inputContainer}>
-        <View style={styles.inputWrapper}>
+      <View style={[styles.inputContainer, { backgroundColor: theme.colors.headerBackground }]}>
+        <View style={[styles.inputWrapper, { backgroundColor: theme.colors.containerBackground }]}>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { color: theme.colors.primaryText }]}
             placeholder="Write a message."
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.colors.secondaryText}
             value={newMessage}
             onChangeText={handleTextChange}
             multiline={true}
@@ -993,8 +999,8 @@ export default function MessageUser() {
             blurOnSubmit={false}
           />
         </View>
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <Ionicons name="send" size={20} color="#FFF" />
+        <TouchableOpacity style={[styles.sendButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={sendMessage}>
+          <Ionicons name="send" size={20} color={theme.colors.buttonText} />
         </TouchableOpacity>
       </View>
 
@@ -1009,12 +1015,12 @@ export default function MessageUser() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
         >
-          <View style={styles.reportModal}>
+          <View style={[styles.reportModal, { backgroundColor: theme.colors.containerBackground }]}>
             <View style={styles.reportHeader}>
               <TouchableOpacity onPress={() => setShowReportModal(false)} style={styles.headerClose}>
-                <Ionicons name="close" size={24} color="#4B2E2B" />
+                <Ionicons name="close" size={24} color={theme.colors.icon} />
               </TouchableOpacity>
-              <Text style={styles.reportTitle}>REPORT USER</Text>
+              <Text style={[styles.reportTitle, { color: theme.colors.primaryText }]}>REPORT USER</Text>
               <View style={{ width: 24 }} />
             </View>
 
@@ -1026,41 +1032,43 @@ export default function MessageUser() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.reportSection}>
-                <Text style={styles.sectionLabel}>Report Type *</Text>
+                <Text style={[styles.sectionLabel, { color: theme.colors.primaryText }]}>Report Type *</Text>
                 {reportReasons.map((reason, index) => (
                   <TouchableOpacity
                     key={index}
                     style={[
                       styles.reportOption,
-                      selectedReportReason === reason.key && styles.reportOptionSelected
+                      { backgroundColor: theme.colors.containerBackground },
+                      selectedReportReason === reason.key && { backgroundColor: theme.colors.buttonBackground }
                     ]}
                     onPress={() => setSelectedReportReason(reason.key)}
                   >
                     <View style={[
                       styles.checkbox,
-                      selectedReportReason === reason.key && styles.checkboxSelected
+                      { borderColor: theme.colors.border },
+                      selectedReportReason === reason.key && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
                     ]}>
                       {selectedReportReason === reason.key && (
-                        <Ionicons name="checkmark" size={16} color="#FFF" />
+                        <Ionicons name="checkmark" size={16} color={theme.colors.buttonText} />
                       )}
                     </View>
                     <View style={styles.reportTextContainer}>
-                      <Text style={styles.reportTitleText}>{reason.title}</Text>
-                      <Text style={styles.reportDescription}>{reason.description}</Text>
+                      <Text style={[styles.reportTitleText, { color: theme.colors.primaryText }]}>{reason.title}</Text>
+                      <Text style={[styles.reportDescription, { color: theme.colors.secondaryText }]}>{reason.description}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}
               </View>
 
               <View style={styles.reportSection}>
-                <Text style={styles.sectionLabel}>Add Message (Optional)</Text>
-                <Text style={styles.sectionHelper}>
+                <Text style={[styles.sectionLabel, { color: theme.colors.primaryText }]}>Add Message (Optional)</Text>
+                <Text style={[styles.sectionHelper, { color: theme.colors.secondaryText }]}>
                   Provide details to help the admin understand the situation.
                 </Text>
                 <TextInput
-                  style={styles.reportMessageInput}
+                  style={[styles.reportMessageInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
                   placeholder="Provide a detailed description of the issue..."
-                  placeholderTextColor="#9E8F86"
+                  placeholderTextColor={theme.colors.secondaryText}
                   value={reportMessage}
                   onChangeText={setReportMessage}
                   multiline
@@ -1071,15 +1079,15 @@ export default function MessageUser() {
 
               <View style={[styles.reportSection, styles.photoEvidenceSection]}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionLabel}>Add Evidence Photo *</Text>
-                  <Text style={styles.requiredHint}>Required</Text>
+                  <Text style={[styles.sectionLabel, { color: theme.colors.primaryText }]}>Add Evidence Photo *</Text>
+                  <Text style={[styles.requiredHint, { color: theme.colors.accent }]}>Required</Text>
                 </View>
-                <Text style={styles.sectionHelper}>
+                <Text style={[styles.sectionHelper, { color: theme.colors.secondaryText }]}>
                   Attach at least one screenshot or photo that supports your report.
                 </Text>
-                <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
-                  <Ionicons name="camera" size={20} color="#007AFF" />
-                  <Text style={styles.addPhotoText}>Add Photo</Text>
+                <TouchableOpacity style={[styles.addPhotoButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={pickImage}>
+                  <Ionicons name="camera" size={20} color={theme.colors.buttonText} />
+                  <Text style={[styles.addPhotoText, { color: theme.colors.buttonText }]}>Add Photo</Text>
                 </TouchableOpacity>
                 
                 {evidencePhotos.length > 0 && (
@@ -1103,12 +1111,13 @@ export default function MessageUser() {
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                (!canSubmitReport) && styles.submitButtonDisabled
+                { backgroundColor: theme.colors.buttonBackground },
+                (!canSubmitReport) && { opacity: 0.5 }
               ]}
               onPress={submitReport}
               disabled={!canSubmitReport}
             >
-              <Text style={styles.submitButtonText}>
+              <Text style={[styles.submitButtonText, { color: theme.colors.buttonText }]}>
                 {reportSubmitting ? 'Submitting...' : 'Submit'}
               </Text>
             </TouchableOpacity>
@@ -1124,22 +1133,22 @@ export default function MessageUser() {
         onRequestClose={() => setShowDeleteModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.reportContent}>
+          <View style={[styles.reportContent, { backgroundColor: theme.colors.containerBackground }]}>
             <View style={styles.reportHeader}>
-              <Text style={styles.reportTitle}>Delete Conversation</Text>
+              <Text style={[styles.reportTitle, { color: theme.colors.primaryText }]}>Delete Conversation</Text>
               <TouchableOpacity onPress={() => setShowDeleteModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={theme.colors.icon} />
               </TouchableOpacity>
             </View>
-            <Text style={{ fontSize: 16, color: '#333', marginBottom: 16 }}>
+            <Text style={{ fontSize: 16, color: theme.colors.primaryText, marginBottom: 16 }}>
               Are you sure you want to delete this conversation?
             </Text>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
-              <TouchableOpacity style={styles.deleteCancelButton} onPress={() => setShowDeleteModal(false)}>
-                <Text style={styles.deleteCancelButtonText}>Cancel</Text>
+              <TouchableOpacity style={[styles.deleteCancelButton, { backgroundColor: theme.colors.containerBackground }]} onPress={() => setShowDeleteModal(false)}>
+                <Text style={[styles.deleteCancelButtonText, { color: theme.colors.primaryText }]}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteConfirmButton} onPress={deleteConversation}>
-                <Text style={styles.deleteConfirmButtonText}>Yes</Text>
+              <TouchableOpacity style={[styles.deleteConfirmButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={deleteConversation}>
+                <Text style={[styles.deleteConfirmButtonText, { color: theme.colors.buttonText }]}>Yes</Text>
               </TouchableOpacity>
             </View>
           </View>

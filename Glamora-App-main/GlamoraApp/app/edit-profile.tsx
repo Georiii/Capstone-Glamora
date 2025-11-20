@@ -16,10 +16,12 @@ import {
 } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useUser } from './contexts/UserContext';
+import { useTheme } from './contexts/ThemeContext';
 
 
 export default function EditProfile() {
   const router = useRouter();
+  const { theme } = useTheme();
   const { user, updateUser } = useUser();
   const [name, setName] = useState('Name');
   const [email, setEmail] = useState('Email');
@@ -270,30 +272,30 @@ export default function EditProfile() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4B2E2B" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bodyBackground }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <Text style={[styles.loadingText, { color: theme.colors.primaryText }]}>Loading profile...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit profile</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Edit profile</Text>
         <TouchableOpacity 
-          style={styles.saveButton} 
+          style={[styles.saveButton, { backgroundColor: theme.colors.buttonBackground }]} 
           onPress={handleSave}
           disabled={isSaving}
         >
           {isSaving ? (
-            <ActivityIndicator size="small" color="#000" />
+            <ActivityIndicator size="small" color={theme.colors.buttonText} />
           ) : (
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={[styles.saveButtonText, { color: theme.colors.buttonText }]}>Save</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -311,46 +313,46 @@ export default function EditProfile() {
           />
           {isUploading && (
             <View style={styles.uploadingOverlay}>
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={theme.colors.buttonText} />
             </View>
           )}
-          <View style={styles.editIconContainer}>
+          <View style={[styles.editIconContainer, { backgroundColor: theme.colors.accent }]}>
             <Ionicons 
               name="camera" 
               size={20} 
-              color="#fff" 
+              color={theme.colors.buttonText} 
             />
           </View>
         </TouchableOpacity>
-        <Text style={styles.editImageText}>Tap to change photo</Text>
+        <Text style={[styles.editImageText, { color: theme.colors.secondaryText }]}>Tap to change photo</Text>
       </View>
 
       {/* Profile Form */}
-      <View style={styles.formContainer}>
+      <View style={[styles.formContainer, { backgroundColor: theme.colors.containerBackground }]}>
         {/* Name Field */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Name</Text>
-          <View style={styles.inputContainer}>
+          <Text style={[styles.inputLabel, { color: theme.colors.primaryText }]}>Name</Text>
+          <View style={[styles.inputContainer, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { color: theme.colors.primaryText }]}
               value={name}
               onChangeText={setName}
               placeholder="Enter your name"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.secondaryText}
             />
           </View>
         </View>
 
         {/* Email Field */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Email</Text>
-          <View style={styles.inputContainer}>
+          <Text style={[styles.inputLabel, { color: theme.colors.primaryText }]}>Email</Text>
+          <View style={[styles.inputContainer, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { color: theme.colors.primaryText }]}
               value={email}
               onChangeText={setEmail}
               placeholder="Enter your email"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.secondaryText}
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -359,9 +361,9 @@ export default function EditProfile() {
 
         {/* Role Field */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Role</Text>
-          <View style={styles.roleContainer}>
-            <Text style={styles.roleText}>{role}</Text>
+          <Text style={[styles.inputLabel, { color: theme.colors.primaryText }]}>Role</Text>
+          <View style={[styles.roleContainer, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+            <Text style={[styles.roleText, { color: theme.colors.primaryText }]}>{role}</Text>
           </View>
         </View>
       </View>
@@ -372,18 +374,15 @@ export default function EditProfile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4C2C2',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F4C2C2',
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#4B2E2B',
   },
   header: {
     flexDirection: 'row',
@@ -405,11 +404,11 @@ const styles = StyleSheet.create({
   saveButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
+    borderRadius: 8,
   },
   saveButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
   },
   profileImageContainer: {
     alignItems: 'center',
@@ -441,7 +440,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#4B2E2B',
     borderRadius: 20,
     width: 40,
     height: 40,
@@ -453,11 +451,13 @@ const styles = StyleSheet.create({
   editImageText: {
     marginTop: 10,
     fontSize: 14,
-    color: '#666',
     fontStyle: 'italic',
   },
   formContainer: {
     paddingHorizontal: 20,
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
   },
   inputSection: {
     marginBottom: 25,
@@ -465,22 +465,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 10,
   },
   inputContainer: {
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
     paddingBottom: 5,
   },
   textInput: {
     fontSize: 16,
-    color: '#333',
     paddingVertical: 8,
   },
   roleContainer: {
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
     paddingBottom: 5,
   },
   roleText: {

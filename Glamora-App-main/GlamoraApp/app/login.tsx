@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Platform, Pressable, Keyboard, Dimensions, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS, getApiBaseUrl } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -11,6 +12,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function Login() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -140,16 +142,16 @@ Technical details: ${healthError.message}`);
     <Pressable onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss} style={styles.containerWrapper}>
       <Modal visible={restrictionModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={[styles.restrictionModal, { maxWidth: width * 0.85 }]}>
-            <Text style={styles.restrictionTitle}>{restrictionInfo?.title || 'Account Notice'}</Text>
-            <Text style={styles.restrictionMessage}>{restrictionInfo?.message ?? ''}</Text>
-            <TouchableOpacity style={styles.restrictionButton} onPress={() => setRestrictionModalVisible(false)}>
-              <Text style={styles.restrictionButtonText}>Okay</Text>
+          <View style={[styles.restrictionModal, { maxWidth: width * 0.85, backgroundColor: theme.colors.containerBackground }]}>
+            <Text style={[styles.restrictionTitle, { color: theme.colors.primaryText }]}>{restrictionInfo?.title || 'Account Notice'}</Text>
+            <Text style={[styles.restrictionMessage, { color: theme.colors.secondaryText }]}>{restrictionInfo?.message ?? ''}</Text>
+            <TouchableOpacity style={[styles.restrictionButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={() => setRestrictionModalVisible(false)}>
+              <Text style={[styles.restrictionButtonText, { color: theme.colors.buttonText }]}>Okay</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -158,14 +160,14 @@ Technical details: ${healthError.message}`);
         >
           <Image source={require('../assets/logo.png')} style={styles.logo} />
 
-          <Text style={styles.text}>Login to your{"\n"}Account</Text>
+          <Text style={[styles.text, { color: theme.colors.primaryText }]}>Login to your{"\n"}Account</Text>
 
           {/* 🔲 New Container for the Inputs + Button */}
-          <View style={styles.loginBox}>
+          <View style={[styles.loginBox, { backgroundColor: theme.colors.containerBackground }]}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border, color: theme.colors.primaryText }]}
               placeholder="Email"
-              placeholderTextColor="rgba(0,0,0,0.45)"
+              placeholderTextColor={theme.colors.secondaryText}
               value={email}
               onChangeText={setEmail}
               editable={!loading}
@@ -175,9 +177,9 @@ Technical details: ${healthError.message}`);
 
             <View style={styles.passwordContainer}>
               <TextInput
-                style={styles.passwordInput}
+                style={[styles.passwordInput, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border, color: theme.colors.primaryText }]}
                 placeholder="Password"
-                placeholderTextColor="rgba(0,0,0,0.45)"
+                placeholderTextColor={theme.colors.secondaryText}
                 secureTextEntry={!isPasswordVisible}
                 value={password}
                 onChangeText={setPassword}
@@ -198,7 +200,7 @@ Technical details: ${healthError.message}`);
                   <Ionicons
                     name={isPasswordVisible ? "eye-off" : "eye"}
                     size={22}
-                    color="#6b6b6b"
+                    color={theme.colors.secondaryText}
                   />
                 </TouchableOpacity>
               )}
@@ -210,11 +212,11 @@ Technical details: ${healthError.message}`);
             ) : null}
 
             <TouchableOpacity 
-              style={styles.loginButton} 
+              style={[styles.loginButton, { backgroundColor: theme.colors.buttonBackground }]} 
               onPress={handleLogin}
               disabled={loading}
             >
-              <Text style={styles.loginButtonText}>{loading ? 'Logging In...' : 'Login'}</Text>
+              <Text style={[styles.loginButtonText, { color: theme.colors.buttonText }]}>{loading ? 'Logging In...' : 'Login'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => router.push('/forgotpass')}>
@@ -224,7 +226,7 @@ Technical details: ${healthError.message}`);
           {/* End Container */}
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+            <Text style={[styles.footerText, { color: theme.colors.primaryText }]}>Don&apos;t have an account? </Text>
             <TouchableOpacity onPress={() => router.push('/register')}>
               <Text style={styles.signUpText}>Sign up.</Text>
             </TouchableOpacity>
@@ -241,7 +243,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#F4C2C2',
     minHeight: height,
   },
 
@@ -266,19 +267,15 @@ const styles = StyleSheet.create({
   text: {
     fontSize: Math.min(36, width * 0.09),
     fontWeight: 'bold',
-    color: 'white',
     marginTop: Platform.OS === 'web' ? 40 : 20,
     marginBottom: 30,
     lineHeight: Math.min(42, width * 0.105),
     textAlign: 'center',
     letterSpacing: 1,
   },
-
- 
   loginBox: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: 'rgba(255, 255, 255, 0.36)',
     borderRadius: 20,
     paddingVertical: 30,
     paddingHorizontal: Math.max(20, width * 0.05),
@@ -289,18 +286,14 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 6,
   },
-
   input: {
     width: '100%',
     maxWidth: 320,
     height: Math.min(60, height * 0.075),
-    borderColor: 'rgba(255, 255, 255, 0.4)',
     borderWidth: 2,
     borderRadius: 25,
     paddingHorizontal: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     marginTop: 20,
-    color: '#333',
     fontSize: Math.min(18, width * 0.045),
     alignSelf: 'center',
   },
@@ -316,13 +309,10 @@ const styles = StyleSheet.create({
   passwordInput: {
     width: '100%',
     height: Math.min(60, height * 0.075),
-    borderColor: 'rgba(255, 255, 255, 0.4)',
     borderWidth: 2,
     borderRadius: 25,
     paddingHorizontal: 25,
     paddingRight: 55,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    color: '#333',
     fontSize: Math.min(18, width * 0.045),
   },
 
@@ -338,7 +328,6 @@ const styles = StyleSheet.create({
   loginButton: {
     width: Math.min(200, width * 0.5),
     height: Math.min(55, height * 0.07),
-    backgroundColor: '#FFE8C8',
     borderRadius: 25,
     alignSelf: 'center',
     justifyContent: 'center',
@@ -350,11 +339,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-
   loginButtonText: {
     fontSize: Math.min(20, width * 0.05),
     fontWeight: '700',
-    color: '#000',
     textDecorationLine: 'underline',
     letterSpacing: 1,
   },
@@ -377,7 +364,6 @@ const styles = StyleSheet.create({
   },
 
   restrictionModal: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     paddingVertical: 24,
     paddingHorizontal: 20,
@@ -388,37 +374,29 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-
   restrictionTitle: {
     fontFamily: Platform.OS === 'android' ? 'sans-serif' : 'Arial',
     fontSize: 14,
     fontWeight: '700',
-    color: '#2C3E50',
     marginBottom: 12,
     textAlign: 'center',
   },
-
   restrictionMessage: {
     fontFamily: Platform.OS === 'android' ? 'sans-serif' : 'Arial',
     fontSize: 12,
-    color: '#2C3E50',
     lineHeight: 18,
     textAlign: 'center',
     marginBottom: 20,
   },
-
   restrictionButton: {
     alignSelf: 'center',
-    backgroundColor: '#4A90E2',
     paddingVertical: 10,
     paddingHorizontal: 28,
     borderRadius: 20,
   },
-
   restrictionButtonText: {
     fontFamily: Platform.OS === 'android' ? 'sans-serif-medium' : 'Arial',
     fontSize: 12,
-    color: '#fff',
     fontWeight: '600',
   },
 
@@ -432,7 +410,6 @@ const styles = StyleSheet.create({
   },
 
   footerText: {
-    color: 'white',
     fontSize: Math.min(13, width * 0.033),
   },
 

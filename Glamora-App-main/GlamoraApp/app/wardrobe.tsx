@@ -2,8 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function Wardrobe() {
+  const { theme } = useTheme();
   const pathname = usePathname();
   const isWardrobeRoute = pathname === '/wardrobe' || pathname.startsWith('/category') || 
     pathname === '/bottoms-category' || pathname === '/shoes-category' || pathname === '/accessories-category';
@@ -45,10 +47,10 @@ export default function Wardrobe() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerText}>GLAMORA</Text>
+      <View style={[styles.headerContainer, { backgroundColor: theme.colors.headerBackground }]}>
+        <Text style={[styles.headerText, { color: theme.colors.headerText }]}>GLAMORA</Text>
       </View>
       {/* Cabinet background and categories */}
       <View style={styles.cabinetContainer}>
@@ -58,11 +60,11 @@ export default function Wardrobe() {
             {categories.slice(0, 2).map((category, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.categoryCard}
+                style={[styles.categoryCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }]}
                 onPress={() => handleCategoryPress(category)}
               >
                 <Image source={category.icon} style={styles.categoryIcon} />
-                <Text style={styles.categoryLabel}>{category.name}</Text>
+                <Text style={[styles.categoryLabel, { color: theme.colors.primaryText }]}>{category.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -70,33 +72,33 @@ export default function Wardrobe() {
             {categories.slice(2, 4).map((category, index) => (
               <TouchableOpacity
                 key={index + 2}
-                style={styles.categoryCard}
+                style={[styles.categoryCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }]}
                 onPress={() => handleCategoryPress(category)}
               >
                 <Image source={category.icon} style={styles.categoryIcon} />
-                <Text style={styles.categoryLabel}>{category.name}</Text>
+                <Text style={[styles.categoryLabel, { color: theme.colors.primaryText }]}>{category.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
       </View>
       {/* Bottom Navigation */}
-      <View style={styles.navigation}>
+      <View style={[styles.navigation, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="shirt" size={24} color={isWardrobeRoute ? '#000' : '#B0B0B0'} />
-          <Text style={[styles.navText, isWardrobeRoute && styles.activeText]}>Wardrobe</Text>
+          <Ionicons name="shirt" size={24} color={isWardrobeRoute ? theme.colors.icon : theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }, isWardrobeRoute && { color: theme.colors.primaryText, fontWeight: 'bold' }]}>Wardrobe</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/scan')}>
-          <Ionicons name="camera" size={24} color="#B0B0B0" />
-          <Text style={styles.navText}>Scan</Text>
+          <Ionicons name="camera" size={24} color={theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Scan</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/marketplace')}>
-          <Ionicons name="cart" size={24} color="#B0B0B0" />
-          <Text style={styles.navText}>Market</Text>
+          <Ionicons name="cart" size={24} color={theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Market</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
-          <Ionicons name="person" size={24} color="#B0B0B0" />
-          <Text style={styles.navText}>Profile</Text>
+          <Ionicons name="person" size={24} color={theme.colors.secondaryText} />
+          <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Profile</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -106,7 +108,6 @@ export default function Wardrobe() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4C2C2',
     paddingBottom: 90, // Add extra space for the fixed footer
   },
   headerContainer: {
@@ -115,7 +116,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     paddingTop: 40,
     paddingBottom: 16,
-    backgroundColor: '#FEE8D6',
     position: 'relative',
   },
 
@@ -128,7 +128,6 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#4B2E2B',
     fontFamily: 'serif',
     letterSpacing: 1,
     textAlign: 'center',
@@ -162,7 +161,6 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: 120, // Slightly smaller to fit better inside cabinet
     height: 120, // Slightly smaller to fit better inside cabinet
-    backgroundColor: 'rgba(255, 255, 255, 0.36)',
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -183,12 +181,10 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: 16, // Slightly smaller font to match smaller card
     fontWeight: 'bold',
-    color: '#222',
     textAlign: 'center',
   },
   navigation: {
     flexDirection: 'row',
-    backgroundColor: '#FEE8D6',
     paddingVertical: 15,
     paddingHorizontal: 20,
     justifyContent: 'space-around',
@@ -210,11 +206,9 @@ const styles = StyleSheet.create({
   },
   navText: {
     fontSize: 12,
-    color: '#666',
     marginTop: 5,
   },
   activeText: {
-    color: '#333',
     fontWeight: 'bold',
   },
   logoIcon: {

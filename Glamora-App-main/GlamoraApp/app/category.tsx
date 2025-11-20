@@ -6,9 +6,11 @@ import { ActivityIndicator, Alert, Image, Modal, Platform, ScrollView, StyleShee
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function Category() {
   const router = useRouter();
+  const { theme } = useTheme();
   const pathname = usePathname();
   const params = useLocalSearchParams();
   const isWardrobeRoute = pathname === '/wardrobe' || pathname.startsWith('/category') || 
@@ -347,29 +349,29 @@ export default function Category() {
   // If on the main category page (not filtered), show subcategories
   if (!categoryType || categoryType === 'Tops') {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
         {/* Header */}
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerText}>GLAMORA</Text>
+        <View style={[styles.headerContainer, { backgroundColor: theme.colors.headerBackground }]}>
+          <Text style={[styles.headerText, { color: theme.colors.headerText }]}>GLAMORA</Text>
         </View>
-        <Text style={styles.categoryTitle}>CATEGORY</Text>
+        <Text style={[styles.categoryTitle, { color: theme.colors.primaryText }]}>CATEGORY</Text>
         <View style={styles.subcategoriesGrid}>
           {subcategories.map((sub, idx) => (
             <TouchableOpacity
               key={idx}
-              style={styles.subcategoryCard}
+              style={[styles.subcategoryCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }]}
               onPress={() => handleSubcategoryPress(sub)}
             >
-              <Image source={sub.image} style={styles.subcategoryImage} />
-              <Text style={styles.subcategoryLabel}>{sub.name}</Text>
+              <Image source={sub.image} style={[styles.subcategoryImage, { borderColor: theme.colors.border }]} />
+              <Text style={[styles.subcategoryLabel, { color: theme.colors.primaryText }]}>{sub.name}</Text>
             </TouchableOpacity>
           ))}
           <TouchableOpacity
-            style={styles.addSubcategoryCard}
+            style={[styles.addSubcategoryCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }]}
             onPress={() => setShowAddSubcategoryModal(true)}
           >
-            <Ionicons name="add-circle-outline" size={40} color="#666" />
-            <Text style={styles.addSubcategoryLabel}>Add More</Text>
+            <Ionicons name="add-circle-outline" size={40} color={theme.colors.secondaryText} />
+            <Text style={[styles.addSubcategoryLabel, { color: theme.colors.secondaryText }]}>Add More</Text>
           </TouchableOpacity>
         </View>
         
@@ -381,9 +383,9 @@ export default function Category() {
           onRequestClose={() => setShowAddSubcategoryModal(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Create New Subcategory</Text>
+            <View style={[styles.modalContent, { backgroundColor: theme.colors.containerBackground }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
+                <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>Create New Subcategory</Text>
                 <TouchableOpacity
                   onPress={() => {
                     setShowAddSubcategoryModal(false);
@@ -391,44 +393,45 @@ export default function Category() {
                     setNewSubcategoryImage(null);
                   }}
                 >
-                  <Ionicons name="close" size={28} color="#000" />
+                  <Ionicons name="close" size={28} color={theme.colors.icon} />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                <Text style={styles.modalLabel}>Subcategory Name</Text>
+                <Text style={[styles.modalLabel, { color: theme.colors.primaryText }]}>Subcategory Name</Text>
                 <TextInput
-                  style={styles.modalInput}
+                  style={[styles.modalInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
                   placeholder="Enter subcategory name"
+                  placeholderTextColor={theme.colors.secondaryText}
                   value={newSubcategoryName}
                   onChangeText={setNewSubcategoryName}
                   maxLength={30}
                 />
 
-                <Text style={styles.modalLabel}>Subcategory Image</Text>
+                <Text style={[styles.modalLabel, { color: theme.colors.primaryText }]}>Subcategory Image</Text>
                 <TouchableOpacity
-                  style={styles.imagePickerButton}
+                  style={[styles.imagePickerButton, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}
                   onPress={pickSubcategoryImage}
                 >
                   {newSubcategoryImage ? (
                     <Image source={{ uri: newSubcategoryImage }} style={styles.previewImage} />
                   ) : (
-                    <View style={styles.imagePickerPlaceholder}>
-                      <Ionicons name="image-outline" size={40} color="#666" />
-                      <Text style={styles.imagePickerText}>Tap to select image</Text>
+                    <View style={[styles.imagePickerPlaceholder, { backgroundColor: theme.colors.containerBackground }]}>
+                      <Ionicons name="image-outline" size={40} color={theme.colors.secondaryText} />
+                      <Text style={[styles.imagePickerText, { color: theme.colors.secondaryText }]}>Tap to select image</Text>
                     </View>
                   )}
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.createButton, creatingSubcategory && styles.createButtonDisabled]}
+                  style={[styles.createButton, { backgroundColor: theme.colors.buttonBackground }, creatingSubcategory && styles.createButtonDisabled]}
                   onPress={handleCreateSubcategory}
                   disabled={creatingSubcategory}
                 >
                   {creatingSubcategory ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={theme.colors.buttonText} />
                   ) : (
-                    <Text style={styles.createButtonText}>Create</Text>
+                    <Text style={[styles.createButtonText, { color: theme.colors.buttonText }]}>Create</Text>
                   )}
                 </TouchableOpacity>
               </ScrollView>
@@ -436,22 +439,22 @@ export default function Category() {
           </View>
         </Modal>
         {/* Bottom Navigation (reuse from wardrobe) */}
-        <View style={styles.navigation}>
+        <View style={[styles.navigation, { backgroundColor: theme.colors.headerBackground }]}>
           <TouchableOpacity style={styles.navItem} onPress={() => router.push('/wardrobe')}>
-            <Ionicons name="shirt" size={24} color={isWardrobeRoute ? '#000' : '#B0B0B0'} />
-            <Text style={[styles.navText, isWardrobeRoute && styles.activeText]}>Wardrobe</Text>
+            <Ionicons name="shirt" size={24} color={isWardrobeRoute ? theme.colors.icon : theme.colors.secondaryText} />
+            <Text style={[styles.navText, { color: theme.colors.secondaryText }, isWardrobeRoute && { color: theme.colors.primaryText, fontWeight: 'bold' }]}>Wardrobe</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => router.push('/scan')}>
-            <Ionicons name="camera" size={24} color="#B0B0B0" />
-            <Text style={styles.navText}>Scan</Text>
+            <Ionicons name="camera" size={24} color={theme.colors.secondaryText} />
+            <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Scan</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => router.push('/marketplace')}>
-            <Ionicons name="cart" size={24} color="#B0B0B0" />
-            <Text style={styles.navText}>Market</Text>
+            <Ionicons name="cart" size={24} color={theme.colors.secondaryText} />
+            <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Market</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
-            <Ionicons name="person" size={24} color="#B0B0B0" />
-            <Text style={styles.navText}>Profile</Text>
+            <Ionicons name="person" size={24} color={theme.colors.secondaryText} />
+            <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Profile</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -459,13 +462,13 @@ export default function Category() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <View style={[styles.headerContainer, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity onPress={() => router.back()} style={{ position: 'absolute', left: 20, top: 55, zIndex: 2 }}>
-          <Ionicons name="arrow-back" size={28} color="#000" />
+          <Ionicons name="arrow-back" size={28} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.categoryTitle}>{categoryType === 'T-shirt' ? 'T-shirts' : categoryType}</Text>
+        <Text style={[styles.categoryTitle, { color: theme.colors.headerText }]}>{categoryType === 'T-shirt' ? 'T-shirts' : categoryType}</Text>
         <TouchableOpacity 
           style={{ position: 'absolute', right: 20, top: 55, zIndex: 2 }}
           onPress={isDeleteMode ? handleDeleteSelected : toggleDeleteMode}
@@ -477,7 +480,7 @@ export default function Category() {
             <Ionicons 
               name={isDeleteMode ? "trash" : "trash-outline"} 
               size={24} 
-              color={isDeleteMode ? "#E74C3C" : "#666"} 
+              color={isDeleteMode ? "#E74C3C" : theme.colors.secondaryText} 
             />
           )}
         </TouchableOpacity>
@@ -485,14 +488,18 @@ export default function Category() {
       {/* Main Content */}
       <ScrollView contentContainerStyle={styles.gridContainer}>
         {loading ? (
-          <ActivityIndicator size="large" color="#8B4513" style={{ marginTop: 30 }} />
+          <ActivityIndicator size="large" color={theme.colors.accent} style={{ marginTop: 30 }} />
         ) : (
           <>
             <View style={styles.row}>
               {items.map((item, index) => (
                 <TouchableOpacity
                   key={item._id || index}
-                  style={[styles.itemCard, isDeleteMode && selectedItems.includes(item._id) && styles.selectedItemCard]}
+                  style={[
+                    styles.itemCard, 
+                    { backgroundColor: 'rgba(255, 255, 255, 0.7)' },
+                    isDeleteMode && selectedItems.includes(item._id) && { borderColor: theme.colors.accent, borderWidth: 2 }
+                  ]}
                   onPress={() => {
                     if (isDeleteMode) {
                       toggleItemSelection(item._id);
@@ -520,18 +527,18 @@ export default function Category() {
                       <Ionicons 
                         name={selectedItems.includes(item._id) ? "checkbox" : "square-outline"} 
                         size={24} 
-                        color={selectedItems.includes(item._id) ? "#007AFF" : "#666"} 
+                        color={selectedItems.includes(item._id) ? theme.colors.accent : theme.colors.secondaryText} 
                       />
                     </View>
                   )}
                   <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
-                  <Text style={styles.itemLabel}>{item.clothName || 'Cloth name'}</Text>
+                  <Text style={[styles.itemLabel, { color: theme.colors.primaryText }]}>{item.clothName || 'Cloth name'}</Text>
                 </TouchableOpacity>
               ))}
               {/* Add more button */}
-              <TouchableOpacity style={styles.addMoreCard} onPress={handleAddMore}>
-                <Ionicons name="add" size={32} color="#000" />
-                <Text style={styles.addMoreLabel}>Add more</Text>
+              <TouchableOpacity style={[styles.addMoreCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: theme.colors.border }]} onPress={handleAddMore}>
+                <Ionicons name="add" size={32} color={theme.colors.icon} />
+                <Text style={[styles.addMoreLabel, { color: theme.colors.primaryText }]}>Add more</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -556,7 +563,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE8D6',
     position: 'relative',
   },
-
   logo: {
     width: 40,
     height: 40,
@@ -720,7 +726,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   deleteButton: {
-    backgroundColor: '#E74C3C',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -733,7 +738,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   deleteButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

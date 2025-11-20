@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useSocket } from './contexts/SocketContext';
+import { useTheme } from './contexts/ThemeContext';
 
 interface MarketplaceItem {
   _id: string;
@@ -17,6 +18,7 @@ interface MarketplaceItem {
 
 export default function ManagePosts() {
   const router = useRouter();
+  const { theme } = useTheme();
   const { socket } = useSocket();
   const [posts, setPosts] = useState<MarketplaceItem[]>([]);
   const [selectedPosts, setSelectedPosts] = useState<string[]>([]);
@@ -244,46 +246,46 @@ export default function ManagePosts() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.pageTitle}>Posts activities</Text>
+          <Text style={[styles.pageTitle, { color: theme.colors.headerText }]}>Posts activities</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading posts...</Text>
+          <Text style={[styles.loadingText, { color: theme.colors.primaryText }]}>Loading posts...</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <View style={styles.gCircle}>
-            <Text style={styles.gText}>G</Text>
+          <View style={[styles.gCircle, { backgroundColor: theme.colors.accent }]}>
+            <Text style={[styles.gText, { color: theme.colors.buttonText }]}>G</Text>
           </View>
-          <Text style={styles.headerText}>GLAMORA</Text>
+          <Text style={[styles.headerText, { color: theme.colors.headerText }]}>GLAMORA</Text>
         </View>
         <View style={styles.placeholder} />
       </View>
 
       {/* Title */}
-      <Text style={styles.pageTitle}>Posts activities</Text>
+      <Text style={[styles.pageTitle, { color: theme.colors.primaryText }]}>Posts activities</Text>
       
 
 
       {/* Posts List */}
       <ScrollView style={styles.postsContainer} showsVerticalScrollIndicator={false}>
         {posts.map((post) => (
-          <View key={post._id} style={styles.postItem}>
+          <View key={post._id} style={[styles.postItem, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
             <TouchableOpacity 
               style={styles.checkbox}
               onPress={() => togglePostSelection(post._id)}
@@ -291,16 +293,16 @@ export default function ManagePosts() {
               <Ionicons 
                 name={selectedPosts.includes(post._id) ? "checkbox" : "square-outline"} 
                 size={24} 
-                color={selectedPosts.includes(post._id) ? "#007AFF" : "#666"} 
+                color={selectedPosts.includes(post._id) ? theme.colors.accent : theme.colors.secondaryText} 
               />
             </TouchableOpacity>
             
             <Image source={{ uri: post.imageUrl }} style={styles.postImage} />
             
             <View style={styles.postDetails}>
-              <Text style={styles.postName}>{post.name}</Text>
-              <Text style={styles.postDescription}>{post.description}</Text>
-              <Text style={styles.postPrice}>₱{post.price}</Text>
+              <Text style={[styles.postName, { color: theme.colors.primaryText }]}>{post.name}</Text>
+              <Text style={[styles.postDescription, { color: theme.colors.secondaryText }]}>{post.description}</Text>
+              <Text style={[styles.postPrice, { color: theme.colors.primaryText }]}>₱{post.price}</Text>
             </View>
           </View>
         ))}
@@ -311,19 +313,19 @@ export default function ManagePosts() {
         <View style={styles.actionButtons}>
           <View style={styles.actionButtonsRow}>
             <TouchableOpacity 
-              style={styles.editButton}
+              style={[styles.editButton, { backgroundColor: theme.colors.buttonBackground }]}
               onPress={handleEditSelected}
             >
-              <Ionicons name="create-outline" size={20} color="#fff" />
-              <Text style={styles.editButtonText}>Edit</Text>
+              <Ionicons name="create-outline" size={20} color={theme.colors.buttonText} />
+              <Text style={[styles.editButtonText, { color: theme.colors.buttonText }]}>Edit</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={styles.deleteButton}
+              style={[styles.deleteButton, { backgroundColor: theme.colors.accent }]}
               onPress={handleDeleteSelected}
             >
-              <Ionicons name="trash-outline" size={20} color="#fff" />
-              <Text style={styles.deleteButtonText}>
+              <Ionicons name="trash-outline" size={20} color={theme.colors.buttonText} />
+              <Text style={[styles.deleteButtonText, { color: theme.colors.buttonText }]}>
                 Delete ({selectedPosts.length})
               </Text>
             </TouchableOpacity>
@@ -333,11 +335,11 @@ export default function ManagePosts() {
 
       {/* Add More Button */}
       <TouchableOpacity 
-        style={styles.addMoreButton}
+        style={[styles.addMoreButton, { backgroundColor: theme.colors.buttonSecondary }]}
         onPress={() => router.push('/scan')}
       >
-        <Ionicons name="add" size={30} color="#000" />
-        <Text style={styles.addMoreText}>Add more</Text>
+        <Ionicons name="add" size={30} color={theme.colors.icon} />
+        <Text style={[styles.addMoreText, { color: theme.colors.primaryText }]}>Add more</Text>
       </TouchableOpacity>
 
       {/* Edit Modal */}
@@ -347,49 +349,49 @@ export default function ManagePosts() {
         animationType="fade"
         onRequestClose={closeEditModal}
       >
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={styles.editModalContent}>
+        <KeyboardAvoidingView style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[styles.editModalContent, { backgroundColor: theme.colors.containerBackground }]}>
             <TouchableOpacity style={styles.closeButton} onPress={closeEditModal}>
-              <Ionicons name="close" size={24} color="#333" />
+              <Ionicons name="close" size={24} color={theme.colors.icon} />
             </TouchableOpacity>
-            <Text style={styles.editModalTitle}>Edit Post</Text>
+            <Text style={[styles.editModalTitle, { color: theme.colors.primaryText }]}>Edit Post</Text>
             
             <TextInput
-              style={styles.editInput}
+              style={[styles.editInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               placeholder="Name"
               value={editName}
               onChangeText={setEditName}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.placeholderText}
             />
             
             <TextInput
-              style={styles.editTextarea}
+              style={[styles.editTextarea, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               placeholder="Description"
               value={editDescription}
               onChangeText={setEditDescription}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.placeholderText}
               multiline
               numberOfLines={3}
             />
             
             <TextInput
-              style={styles.editInput}
+              style={[styles.editInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               placeholder="Price"
               value={editPrice}
               onChangeText={setEditPrice}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
             
             <TouchableOpacity 
-              style={styles.editSaveButton} 
+              style={[styles.editSaveButton, { backgroundColor: theme.colors.buttonBackground }]} 
               onPress={handleSaveEdit}
               disabled={editLoading}
             >
               {editLoading ? (
-                <Text style={styles.editSaveButtonText}>Saving...</Text>
+                <Text style={[styles.editSaveButtonText, { color: theme.colors.buttonText }]}>Saving...</Text>
               ) : (
-                <Text style={styles.editSaveButtonText}>Save Changes</Text>
+                <Text style={[styles.editSaveButtonText, { color: theme.colors.buttonText }]}>Save Changes</Text>
               )}
             </TouchableOpacity>
           </View>

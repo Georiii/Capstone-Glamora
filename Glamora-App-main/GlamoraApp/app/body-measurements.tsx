@@ -14,6 +14,7 @@ import {
     View,
 } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
+import { useTheme } from './contexts/ThemeContext';
 
 interface BodyMeasurements {
   height?: number;
@@ -44,6 +45,7 @@ interface StylePreferences {
 
 export default function BodyMeasurements() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -211,173 +213,200 @@ export default function BodyMeasurements() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B4513" />
-        <Text style={styles.loadingText}>Loading your profile...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bodyBackground }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <Text style={[styles.loadingText, { color: theme.colors.primaryText }]}>Loading your profile...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.headerBackground }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#4B2E2B" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Body Measurements</Text>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
+        <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Body Measurements</Text>
+        <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={handleSave} disabled={saving}>
           {saving ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.colors.buttonText} />
           ) : (
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={[styles.saveButtonText, { color: theme.colors.buttonText }]}>Save</Text>
           )}
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Body Measurements Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Body Measurements</Text>
+        <View style={[styles.section, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Body Measurements</Text>
           
           {/* Unit Toggle */}
           <View style={styles.unitToggle}>
-            <Text style={styles.unitLabel}>Unit:</Text>
+            <Text style={[styles.unitLabel, { color: theme.colors.primaryText }]}>Unit:</Text>
             <TouchableOpacity
-              style={[styles.unitButton, measurements.measurementsUnit === 'cm' && styles.unitButtonActive]}
+              style={[
+                styles.unitButton,
+                { backgroundColor: theme.colors.buttonSecondary },
+                measurements.measurementsUnit === 'cm' && { backgroundColor: theme.colors.accent }
+              ]}
               onPress={() => setMeasurements(prev => ({ ...prev, measurementsUnit: 'cm' }))}
             >
-              <Text style={[styles.unitButtonText, measurements.measurementsUnit === 'cm' && styles.unitButtonTextActive]}>CM</Text>
+              <Text style={[
+                styles.unitButtonText,
+                { color: theme.colors.primaryText },
+                measurements.measurementsUnit === 'cm' && { color: theme.colors.buttonText }
+              ]}>CM</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.unitButton, measurements.measurementsUnit === 'inches' && styles.unitButtonActive]}
+              style={[
+                styles.unitButton,
+                { backgroundColor: theme.colors.buttonSecondary },
+                measurements.measurementsUnit === 'inches' && { backgroundColor: theme.colors.accent }
+              ]}
               onPress={() => setMeasurements(prev => ({ ...prev, measurementsUnit: 'inches' }))}
             >
-              <Text style={[styles.unitButtonText, measurements.measurementsUnit === 'inches' && styles.unitButtonTextActive]}>IN</Text>
+              <Text style={[
+                styles.unitButtonText,
+                { color: theme.colors.primaryText },
+                measurements.measurementsUnit === 'inches' && { color: theme.colors.buttonText }
+              ]}>IN</Text>
             </TouchableOpacity>
           </View>
 
           {/* Basic Measurements */}
           <View style={styles.measurementRow}>
-            <Text style={styles.measurementLabel}>Height ({measurements.measurementsUnit})</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Height ({measurements.measurementsUnit})</Text>
             <TextInput
-              style={styles.measurementInput}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.height?.toString() || ''}
               onChangeText={(value) => updateMeasurement('height', value)}
               placeholder="Enter height"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
           </View>
 
           <View style={styles.measurementRow}>
-            <Text style={styles.measurementLabel}>Weight (kg)</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Weight (kg)</Text>
             <TextInput
-              style={styles.measurementInput}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.weight?.toString() || ''}
               onChangeText={(value) => updateMeasurement('weight', value)}
               placeholder="Enter weight"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
           </View>
 
           {/* Body Measurements */}
           <View style={styles.measurementRow}>
-            <Text style={styles.measurementLabel}>Bust ({measurements.measurementsUnit})</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Bust ({measurements.measurementsUnit})</Text>
             <TextInput
-              style={styles.measurementInput}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.bust?.toString() || ''}
               onChangeText={(value) => updateMeasurement('bust', value)}
               placeholder="Enter bust"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
           </View>
 
           <View style={styles.measurementRow}>
-            <Text style={styles.measurementLabel}>Waist ({measurements.measurementsUnit})</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Waist ({measurements.measurementsUnit})</Text>
             <TextInput
-              style={styles.measurementInput}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.waist?.toString() || ''}
               onChangeText={(value) => updateMeasurement('waist', value)}
               placeholder="Enter waist"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
           </View>
 
           <View style={styles.measurementRow}>
-            <Text style={styles.measurementLabel}>Hips ({measurements.measurementsUnit})</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Hips ({measurements.measurementsUnit})</Text>
             <TextInput
-              style={styles.measurementInput}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.hips?.toString() || ''}
               onChangeText={(value) => updateMeasurement('hips', value)}
               placeholder="Enter hips"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
           </View>
 
           <View style={styles.measurementRow}>
-            <Text style={styles.measurementLabel}>Inseam ({measurements.measurementsUnit})</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Inseam ({measurements.measurementsUnit})</Text>
             <TextInput
-              style={styles.measurementInput}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.inseam?.toString() || ''}
               onChangeText={(value) => updateMeasurement('inseam', value)}
               placeholder="Enter inseam"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
           </View>
 
           <View style={styles.measurementRow}>
-            <Text style={styles.measurementLabel}>Shoulder ({measurements.measurementsUnit})</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Shoulder ({measurements.measurementsUnit})</Text>
             <TextInput
-              style={styles.measurementInput}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.shoulder?.toString() || ''}
               onChangeText={(value) => updateMeasurement('shoulder', value)}
               placeholder="Enter shoulder"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
           </View>
 
           <View style={styles.measurementRow}>
-            <Text style={styles.measurementLabel}>Arm Length ({measurements.measurementsUnit})</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Arm Length ({measurements.measurementsUnit})</Text>
             <TextInput
-              style={styles.measurementInput}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.armLength?.toString() || ''}
               onChangeText={(value) => updateMeasurement('armLength', value)}
               placeholder="Enter arm length"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
           </View>
 
           <View style={styles.measurementRow}>
-            <Text style={styles.measurementLabel}>Shoe Size (EU)</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Shoe Size (EU)</Text>
             <TextInput
-              style={styles.measurementInput}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.shoeSize?.toString() || ''}
               onChangeText={(value) => updateMeasurement('shoeSize', value)}
               placeholder="Enter shoe size"
+              placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
           </View>
         </View>
 
         {/* Style Preferences Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Style Preferences</Text>
+        <View style={[styles.section, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Style Preferences</Text>
           
           {/* Preferred Colors */}
-          <Text style={styles.subsectionTitle}>Preferred Colors</Text>
+          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Preferred Colors</Text>
           <View style={styles.tagContainer}>
             {colorOptions.map((color) => (
               <TouchableOpacity
                 key={color}
                 style={[
                   styles.tag,
-                  stylePreferences.preferredColors.includes(color) && styles.tagSelected
+                  { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
+                  stylePreferences.preferredColors.includes(color) && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
                 ]}
                 onPress={() => toggleColor(color)}
               >
                 <Text style={[
                   styles.tagText,
-                  stylePreferences.preferredColors.includes(color) && styles.tagTextSelected
+                  { color: theme.colors.primaryText },
+                  stylePreferences.preferredColors.includes(color) && { color: theme.colors.buttonText }
                 ]}>
                   {color}
                 </Text>
@@ -386,20 +415,22 @@ export default function BodyMeasurements() {
           </View>
 
           {/* Preferred Styles */}
-          <Text style={styles.subsectionTitle}>Preferred Styles</Text>
+          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Preferred Styles</Text>
           <View style={styles.tagContainer}>
             {styleOptions.map((style) => (
               <TouchableOpacity
                 key={style}
                 style={[
                   styles.tag,
-                  stylePreferences.preferredStyles.includes(style) && styles.tagSelected
+                  { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
+                  stylePreferences.preferredStyles.includes(style) && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
                 ]}
                 onPress={() => toggleStyle(style)}
               >
                 <Text style={[
                   styles.tagText,
-                  stylePreferences.preferredStyles.includes(style) && styles.tagTextSelected
+                  { color: theme.colors.primaryText },
+                  stylePreferences.preferredStyles.includes(style) && { color: theme.colors.buttonText }
                 ]}>
                   {style}
                 </Text>
@@ -408,23 +439,25 @@ export default function BodyMeasurements() {
           </View>
 
           {/* Size Preferences */}
-          <Text style={styles.subsectionTitle}>Size Preferences</Text>
+          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Size Preferences</Text>
           
           <View style={styles.preferenceRow}>
-            <Text style={styles.preferenceLabel}>Tops:</Text>
+            <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>Tops:</Text>
             <View style={styles.sizeButtonContainer}>
               {sizeOptions.tops.map((size) => (
                 <TouchableOpacity
                   key={size}
                   style={[
                     styles.sizeButton,
-                    stylePreferences.sizePreferences.tops === size && styles.sizeButtonSelected
+                    { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
+                    stylePreferences.sizePreferences.tops === size && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
                   ]}
                   onPress={() => updateSizePreference('tops', size)}
                 >
                   <Text style={[
                     styles.sizeButtonText,
-                    stylePreferences.sizePreferences.tops === size && styles.sizeButtonTextSelected
+                    { color: theme.colors.primaryText },
+                    stylePreferences.sizePreferences.tops === size && { color: theme.colors.buttonText }
                   ]}>
                     {size}
                   </Text>
@@ -434,20 +467,22 @@ export default function BodyMeasurements() {
           </View>
 
           <View style={styles.preferenceRow}>
-            <Text style={styles.preferenceLabel}>Bottoms:</Text>
+            <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>Bottoms:</Text>
             <View style={styles.sizeButtonContainer}>
               {sizeOptions.bottoms.map((size) => (
                 <TouchableOpacity
                   key={size}
                   style={[
                     styles.sizeButton,
-                    stylePreferences.sizePreferences.bottoms === size && styles.sizeButtonSelected
+                    { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
+                    stylePreferences.sizePreferences.bottoms === size && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
                   ]}
                   onPress={() => updateSizePreference('bottoms', size)}
                 >
                   <Text style={[
                     styles.sizeButtonText,
-                    stylePreferences.sizePreferences.bottoms === size && styles.sizeButtonTextSelected
+                    { color: theme.colors.primaryText },
+                    stylePreferences.sizePreferences.bottoms === size && { color: theme.colors.buttonText }
                   ]}>
                     {size}
                   </Text>
@@ -457,20 +492,22 @@ export default function BodyMeasurements() {
           </View>
 
           <View style={styles.preferenceRow}>
-            <Text style={styles.preferenceLabel}>Shoes:</Text>
+            <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>Shoes:</Text>
             <View style={styles.sizeButtonContainer}>
               {sizeOptions.shoes.map((size) => (
                 <TouchableOpacity
                   key={size}
                   style={[
                     styles.sizeButton,
-                    stylePreferences.sizePreferences.shoes === size && styles.sizeButtonSelected
+                    { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
+                    stylePreferences.sizePreferences.shoes === size && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
                   ]}
                   onPress={() => updateSizePreference('shoes', size)}
                 >
                   <Text style={[
                     styles.sizeButtonText,
-                    stylePreferences.sizePreferences.shoes === size && styles.sizeButtonTextSelected
+                    { color: theme.colors.primaryText },
+                    stylePreferences.sizePreferences.shoes === size && { color: theme.colors.buttonText }
                   ]}>
                     {size}
                   </Text>
@@ -480,23 +517,25 @@ export default function BodyMeasurements() {
           </View>
 
           {/* Fit Preferences */}
-          <Text style={styles.subsectionTitle}>Fit Preferences</Text>
+          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Fit Preferences</Text>
           
           <View style={styles.preferenceRow}>
-            <Text style={styles.preferenceLabel}>Tops:</Text>
+            <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>Tops:</Text>
             <View style={styles.fitButtonContainer}>
               {fitOptions.map((fit) => (
                 <TouchableOpacity
                   key={fit}
                   style={[
                     styles.fitButton,
-                    stylePreferences.fitPreferences.tops === fit && styles.fitButtonSelected
+                    { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
+                    stylePreferences.fitPreferences.tops === fit && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
                   ]}
                   onPress={() => updateFitPreference('tops', fit)}
                 >
                   <Text style={[
                     styles.fitButtonText,
-                    stylePreferences.fitPreferences.tops === fit && styles.fitButtonTextSelected
+                    { color: theme.colors.primaryText },
+                    stylePreferences.fitPreferences.tops === fit && { color: theme.colors.buttonText }
                   ]}>
                     {fit.charAt(0).toUpperCase() + fit.slice(1)}
                   </Text>
@@ -506,20 +545,22 @@ export default function BodyMeasurements() {
           </View>
 
           <View style={styles.preferenceRow}>
-            <Text style={styles.preferenceLabel}>Bottoms:</Text>
+            <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>Bottoms:</Text>
             <View style={styles.fitButtonContainer}>
               {fitOptions.map((fit) => (
                 <TouchableOpacity
                   key={fit}
                   style={[
                     styles.fitButton,
-                    stylePreferences.fitPreferences.bottoms === fit && styles.fitButtonSelected
+                    { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
+                    stylePreferences.fitPreferences.bottoms === fit && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
                   ]}
                   onPress={() => updateFitPreference('bottoms', fit)}
                 >
                   <Text style={[
                     styles.fitButtonText,
-                    stylePreferences.fitPreferences.bottoms === fit && styles.fitButtonTextSelected
+                    { color: theme.colors.primaryText },
+                    stylePreferences.fitPreferences.bottoms === fit && { color: theme.colors.buttonText }
                   ]}>
                     {fit.charAt(0).toUpperCase() + fit.slice(1)}
                   </Text>
@@ -530,26 +571,26 @@ export default function BodyMeasurements() {
         </View>
 
         {/* Privacy Settings Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy Settings</Text>
+        <View style={[styles.section, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Privacy Settings</Text>
           
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Show measurements to others</Text>
+            <Text style={[styles.settingLabel, { color: theme.colors.primaryText }]}>Show measurements to others</Text>
             <Switch
               value={showMeasurements}
               onValueChange={setShowMeasurements}
-              trackColor={{ false: '#E5D1C0', true: '#8B4513' }}
-              thumbColor={showMeasurements ? '#F8E3D6' : '#F8E3D6'}
+              trackColor={{ false: theme.colors.buttonSecondary, true: theme.colors.accent }}
+              thumbColor={theme.colors.buttonText}
             />
           </View>
 
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Allow personalized recommendations</Text>
+            <Text style={[styles.settingLabel, { color: theme.colors.primaryText }]}>Allow personalized recommendations</Text>
             <Switch
               value={allowRecommendations}
               onValueChange={setAllowRecommendations}
-              trackColor={{ false: '#E5D1C0', true: '#8B4513' }}
-              thumbColor={allowRecommendations ? '#F8E3D6' : '#F8E3D6'}
+              trackColor={{ false: theme.colors.buttonSecondary, true: theme.colors.accent }}
+              thumbColor={theme.colors.buttonText}
             />
           </View>
         </View>

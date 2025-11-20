@@ -1,17 +1,19 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function Home() {
   const router = useRouter();
+  const { theme } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
       <Image source={require('../assets/glamoralogo.png')} style={styles.logo} />
-      <Text style={styles.text}>WELCOME TO GLAMORA</Text>
+      <Text style={[styles.text, { color: theme.colors.primaryText }]}>WELCOME TO GLAMORA</Text>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/login')}>
-        <Text style={styles.buttonText}>CHOOSE YOUR OUTFIT</Text>
+      <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.buttonBackground }]} onPress={() => router.push('/login')}>
+        <Text style={[styles.buttonText, { color: theme.colors.buttonText }]}>CHOOSE YOUR OUTFIT</Text>
       </TouchableOpacity>
     </View>
   );
@@ -20,7 +22,6 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4C2C2',
     alignItems: 'center',
     paddingTop: 30,
   },
@@ -36,12 +37,9 @@ const styles = StyleSheet.create({
     fontFamily: 'PlayfairDisplay-Medium',
     marginBottom: 10,
     textAlign: 'center',
-    color: 'white',
     letterSpacing: 2,
   },
-
   button: {
-    backgroundColor: '#FDD6A5',
     paddingVertical: 18,
     paddingHorizontal: 40,
     borderRadius: 15,
@@ -54,7 +52,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   buttonText: {
-    color: 'black',
     fontSize: 16.5,
     fontWeight: '700',
     textAlign: 'center',
