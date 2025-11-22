@@ -159,6 +159,149 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName = 'User') {
   }
 }
 
+/**
+ * Send email change verification PIN via Brevo
+ * @param {string} toEmail - Recipient email address (old email)
+ * @param {string} pin - 6-digit verification PIN
+ * @param {string} userName - User's name (optional)
+ * @param {string} newEmail - New email address being requested
+ */
+async function sendEmailChangePin(toEmail, pin, userName = 'User', newEmail) {
+  try {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    
+    sendSmtpEmail.subject = 'Glamora - Email Change Verification Code';
+    sendSmtpEmail.to = [{ email: toEmail, name: userName }];
+    sendSmtpEmail.sender = { 
+      name: 'Glamora', 
+      email: 'aanciafo@gmail.com' // Use verified sender email from Brevo
+    };
+    
+    // HTML email template
+    sendSmtpEmail.htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background-color: #F4C2C2;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+          }
+          .header h1 {
+            color: white;
+            margin: 0;
+            font-size: 28px;
+          }
+          .content {
+            background-color: #fff;
+            padding: 40px 30px;
+            border: 1px solid #e0e0e0;
+          }
+          .pin-box {
+            background-color: #F4C2C2;
+            color: #000;
+            font-size: 36px;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            letter-spacing: 8px;
+            margin: 30px 0;
+          }
+          .footer {
+            background-color: #f9f9f9;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-radius: 0 0 10px 10px;
+          }
+          .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>🌟 Glamora</h1>
+        </div>
+        <div class="content">
+          <h2>Email Change Verification</h2>
+          <p>Hi ${userName},</p>
+          <p>We received a request to change your email address from <strong>${toEmail}</strong> to <strong>${newEmail}</strong>.</p>
+          <p>Please enter the following verification code in the app to confirm this change:</p>
+          
+          <div class="pin-box">${pin}</div>
+          
+          <div class="warning">
+            <strong>⚠️ Security Notice:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>This code will expire in 10 minutes</li>
+              <li>If you didn't request this change, please ignore this email</li>
+              <li>Your email won't change until you enter the verification code</li>
+            </ul>
+          </div>
+          
+          <p>Need help? Contact our support team at support@glamora.com</p>
+          
+          <p>Best regards,<br>
+          <strong>The Glamora Team</strong></p>
+        </div>
+        <div class="footer">
+          <p>© 2025 Glamora. All rights reserved.</p>
+          <p>This is an automated email. Please do not reply to this message.</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Plain text version for email clients that don't support HTML
+    sendSmtpEmail.textContent = `
+      Hi ${userName},
+      
+      We received a request to change your email address from ${toEmail} to ${newEmail}.
+      
+      Please enter the following verification code in the app to confirm this change:
+      
+      Verification Code: ${pin}
+      
+      This code will expire in 10 minutes.
+      
+      If you didn't request this change, please ignore this email.
+      Your email won't change until you enter the verification code.
+      
+      Best regards,
+      The Glamora Team
+      
+      © 2025 Glamora. All rights reserved.
+    `;
+    
+    // Send email
+    const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log('✅ Email change PIN sent successfully:', data);
+    return { success: true, messageId: data.messageId };
+    
+  } catch (error) {
+    console.error('❌ Error sending email change PIN:', error);
+    throw new Error('Failed to send email change verification code');
+  }
+}
+
 module.exports = {
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendEmailChangePin
 };

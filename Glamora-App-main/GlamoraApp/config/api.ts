@@ -41,6 +41,8 @@ export const API_ENDPOINTS = {
   verifyResetToken: `${API_BASE_URL}/api/auth/verify-reset-token`,
   resetPassword: `${API_BASE_URL}/api/auth/reset-password`,
   requestEmailChange: `${API_BASE_URL}/api/auth/request-email-change`,
+  verifyEmailChangePin: `${API_BASE_URL}/api/auth/verify-email-change-pin`,
+  resendEmailChangePin: `${API_BASE_URL}/api/auth/resend-email-change-pin`,
   confirmEmailChange: (token: string) => `${API_BASE_URL}/api/auth/confirm-email-change?token=${token}`,
   changePassword: `${API_BASE_URL}/api/auth/change-password`,
   

@@ -6,8 +6,13 @@ const path = require('path');
 const fs = require('fs');
 const { JWT_SECRET } = require('../config/database');
 const User = require('../models/User');
-const { sendPasswordResetEmail } = require('../services/emailService');
+const { sendPasswordResetEmail, sendEmailChangePin } = require('../services/emailService');
 const cloudinary = require('../config/cloudinary');
+
+// In-memory storage for email change PINs (userId -> { pin, newEmail, expiresAt, lastSentAt })
+const emailChangePins = new Map();
+const PIN_EXPIRY = 10 * 60 * 1000; // 10 minutes
+const RESEND_COOLDOWN = 60 * 1000; // 60 seconds
 
 // Configure multer for file uploads - use memory storage for profile pictures to avoid file system issues
 const memoryStorage = multer.memoryStorage();
@@ -523,6 +528,201 @@ router.put('/change-password', auth, async (req, res) => {
   } catch (err) {
     console.error('Error changing password:', err);
     res.status(500).json({ message: 'Failed to change password.', error: err.message });
+  }
+});
+
+// POST /api/auth/request-email-change - Request email change (sends PIN to old email)
+router.post('/request-email-change', auth, async (req, res) => {
+  try {
+    const { newEmail } = req.body;
+    const userId = req.userId;
+    
+    // Validate input
+    if (!newEmail || typeof newEmail !== 'string') {
+      return res.status(400).json({ message: 'New email is required.' });
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      return res.status(400).json({ message: 'Invalid email format.' });
+    }
+    
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    
+    // Check if new email is different
+    if (user.email.toLowerCase() === newEmail.toLowerCase()) {
+      return res.status(400).json({ message: 'New email must be different from current email.' });
+    }
+    
+    // Check if new email is already in use
+    const existingUser = await User.findOne({ email: newEmail.toLowerCase() });
+    if (existingUser) {
+      return res.status(409).json({ message: 'Email already in use by another account.' });
+    }
+    
+    // Generate 6-digit PIN
+    const pin = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + PIN_EXPIRY;
+    
+    // Store PIN
+    emailChangePins.set(userId.toString(), {
+      pin,
+      newEmail: newEmail.toLowerCase(),
+      expiresAt,
+      lastSentAt: Date.now()
+    });
+    
+    // Send PIN to old email
+    try {
+      await sendEmailChangePin(user.email, pin, user.name || 'User', newEmail);
+      console.log(`✅ Email change PIN sent to ${user.email} for new email: ${newEmail}`);
+      
+      res.status(200).json({ 
+        message: 'Verification code sent to your current email address.',
+        currentEmail: user.email
+      });
+    } catch (emailError) {
+      console.error('❌ Error sending email change PIN:', emailError);
+      emailChangePins.delete(userId.toString());
+      return res.status(500).json({ 
+        message: 'Failed to send verification code. Please try again later.',
+        error: process.env.NODE_ENV === 'development' ? emailError.message : undefined
+      });
+    }
+  } catch (err) {
+    console.error('Error requesting email change:', err);
+    res.status(500).json({ message: 'Failed to process email change request.', error: err.message });
+  }
+});
+
+// POST /api/auth/verify-email-change-pin - Verify PIN and update email
+router.post('/verify-email-change-pin', auth, async (req, res) => {
+  try {
+    const { pin } = req.body;
+    const userId = req.userId;
+    
+    if (!pin || typeof pin !== 'string') {
+      return res.status(400).json({ message: 'Verification code is required.' });
+    }
+    
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    
+    // Get stored PIN data
+    const pinData = emailChangePins.get(userId.toString());
+    if (!pinData) {
+      return res.status(400).json({ message: 'No verification code found. Please request a new code.' });
+    }
+    
+    // Check if PIN expired
+    if (Date.now() > pinData.expiresAt) {
+      emailChangePins.delete(userId.toString());
+      return res.status(400).json({ message: 'Verification code has expired. Please request a new code.' });
+    }
+    
+    // Verify PIN
+    if (pinData.pin !== pin) {
+      return res.status(401).json({ message: 'Invalid verification code.' });
+    }
+    
+    // Check if new email is still available
+    const existingUser = await User.findOne({ email: pinData.newEmail });
+    if (existingUser && existingUser._id.toString() !== userId.toString()) {
+      emailChangePins.delete(userId.toString());
+      return res.status(409).json({ message: 'Email already in use by another account.' });
+    }
+    
+    // Store old email for logging
+    const oldEmail = user.email;
+    
+    // Update email
+    user.email = pinData.newEmail;
+    await user.save();
+    
+    // Remove PIN data
+    emailChangePins.delete(userId.toString());
+    
+    console.log(`✅ Email updated for user ${user._id}: ${oldEmail} -> ${pinData.newEmail}`);
+    
+    res.status(200).json({ 
+      message: 'Email successfully updated.',
+      user: {
+        _id: user._id,
+        email: user.email
+      }
+    });
+  } catch (err) {
+    console.error('Error verifying email change PIN:', err);
+    res.status(500).json({ message: 'Failed to verify verification code.', error: err.message });
+  }
+});
+
+// POST /api/auth/resend-email-change-pin - Resend PIN with 60s cooldown
+router.post('/resend-email-change-pin', auth, async (req, res) => {
+  try {
+    const userId = req.userId;
+    
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    
+    // Get existing PIN data
+    const existingPinData = emailChangePins.get(userId.toString());
+    if (!existingPinData) {
+      return res.status(400).json({ message: 'No email change request found. Please request an email change first.' });
+    }
+    
+    // Check cooldown (60 seconds)
+    const timeSinceLastSent = Date.now() - existingPinData.lastSentAt;
+    if (timeSinceLastSent < RESEND_COOLDOWN) {
+      const waitTime = Math.ceil((RESEND_COOLDOWN - timeSinceLastSent) / 1000);
+      return res.status(429).json({ 
+        message: `Please wait ${waitTime} seconds before requesting a new code.`,
+        retryAfter: waitTime
+      });
+    }
+    
+    // Generate new 6-digit PIN
+    const pin = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + PIN_EXPIRY;
+    
+    // Update PIN data
+    emailChangePins.set(userId.toString(), {
+      pin,
+      newEmail: existingPinData.newEmail,
+      expiresAt,
+      lastSentAt: Date.now()
+    });
+    
+    // Send PIN to old email
+    try {
+      await sendEmailChangePin(user.email, pin, user.name || 'User', existingPinData.newEmail);
+      console.log(`✅ Email change PIN resent to ${user.email}`);
+      
+      res.status(200).json({ 
+        message: 'Verification code resent to your current email address.',
+        currentEmail: user.email
+      });
+    } catch (emailError) {
+      console.error('❌ Error resending email change PIN:', emailError);
+      return res.status(500).json({ 
+        message: 'Failed to resend verification code. Please try again later.',
+        error: process.env.NODE_ENV === 'development' ? emailError.message : undefined
+      });
+    }
+  } catch (err) {
+    console.error('Error resending email change PIN:', err);
+    res.status(500).json({ message: 'Failed to resend verification code.', error: err.message });
   }
 });
 

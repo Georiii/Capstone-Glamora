@@ -20,6 +20,12 @@ export default function Security() {
   const [newEmail, setNewEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentPasswordError, setCurrentPasswordError] = useState('');
+  // Email change PIN states
+  const [showPinInput, setShowPinInput] = useState(false);
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   // Password strength (reuse from register.tsx)
   const [passwordStrength, setPasswordStrength] = useState('');
   const [animStrength] = useState(new Animated.Value(0));
@@ -116,6 +122,7 @@ export default function Security() {
     }
 
     setLoading(true);
+    setPinError('');
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
@@ -148,18 +155,25 @@ export default function Security() {
         return;
       }
 
-      Alert.alert(
-        'Confirmation Email Sent',
-        `A confirmation email has been sent to ${data.currentEmail || email}. Please check your inbox and click the confirmation link to complete the email change.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setShowEmailChange(false);
-              setNewEmail('');
-            }
+      // Show PIN input instead of alert
+      setShowPinInput(true);
+      setResendCooldown(60); // Start 60-second cooldown
+      
+      // Start countdown timer
+      const timer = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
           }
-        ]
+          return prev - 1;
+        });
+      }, 1000);
+
+      Alert.alert(
+        'Verification Code Sent',
+        `A 6-digit verification code has been sent to ${data.currentEmail || email}. Please check your inbox and enter the code below.`,
+        [{ text: 'OK' }]
       );
     } catch (error: any) {
       console.error('Error requesting email change:', error);
@@ -172,6 +186,120 @@ export default function Security() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerifyPin = async () => {
+    if (!pin || pin.length !== 6) {
+      setPinError('Please enter a 6-digit verification code');
+      return;
+    }
+
+    setLoading(true);
+    setPinError('');
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Authentication required. Please log in again.');
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.verifyEmailChangePin, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ pin: pin.trim() })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setPinError(data.message || 'Invalid verification code');
+        return;
+      }
+
+      // Success - show success modal
+      setShowSuccessModal(true);
+      setShowPinInput(false);
+      setPin('');
+      setNewEmail('');
+      setShowEmailChange(false);
+      
+      // Clear user data to force re-login
+      await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('token');
+    } catch (error: any) {
+      console.error('Error verifying PIN:', error);
+      setPinError('Failed to verify code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendPin = async () => {
+    if (resendCooldown > 0) {
+      return;
+    }
+
+    setLoading(true);
+    setPinError('');
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Authentication required. Please log in again.');
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.resendEmailChangePin, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          const waitTime = data.retryAfter || 60;
+          setResendCooldown(waitTime);
+          Alert.alert('Rate Limit', data.message || `Please wait ${waitTime} seconds before requesting a new code.`);
+        } else {
+          Alert.alert('Error', data.message || 'Failed to resend verification code');
+        }
+        return;
+      }
+
+      // Reset cooldown
+      setResendCooldown(60);
+      
+      // Start countdown timer
+      const timer = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      Alert.alert('Code Resent', 'A new verification code has been sent to your email.');
+    } catch (error: any) {
+      console.error('Error resending PIN:', error);
+      Alert.alert('Error', 'Failed to resend verification code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoginRedirect = () => {
+    setShowSuccessModal(false);
+    router.push('/login');
   };
 
   const handleChangePassword = async () => {
@@ -278,40 +406,105 @@ export default function Security() {
           
           {showEmailChange ? (
             <View style={styles.emailChangeForm}>
-              <TextInput
-                style={[styles.emailInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
-                placeholder="New email address"
-                placeholderTextColor={theme.colors.secondaryText}
-                value={newEmail}
-                onChangeText={setNewEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!loading}
-              />
-              <View style={styles.emailButtons}>
-                <TouchableOpacity
-                  style={[styles.cancelButton, { backgroundColor: theme.colors.containerBackground }]}
-                  onPress={() => {
-                    setShowEmailChange(false);
-                    setNewEmail('');
-                  }}
-                  disabled={loading}
-                >
-                  <Text style={[styles.cancelButtonText, { color: theme.colors.primaryText }]}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.saveButton, { backgroundColor: theme.colors.buttonBackground }, loading && styles.disabledButton]}
-                  onPress={handleRequestEmailChange}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator size="small" color={theme.colors.buttonText} />
-                  ) : (
-                    <Text style={[styles.saveButtonText, { color: theme.colors.buttonText }]}>Send Confirmation</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+              {!showPinInput ? (
+                <>
+                  <TextInput
+                    style={[styles.emailInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
+                    placeholder="New email address"
+                    placeholderTextColor={theme.colors.secondaryText}
+                    value={newEmail}
+                    onChangeText={setNewEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                  />
+                  <View style={styles.emailButtons}>
+                    <TouchableOpacity
+                      style={[styles.cancelButton, { backgroundColor: theme.colors.containerBackground }]}
+                      onPress={() => {
+                        setShowEmailChange(false);
+                        setNewEmail('');
+                        setShowPinInput(false);
+                        setPin('');
+                        setPinError('');
+                      }}
+                      disabled={loading}
+                    >
+                      <Text style={[styles.cancelButtonText, { color: theme.colors.primaryText }]}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.saveButton, { backgroundColor: theme.colors.buttonBackground }, loading && styles.disabledButton]}
+                      onPress={handleRequestEmailChange}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <ActivityIndicator size="small" color={theme.colors.buttonText} />
+                      ) : (
+                        <Text style={[styles.saveButtonText, { color: theme.colors.buttonText }]}>Send Confirmation</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.pinLabel, { color: theme.colors.primaryText }]}>
+                    Enter the 6-digit code sent to {email}
+                  </Text>
+                  <TextInput
+                    style={[styles.pinInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: pinError ? '#F15A5A' : theme.colors.border }]}
+                    placeholder="000000"
+                    placeholderTextColor={theme.colors.secondaryText}
+                    value={pin}
+                    onChangeText={(text) => {
+                      setPin(text.replace(/[^0-9]/g, '').slice(0, 6));
+                      setPinError('');
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    editable={!loading}
+                  />
+                  {pinError ? (
+                    <Text style={styles.pinErrorText}>{pinError}</Text>
+                  ) : null}
+                  <View style={styles.pinButtons}>
+                    <TouchableOpacity
+                      style={[styles.resendButton, { backgroundColor: resendCooldown > 0 ? theme.colors.containerBackground : theme.colors.buttonBackground }, resendCooldown > 0 && { opacity: 0.6 }]}
+                      onPress={handleResendPin}
+                      disabled={loading || resendCooldown > 0}
+                    >
+                      <Text style={[styles.resendButtonText, { color: resendCooldown > 0 ? theme.colors.secondaryText : theme.colors.buttonText }]}>
+                        {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : 'Resend Code'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.verifyButton, { backgroundColor: theme.colors.buttonBackground }, loading && styles.disabledButton]}
+                      onPress={handleVerifyPin}
+                      disabled={loading || pin.length !== 6}
+                    >
+                      {loading ? (
+                        <ActivityIndicator size="small" color={theme.colors.buttonText} />
+                      ) : (
+                        <Text style={[styles.verifyButtonText, { color: theme.colors.buttonText }]}>Verify</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.cancelButton, { backgroundColor: theme.colors.containerBackground, marginTop: 10 }]}
+                    onPress={() => {
+                      setShowEmailChange(false);
+                      setNewEmail('');
+                      setShowPinInput(false);
+                      setPin('');
+                      setPinError('');
+                      setResendCooldown(0);
+                    }}
+                    disabled={loading}
+                  >
+                    <Text style={[styles.cancelButtonText, { color: theme.colors.primaryText }]}>Cancel</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           ) : (
             <TouchableOpacity
@@ -473,6 +666,24 @@ export default function Security() {
           )}
         </View>
       </View>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.containerBackground }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>Email Changed Successfully!</Text>
+            <Text style={[styles.modalMessage, { color: theme.colors.secondaryText }]}>
+              Your email address has been updated successfully. Please log in again with your new email address.
+            </Text>
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: theme.colors.buttonBackground }]}
+              onPress={handleLoginRedirect}
+            >
+              <Text style={[styles.modalButtonText, { color: theme.colors.buttonText }]}>Login the account</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -634,5 +845,94 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 4,
+  },
+  pinLabel: {
+    fontSize: 14,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  pinInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    fontSize: 24,
+    textAlign: 'center',
+    letterSpacing: 8,
+    fontWeight: 'bold',
+  },
+  pinErrorText: {
+    color: '#F15A5A',
+    fontSize: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  pinButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 10,
+  },
+  resendButton: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  resendButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  verifyButton: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  verifyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    width: '85%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  modalButton: {
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
