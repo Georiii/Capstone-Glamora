@@ -477,6 +477,71 @@ export default function CombineOutfits() {
         return;
       }
 
+      // Check generation limit before proceeding (atomic check and increment)
+      console.log('🔍 Checking generation limit...');
+      try {
+        const limitResponse = await fetch(API_ENDPOINTS.recommendations.requestGeneration, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!limitResponse.ok) {
+          let errorData: any = {};
+          try {
+            errorData = await limitResponse.json();
+          } catch {
+            const errorText = await limitResponse.text();
+            throw new Error(errorText || 'Failed to check generation limit');
+          }
+
+          // Handle limit reached error
+          if (limitResponse.status === 403 && errorData.limitReached) {
+            Alert.alert(
+              'Daily Limit Reached',
+              errorData.message || 'Daily limit reached! Free plan includes 5 outfit suggestions per day. Subscribe to Glamora PLUS for unlimited suggestions.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Subscribe to PLUS',
+                  onPress: () => router.push('/premium'),
+                  style: 'default'
+                }
+              ]
+            );
+            setLoading(false);
+            return;
+          }
+
+          // Other errors
+          throw new Error(errorData.message || 'Failed to check generation limit');
+        }
+
+        const limitData = await limitResponse.json();
+        console.log('✅ Generation limit check passed:', limitData);
+        
+        // Continue with generation if allowed
+      } catch (limitError: any) {
+        console.error('❌ Error checking generation limit:', limitError);
+        
+        // If it's a limit error, we already handled it above
+        if (limitError.message?.includes('limit') || limitError.message?.includes('Daily limit')) {
+          setLoading(false);
+          return;
+        }
+        
+        // For other errors, show alert but allow retry
+        Alert.alert(
+          'Error',
+          limitError.message || 'Failed to check generation limit. Please try again.',
+          [{ text: 'OK' }]
+        );
+        setLoading(false);
+        return;
+      }
+
       // Manual generation with weather influence
       console.log('🔧 Using manual combination system...');
       let weatherToUse = selectedWeather;

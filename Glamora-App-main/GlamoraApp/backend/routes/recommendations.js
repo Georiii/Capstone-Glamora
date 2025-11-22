@@ -40,6 +40,136 @@ function auth(req, res, next) {
   }
 }
 
+// POST /api/recommendations/request-generation - Atomic check and increment for outfit generation limit
+router.post('/request-generation', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Normalize subscription status
+    const subscription = user.subscription || {};
+    let isSubscribed = subscription.isSubscribed || false;
+    
+    // Check if subscription has expired
+    if (isSubscribed && subscription.expiresAt && new Date(subscription.expiresAt) < new Date()) {
+      isSubscribed = false;
+    }
+
+    const DAILY_OUTFIT_SUGGESTIONS_LIMIT = 5;
+
+    // Premium users have unlimited access
+    if (isSubscribed) {
+      return res.json({
+        allowed: true,
+        isSubscribed: true,
+        count: null,
+        limit: null
+      });
+    }
+
+    // For free users, atomically check and increment daily count
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const lastSuggestionDate = subscription.lastOutfitSuggestionDate 
+      ? new Date(subscription.lastOutfitSuggestionDate)
+      : null;
+    
+    const lastDate = lastSuggestionDate ? new Date(lastSuggestionDate) : null;
+    if (lastDate) lastDate.setHours(0, 0, 0, 0);
+
+    // Check if it's a new day - if so, we need to reset count first
+    const isNewDay = !lastDate || lastDate.getTime() !== today.getTime();
+    const currentCount = subscription.dailyOutfitSuggestionsCount || 0;
+
+    // If new day, reset count to 0 before incrementing
+    if (isNewDay) {
+      const result = await User.findOneAndUpdate(
+        { _id: req.userId },
+        {
+          $set: {
+            'subscription.dailyOutfitSuggestionsCount': 1,
+            'subscription.lastOutfitSuggestionDate': today
+          }
+        },
+        { new: true, runValidators: true }
+      );
+
+      if (!result) {
+        return res.status(500).json({ message: 'Failed to update generation count.' });
+      }
+
+      return res.json({
+        allowed: true,
+        isSubscribed: false,
+        count: 1,
+        limit: DAILY_OUTFIT_SUGGESTIONS_LIMIT,
+        remaining: DAILY_OUTFIT_SUGGESTIONS_LIMIT - 1
+      });
+    }
+
+    // Same day - check if limit reached
+    if (currentCount >= DAILY_OUTFIT_SUGGESTIONS_LIMIT) {
+      return res.status(403).json({
+        allowed: false,
+        limitReached: true,
+        message: `Daily limit reached! Free plan includes ${DAILY_OUTFIT_SUGGESTIONS_LIMIT} outfit suggestions per day. Subscribe to Glamora PLUS for unlimited suggestions.`,
+        currentCount: currentCount,
+        limit: DAILY_OUTFIT_SUGGESTIONS_LIMIT,
+        resetTime: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+      });
+    }
+
+    // Atomic increment: only increment if count is less than limit
+    const result = await User.findOneAndUpdate(
+      {
+        _id: req.userId,
+        'subscription.dailyOutfitSuggestionsCount': { $lt: DAILY_OUTFIT_SUGGESTIONS_LIMIT }
+      },
+      {
+        $inc: { 'subscription.dailyOutfitSuggestionsCount': 1 },
+        $set: { 'subscription.lastOutfitSuggestionDate': today }
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+    if (!result) {
+      // Race condition: another request incremented it to the limit
+      const currentUser = await User.findById(req.userId);
+      const finalCount = currentUser?.subscription?.dailyOutfitSuggestionsCount || DAILY_OUTFIT_SUGGESTIONS_LIMIT;
+      
+      return res.status(403).json({
+        allowed: false,
+        limitReached: true,
+        message: `Daily limit reached! Free plan includes ${DAILY_OUTFIT_SUGGESTIONS_LIMIT} outfit suggestions per day. Subscribe to Glamora PLUS for unlimited suggestions.`,
+        currentCount: finalCount,
+        limit: DAILY_OUTFIT_SUGGESTIONS_LIMIT,
+        resetTime: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+      });
+    }
+
+    // Successfully incremented
+    const newCount = result.subscription?.dailyOutfitSuggestionsCount || 1;
+    
+    return res.json({
+      allowed: true,
+      isSubscribed: false,
+      count: newCount,
+      limit: DAILY_OUTFIT_SUGGESTIONS_LIMIT,
+      remaining: DAILY_OUTFIT_SUGGESTIONS_LIMIT - newCount
+    });
+
+  } catch (err) {
+    console.error('Error checking generation limit:', err);
+    res.status(500).json({ message: 'Failed to check generation limit.', error: err.message });
+  }
+});
+
 // POST /api/recommendations/outfits - Get AI-powered outfit suggestions
 router.post('/outfits', auth, async (req, res) => {
   try {

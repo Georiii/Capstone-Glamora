@@ -98,6 +98,7 @@ export const API_ENDPOINTS = {
   // AI Recommendations
   recommendations: {
     outfits: `${API_BASE_URL}/api/recommendations/outfits`,
+    requestGeneration: `${API_BASE_URL}/api/recommendations/request-generation`,
     weather: (weather: string) => `${API_BASE_URL}/api/recommendations/weather/${weather}`,
     complementary: (itemId: string) => `${API_BASE_URL}/api/recommendations/complementary/${itemId}`,
   },
