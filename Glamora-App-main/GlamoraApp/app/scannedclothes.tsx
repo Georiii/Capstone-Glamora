@@ -1169,7 +1169,6 @@ export default function ScannedClothes() {
             </View>
           </ScrollView>
           </KeyboardAvoidingView>
-        </View>
 
         {/* Size Chart Modal */}
         <Modal visible={showSizeChart} transparent animationType="fade">
