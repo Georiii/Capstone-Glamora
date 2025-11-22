@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useTheme } from './contexts/ThemeContext';
 
@@ -19,6 +19,11 @@ export default function Security() {
   const [showEmailChange, setShowEmailChange] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [currentPasswordError, setCurrentPasswordError] = useState('');
+  // Password strength (reuse from register.tsx)
+  const [passwordStrength, setPasswordStrength] = useState('');
+  const [animStrength] = useState(new Animated.Value(0));
+  const [shakeAnim] = useState(new Animated.Value(0));
   
   // Password visibility states - separate for each field
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -28,6 +33,48 @@ export default function Security() {
   useEffect(() => {
     loadUserInfo();
   }, []);
+
+  // Evaluate password strength
+  const evaluatePassword = (pwd: string) => {
+    const lengthOk = pwd.length >= 8;
+    const upper = /[A-Z]/.test(pwd);
+    const lower = /[a-z]/.test(pwd);
+    const number = /[0-9]/.test(pwd);
+    const special = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
+    const score = [lengthOk, upper, lower, number, special].filter(Boolean).length;
+    if (score >= 5) return 'strong';
+    if (score >= 3) return 'medium';
+    return 'weak';
+  };
+
+  // Animate strength bar and shake on weak
+  useEffect(() => {
+    Animated.timing(animStrength, {
+      toValue: passwordStrength === 'weak' ? 0 : passwordStrength === 'medium' ? 0.5 : 1,
+      duration: 450,
+      easing: Easing.inOut(Easing.ease),
+      useNativeDriver: false,
+    }).start();
+
+    if (passwordStrength === 'weak' && newPassword.length > 0) {
+      Animated.sequence([
+        Animated.timing(shakeAnim, { toValue: 5, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: -5, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 3, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [animStrength, passwordStrength, newPassword, shakeAnim]);
+
+  const animatedWidth = animStrength.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['30%', '65%', '100%'],
+  });
+
+  const animatedColor = animStrength.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['#F15A5A', '#FFD166', '#06D6A0'],
+  });
 
   const loadUserInfo = async () => {
     try {
@@ -128,6 +175,7 @@ export default function Security() {
   };
 
   const handleChangePassword = async () => {
+    setCurrentPasswordError('');
     if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all password fields');
       return;
@@ -138,8 +186,9 @@ export default function Security() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+    // Enforce strong password rules (same as register.tsx)
+    if (passwordStrength === 'weak' || passwordStrength === '') {
+      Alert.alert('Weak password', 'Password is not strong enough. Please follow the password requirements.');
       return;
     }
 
@@ -167,7 +216,11 @@ export default function Security() {
       const data = await response.json();
 
       if (!response.ok) {
-        Alert.alert('Error', data.message || 'Failed to change password');
+        if (response.status === 401 && (data?.message?.toLowerCase()?.includes('current password') || true)) {
+          setCurrentPasswordError('Invalid password');
+        } else {
+          Alert.alert('Error', data.message || 'Failed to change password');
+        }
         return;
       }
 
@@ -284,7 +337,7 @@ export default function Security() {
                   placeholderTextColor={theme.colors.secondaryText}
                   secureTextEntry={!showCurrentPassword}
                   value={currentPassword}
-                  onChangeText={setCurrentPassword}
+                  onChangeText={(t) => { setCurrentPassword(t); setCurrentPasswordError(''); }}
                   editable={!loading}
                 />
                 {currentPassword.length > 0 && (
@@ -300,6 +353,9 @@ export default function Security() {
                   </TouchableOpacity>
                 )}
               </View>
+              {!!currentPasswordError && (
+                <Text style={[styles.inlineError, { color: '#F15A5A' }]}>{currentPasswordError}</Text>
+              )}
               
               <View style={[styles.passwordInputContainer, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
                 <TextInput
@@ -308,7 +364,10 @@ export default function Security() {
                   placeholderTextColor={theme.colors.secondaryText}
                   secureTextEntry={!showNewPassword}
                   value={newPassword}
-                  onChangeText={setNewPassword}
+                  onChangeText={(t) => {
+                    setNewPassword(t);
+                    setPasswordStrength(evaluatePassword(t));
+                  }}
                   editable={!loading}
                 />
                 {newPassword.length > 0 && (
@@ -322,6 +381,34 @@ export default function Security() {
                       color={theme.colors.secondaryText}
                     />
                   </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.pwGuidelines}>
+                <Text style={[styles.pwGuidelineHeader, { color: theme.colors.primaryText }]}>Password must be:</Text>
+                <View style={styles.pwRules}>
+                  <Text style={[styles.pwRule, { color: theme.colors.secondaryText }]}>• At least 8 characters</Text>
+                  <Text style={[styles.pwRule, { color: theme.colors.secondaryText }]}>• One uppercase letter (A-Z)</Text>
+                  <Text style={[styles.pwRule, { color: theme.colors.secondaryText }]}>• One lowercase letter (a-z)</Text>
+                  <Text style={[styles.pwRule, { color: theme.colors.secondaryText }]}>• One number (0-9)</Text>
+                  <Text style={[styles.pwRule, { color: theme.colors.secondaryText }]}>• One special character (!,@,#,$, etc.)</Text>
+                </View>
+                <Animated.View style={[styles.strengthRow, { transform: [{ translateX: shakeAnim }] }]}>
+                  <Animated.View
+                    style={[
+                      styles.animatedStrengthBar,
+                      {
+                        width: animatedWidth,
+                        backgroundColor: animatedColor,
+                        opacity: animStrength.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.6, 1],
+                        }),
+                      },
+                    ]}
+                  />
+                </Animated.View>
+                {passwordStrength === 'weak' && newPassword.length > 0 && (
+                  <Text style={styles.weakPasswordText}>Password is weak</Text>
                 )}
               </View>
               
@@ -504,5 +591,48 @@ const styles = StyleSheet.create({
   changeButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  inlineError: {
+    marginTop: -4,
+    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // Password strength visuals (adapted from register.tsx)
+  pwGuidelines: {
+    width: '100%',
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  pwGuidelineHeader: {
+    fontWeight: '600',
+    marginBottom: 6,
+    fontSize: 13,
+  },
+  pwRules: {
+    marginBottom: 8,
+  },
+  pwRule: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  strengthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+  },
+  animatedStrengthBar: {
+    height: 8,
+    borderRadius: 6,
+    backgroundColor: '#eee',
+    marginRight: 6,
+    alignSelf: 'flex-start',
+  },
+  weakPasswordText: {
+    color: '#F15A5A',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });

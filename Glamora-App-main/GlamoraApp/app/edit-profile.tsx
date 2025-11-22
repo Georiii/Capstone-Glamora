@@ -348,13 +348,13 @@ export default function EditProfile() {
           <Text style={[styles.inputLabel, { color: theme.colors.primaryText }]}>Email</Text>
           <View style={[styles.inputContainer, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
             <TextInput
-              style={[styles.textInput, { color: theme.colors.primaryText }]}
+              style={[styles.textInput, { color: theme.colors.secondaryText }]}
               value={email}
-              onChangeText={setEmail}
-              placeholder="Enter your email"
+              editable={false}
+              selectTextOnFocus={false}
+              caretHidden
+              placeholder="Email is managed by support"
               placeholderTextColor={theme.colors.secondaryText}
-              keyboardType="email-address"
-              autoCapitalize="none"
             />
           </View>
         </View>

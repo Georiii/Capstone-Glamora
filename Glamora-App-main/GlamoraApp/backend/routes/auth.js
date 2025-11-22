@@ -457,4 +457,73 @@ router.put('/users/:id', async (req, res) => {
   }
 });
 
+// Auth middleware for protected routes
+const auth = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ message: 'No token provided.' });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Invalid token format.' });
+    }
+    
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired.' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid token.' });
+    }
+    return res.status(401).json({ message: 'Authentication failed.' });
+  }
+};
+
+// PUT /api/auth/change-password - Change user password
+router.put('/change-password', auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.userId;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required.' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters long.' });
+    }
+    
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    
+    // Verify current password
+    const validPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!validPassword) {
+      return res.status(401).json({ message: 'Current password is incorrect.' });
+    }
+    
+    // Hash new password
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    
+    // Update password
+    user.passwordHash = newPasswordHash;
+    await user.save();
+    
+    console.log(`✅ Password changed for user ${user._id}`);
+    
+    res.status(200).json({ message: 'Password changed successfully.' });
+  } catch (err) {
+    console.error('Error changing password:', err);
+    res.status(500).json({ message: 'Failed to change password.', error: err.message });
+  }
+});
+
 module.exports = router; 
