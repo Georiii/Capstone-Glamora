@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     Image,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Switch,
@@ -14,6 +15,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useWindowDimensions,
 } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useTheme } from './contexts/ThemeContext';
@@ -49,6 +51,9 @@ interface StylePreferences {
 export default function BodyMeasurements() {
   const router = useRouter();
   const { theme } = useTheme();
+  const windowDimensions = useWindowDimensions();
+  const screenWidth = windowDimensions?.width || 375;
+  const screenHeight = windowDimensions?.height || 667;
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -70,7 +75,8 @@ export default function BodyMeasurements() {
   
   // Chart popup states
   const [showChartModal, setShowChartModal] = useState(false);
-  const [currentChart, setCurrentChart] = useState<'tops' | 'bottoms-shorts' | 'bottoms-pants' | 'shoes' | null>(null);
+  const [currentChart, setCurrentChart] = useState<'tops' | 'bottoms-shorts' | 'shoes' | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Style options
   const colorOptions = ['BLACK', 'WHITE', 'BLUE', 'RED', 'GREEN', 'YELLOW', 'PINK', 'PURPLE', 'BROWN', 'GRAY', 'MAROON', 'KHAKI', 'ORANGE'];
@@ -86,6 +92,16 @@ export default function BodyMeasurements() {
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // Scroll to top when bottoms chart modal opens
+  useEffect(() => {
+    if (showChartModal && currentChart === 'bottoms-shorts' && scrollViewRef.current) {
+      // Small delay to ensure ScrollView is rendered
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      }, 100);
+    }
+  }, [showChartModal, currentChart]);
 
   const loadUserData = async () => {
     try {
@@ -285,11 +301,11 @@ export default function BodyMeasurements() {
           <View style={styles.measurementRow}>
             <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Hieght (cm)</Text>
             <TextInput
-              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border, color: theme.colors.primaryText }]}
               value={measurements.height?.toString() || ''}
               onChangeText={(value) => updateMeasurement('height', value)}
               placeholder="Enter Hieght"
-              placeholderTextColor={theme.colors.placeholderText}
+              placeholderTextColor={theme.colors.secondaryText}
               keyboardType="numeric"
             />
           </View>
@@ -297,11 +313,11 @@ export default function BodyMeasurements() {
           <View style={styles.measurementRow}>
             <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Weight (kg)</Text>
             <TextInput
-              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
+              style={[styles.measurementInput, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border, color: theme.colors.primaryText }]}
               value={measurements.weight?.toString() || ''}
               onChangeText={(value) => updateMeasurement('weight', value)}
               placeholder="Enter Weight"
-              placeholderTextColor={theme.colors.placeholderText}
+              placeholderTextColor={theme.colors.secondaryText}
               keyboardType="numeric"
             />
           </View>
@@ -497,7 +513,12 @@ export default function BodyMeasurements() {
         onRequestClose={() => setShowChartModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.containerBackground }]}>
+          <View style={[
+            styles.modalContent, 
+            { 
+              backgroundColor: theme.colors.containerBackground,
+            }
+          ]}>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => {
@@ -505,55 +526,46 @@ export default function BodyMeasurements() {
                 setCurrentChart(null);
               }}
             >
-              <Ionicons name="close" size={28} color={theme.colors.primaryText} />
+              <Ionicons name="close" size={Platform.OS === 'web' ? 24 : 28} color={theme.colors.primaryText} />
             </TouchableOpacity>
             
-            {currentChart === 'tops' && (
-              <Image
-                source={require('../assets/tops-chart.png')}
-                style={styles.chartImage}
-                resizeMode="contain"
-              />
-            )}
-            
-            {currentChart === 'bottoms-shorts' && (
-              <>
+            {currentChart === 'bottoms-shorts' ? (
+              <ScrollView 
+                ref={scrollViewRef}
+                style={styles.modalScrollView}
+                contentContainerStyle={styles.modalScrollContent}
+                showsVerticalScrollIndicator={true}
+                bounces={Platform.OS === 'ios'}
+              >
                 <Image
                   source={require('../assets/shorts-chart.png')}
                   style={styles.chartImage}
                   resizeMode="contain"
                 />
-                <TouchableOpacity
-                  style={[styles.nextButton, { backgroundColor: theme.colors.accent }]}
-                  onPress={() => setCurrentChart('bottoms-pants')}
-                >
-                  <Text style={[styles.nextButtonText, { color: theme.colors.buttonText }]}>Next</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            
-            {currentChart === 'bottoms-pants' && (
-              <>
                 <Image
                   source={require('../assets/pants-chart.png')}
-                  style={styles.chartImage}
+                  style={[styles.chartImage, styles.chartImageSecond]}
                   resizeMode="contain"
                 />
-                <TouchableOpacity
-                  style={[styles.nextButton, { backgroundColor: theme.colors.accent }]}
-                  onPress={() => setCurrentChart('bottoms-shorts')}
-                >
-                  <Text style={[styles.nextButtonText, { color: theme.colors.buttonText }]}>Previous</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            
-            {currentChart === 'shoes' && (
-              <Image
-                source={require('../assets/shoes-chart.png')}
-                style={styles.chartImage}
-                resizeMode="contain"
-              />
+              </ScrollView>
+            ) : (
+              <View style={styles.modalImageContainer}>
+                {currentChart === 'tops' && (
+                  <Image
+                    source={require('../assets/tops-chart.png')}
+                    style={styles.chartImage}
+                    resizeMode="contain"
+                  />
+                )}
+                
+                {currentChart === 'shoes' && (
+                  <Image
+                    source={require('../assets/shoes-chart.png')}
+                    style={styles.chartImage}
+                    resizeMode="contain"
+                  />
+                )}
+              </View>
             )}
           </View>
         </View>
@@ -795,43 +807,58 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: Platform.OS === 'web' ? 10 : 5,
+    paddingVertical: Platform.OS === 'web' ? 20 : 15,
   },
   modalContent: {
-    width: '100%',
-    maxWidth: 500,
-    maxHeight: '90%',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '70%',
+    padding: 6,
+    paddingTop: Platform.OS === 'web' ? 36 : 34,
+    paddingBottom: 6,
     alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
+    alignSelf: 'center',
+    overflow: 'hidden',
+  },
+  modalImageContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  modalScrollView: {
+    width: '100%',
+    flex: 1,
+  },
+  modalScrollContent: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
   },
   closeButton: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: Platform.OS === 'web' ? 6 : 8,
+    right: Platform.OS === 'web' ? 6 : 8,
     zIndex: 10,
-    padding: 8,
+    padding: Platform.OS === 'web' ? 6 : 8,
     borderRadius: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
   chartImage: {
-    width: '100%',
-    maxWidth: '100%',
-    height: undefined,
-    aspectRatio: 1,
-    marginTop: 30,
+    width: '95%',
+    maxWidth: 380,
+    alignSelf: 'center',
+    marginVertical: 0,
   },
-  nextButton: {
-    marginTop: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  chartImageSecond: {
+    marginTop: Platform.OS === 'web' ? 8 : 10,
+    marginBottom: 0,
   },
 }); 

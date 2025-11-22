@@ -9,6 +9,15 @@ const marketplaceItemSchema = new mongoose.Schema({
   userName: { type: String },
   userEmail: { type: String },
   userProfilePicture: { type: String }, // Add seller's profile picture
+  // New fields for redesigned UI
+  color: { type: String },
+  gender: { type: String, enum: ['MAN', 'WOMAN', 'UNISEX'] },
+  sizes: {
+    tops: { type: [String], default: [] },
+    bottoms: { type: [String], default: [] },
+    shoes: { type: [String], default: [] }
+  },
+  isAccessories: { type: Boolean, default: false },
   // Moderation fields
   status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
   rejectionReason: { type: String },

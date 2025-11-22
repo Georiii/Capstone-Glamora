@@ -223,7 +223,7 @@ router.delete('/:id', auth, async (req, res) => {
 // POST /api/marketplace - add a new marketplace item
 router.post('/marketplace', auth, async (req, res) => {
   try {
-    const { imageUrl, name, description, price } = req.body;
+    const { imageUrl, name, description, price, color, gender, sizes, isAccessories } = req.body;
     if (!imageUrl || !name || !price) return res.status(400).json({ message: 'Missing required fields: imageUrl, name, and price' });
     
     // Reject local file:// URIs - images must be uploaded client-side first
@@ -275,6 +275,11 @@ router.post('/marketplace', auth, async (req, res) => {
       userName: user.name || '',
       userEmail: user.email || '',
       userProfilePicture: user.profilePicture?.url || '', // Include seller's profile picture
+      // New fields from redesigned UI
+      color: color || undefined,
+      gender: gender || undefined,
+      sizes: sizes || { tops: [], bottoms: [], shoes: [] },
+      isAccessories: isAccessories || false,
       status: 'Pending',
     });
     await item.save();
