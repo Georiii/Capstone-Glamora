@@ -14,6 +14,14 @@ interface MarketplaceItem {
   description: string;
   price: number;
   status?: 'Pending' | 'Approved' | 'Rejected';
+  color?: string;
+  gender?: string;
+  sizes?: {
+    tops: string[];
+    bottoms: string[];
+    shoes: string[];
+  };
+  isAccessories?: boolean;
 }
 
 export default function ManagePosts() {
@@ -31,6 +39,30 @@ export default function ManagePosts() {
   const [editLoading, setEditLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  // New fields for redesigned edit UI
+  const [editColor, setEditColor] = useState<string>('');
+  const [editGender, setEditGender] = useState<string>('');
+  const [editSizes, setEditSizes] = useState<{
+    tops: string[];
+    bottoms: string[];
+    shoes: string[];
+  }>({ tops: [], bottoms: [], shoes: [] });
+  const [editIsAccessories, setEditIsAccessories] = useState(false);
+  const [showEditSizeChart, setShowEditSizeChart] = useState(false);
+  const [currentEditSizeChart, setCurrentEditSizeChart] = useState<'tops' | 'bottoms-shorts' | 'shoes' | null>(null);
+  const [expandedSizeCategories, setExpandedSizeCategories] = useState<{
+    tops: boolean;
+    bottoms: boolean;
+    shoes: boolean;
+  }>({ tops: false, bottoms: false, shoes: false });
+  
+  const marketplaceColorOptions = ['BLACK', 'WHITE', 'BLUE', 'RED', 'GREEN', 'YELLOW', 'PINK', 'PURPLE', 'BROWN', 'GRAY', 'MAROON', 'KHAKI', 'ORANGE'];
+  const genderOptions = ['MAN', 'WOMAN', 'UNISEX'];
+  const sizeOptions = {
+    tops: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    bottoms: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    shoes: ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45']
+  };
 
   const loadUserPosts = useCallback(async () => {
     try {
@@ -168,10 +200,71 @@ export default function ManagePosts() {
     if (postToEdit) {
       setEditingPost(postToEdit);
       setEditName(postToEdit.name);
-      setEditDescription(postToEdit.description);
+      setEditDescription(postToEdit.description || '');
       setEditPrice(postToEdit.price.toString());
+      setEditColor(postToEdit.color || '');
+      setEditGender(postToEdit.gender || '');
+      const existingSizes = postToEdit.sizes || { tops: [], bottoms: [], shoes: [] };
+      setEditSizes(existingSizes);
+      setEditIsAccessories(postToEdit.isAccessories || false);
+      // Set expanded state based on whether sizes exist
+      setExpandedSizeCategories({
+        tops: existingSizes.tops.length > 0,
+        bottoms: existingSizes.bottoms.length > 0,
+        shoes: existingSizes.shoes.length > 0
+      });
       setShowEditModal(true);
     }
+  };
+
+  const handleEditColorSelect = (color: string): void => {
+    if (editColor === color) {
+      setEditColor('');
+    } else {
+      setEditColor(color);
+    }
+  };
+
+  const handleEditGenderSelect = (gender: string): void => {
+    if (editGender === gender) {
+      setEditGender('');
+    } else {
+      setEditGender(gender);
+    }
+  };
+
+  const handleEditSizeToggle = (category: 'tops' | 'bottoms' | 'shoes', size: string): void => {
+    setEditSizes(prev => {
+      const categorySizes = prev[category];
+      if (categorySizes.includes(size)) {
+        return {
+          ...prev,
+          [category]: categorySizes.filter(s => s !== size)
+        };
+      } else {
+        return {
+          ...prev,
+          [category]: [...categorySizes, size]
+        };
+      }
+    });
+  };
+
+  const handleEditSizeCategoryToggle = (category: 'tops' | 'bottoms' | 'shoes'): void => {
+    // Toggle expanded state (show/hide options)
+    setExpandedSizeCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+    
+    // If unchecking and sizes are selected, clear them
+    if (expandedSizeCategories[category] && editSizes[category].length > 0) {
+      setEditSizes(prev => ({
+        ...prev,
+        [category]: []
+      }));
+    }
+    // When checking, just show options (don't auto-select sizes)
   };
 
   const handleSaveEdit = async () => {
@@ -183,6 +276,21 @@ export default function ManagePosts() {
     const price = parseFloat(editPrice);
     if (isNaN(price) || price <= 0) {
       Alert.alert('Error', 'Please enter a valid price');
+      return;
+    }
+
+    // Validate new required fields
+    if (!editColor) {
+      Alert.alert('Error', 'Please select a product color');
+      return;
+    }
+    if (!editGender) {
+      Alert.alert('Error', 'Please select a gender');
+      return;
+    }
+    // Check if at least one size category is selected (unless it's accessories)
+    if (!editIsAccessories && editSizes.tops.length === 0 && editSizes.bottoms.length === 0 && editSizes.shoes.length === 0) {
+      Alert.alert('Error', 'Please select at least one size category or mark as accessories');
       return;
     }
 
@@ -203,7 +311,11 @@ export default function ManagePosts() {
         body: JSON.stringify({
           name: editName.trim(),
           description: editDescription.trim(),
-          price: price
+          price: price,
+          color: editColor,
+          gender: editGender,
+          sizes: editSizes,
+          isAccessories: editIsAccessories
         })
       });
 
@@ -211,7 +323,16 @@ export default function ManagePosts() {
         // Update the post in the local state
         setPosts(prev => prev.map(post => 
           post._id === editingPost._id 
-            ? { ...post, name: editName.trim(), description: editDescription.trim(), price }
+            ? { 
+                ...post, 
+                name: editName.trim(), 
+                description: editDescription.trim(), 
+                price,
+                color: editColor,
+                gender: editGender,
+                sizes: editSizes,
+                isAccessories: editIsAccessories
+              }
             : post
         ));
         
@@ -220,6 +341,10 @@ export default function ManagePosts() {
         setEditName('');
         setEditDescription('');
         setEditPrice('');
+        setEditColor('');
+        setEditGender('');
+        setEditSizes({ tops: [], bottoms: [], shoes: [] });
+        setEditIsAccessories(false);
         setSelectedPosts([]); // Clear selection after editing
         Alert.alert('Success', 'Post updated successfully');
       } else {
@@ -240,6 +365,13 @@ export default function ManagePosts() {
     setEditName('');
     setEditDescription('');
     setEditPrice('');
+    setEditColor('');
+    setEditGender('');
+    setEditSizes({ tops: [], bottoms: [], shoes: [] });
+    setEditIsAccessories(false);
+    setExpandedSizeCategories({ tops: false, bottoms: false, shoes: false });
+    setShowEditSizeChart(false);
+    setCurrentEditSizeChart(null);
   };
 
 
@@ -287,7 +419,7 @@ export default function ManagePosts() {
         {posts.map((post) => (
           <View key={post._id} style={[styles.postItem, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
             <TouchableOpacity 
-              style={styles.checkbox}
+              style={styles.postCheckbox}
               onPress={() => togglePostSelection(post._id)}
             >
               <Ionicons 
@@ -342,60 +474,366 @@ export default function ManagePosts() {
         <Text style={[styles.addMoreText, { color: theme.colors.primaryText }]}>Add more</Text>
       </TouchableOpacity>
 
-      {/* Edit Modal */}
+      {/* Edit Modal - Redesigned to match Posting Details */}
       <Modal
         visible={showEditModal}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={closeEditModal}
       >
-        <KeyboardAvoidingView style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[styles.editModalContent, { backgroundColor: theme.colors.containerBackground }]}>
-            <TouchableOpacity style={styles.closeButton} onPress={closeEditModal}>
-              <Ionicons name="close" size={24} color={theme.colors.icon} />
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
+          <KeyboardAvoidingView 
+            style={{ flex: 1 }} 
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <ScrollView 
+              style={styles.marketplaceModalScroll}
+              contentContainerStyle={styles.marketplaceModalScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
+              <View style={[styles.marketplaceModalContent, { backgroundColor: theme.colors.containerBackground }]}>
+                {/* Header */}
+                <View style={styles.postingDetailsHeader}>
+                  <TouchableOpacity onPress={closeEditModal}>
+                    <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
             </TouchableOpacity>
-            <Text style={[styles.editModalTitle, { color: theme.colors.primaryText }]}>Edit Post</Text>
+                  <Text style={[styles.postingDetailsTitle, { color: theme.colors.primaryText }]}>EDIT POST</Text>
+                  <View style={{ width: 24 }} />
+                </View>
             
+                {/* Name Field */}
+                <View style={styles.postingField}>
+                  <Text style={[styles.postingLabel, { color: theme.colors.primaryText }]}>
+                    Name<Text style={{ color: 'red' }}>*</Text>
+                  </Text>
             <TextInput
-              style={[styles.editInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-              placeholder="Name"
+                    style={[styles.postingInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
               value={editName}
               onChangeText={setEditName}
-              placeholderTextColor={theme.colors.placeholderText}
+                    placeholder="Enter item name"
+                    placeholderTextColor={theme.colors.secondaryText}
             />
+                </View>
             
+                {/* Description Field */}
+                <View style={styles.postingField}>
+                  <Text style={[styles.postingLabel, { color: theme.colors.primaryText }]}>
+                    Description<Text style={{ color: 'red' }}>*</Text>
+                  </Text>
             <TextInput
-              style={[styles.editTextarea, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-              placeholder="Description"
+                    style={[styles.postingTextarea, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
               value={editDescription}
               onChangeText={setEditDescription}
-              placeholderTextColor={theme.colors.placeholderText}
+                    placeholder="Enter description"
+                    placeholderTextColor={theme.colors.secondaryText}
               multiline
-              numberOfLines={3}
+                    numberOfLines={4}
             />
+                </View>
             
+                {/* Price Field */}
+                <View style={styles.postingField}>
+                  <Text style={[styles.postingLabel, { color: theme.colors.primaryText }]}>
+                    Price<Text style={{ color: 'red' }}>*</Text>
+                  </Text>
             <TextInput
-              style={[styles.editInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-              placeholder="Price"
+                    style={[styles.postingInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
               value={editPrice}
               onChangeText={setEditPrice}
-              placeholderTextColor={theme.colors.placeholderText}
+                    placeholder="Enter price"
+                    placeholderTextColor={theme.colors.secondaryText}
               keyboardType="numeric"
             />
-            
+                </View>
+
+                {/* PRODUCT COLOR Section */}
+                <View style={styles.postingSection}>
+                  <Text style={[styles.postingSectionTitle, { color: theme.colors.primaryText }]}>
+                    PRODUCT COLOR<Text style={{ color: 'red' }}>*</Text>
+                  </Text>
+                  <View style={styles.colorGrid}>
+                    {marketplaceColorOptions.map((color) => (
             <TouchableOpacity 
-              style={[styles.editSaveButton, { backgroundColor: theme.colors.buttonBackground }]} 
+                        key={color}
+                        style={[
+                          styles.colorButton,
+                          { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                          editColor === color && [styles.colorButtonSelected, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]
+                        ]}
+                        onPress={() => handleEditColorSelect(color)}
+                      >
+                        <Text style={[
+                          styles.colorButtonText,
+                          { color: theme.colors.secondaryText },
+                          editColor === color && { color: theme.colors.buttonText }
+                        ]}>
+                          {color}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* GENDER Section */}
+                <View style={styles.postingSection}>
+                  <Text style={[styles.postingSectionTitle, { color: theme.colors.primaryText }]}>
+                    GENDER<Text style={{ color: 'red' }}>*</Text>
+                  </Text>
+                  <View style={styles.genderContainer}>
+                    {genderOptions.map((gender) => (
+                      <TouchableOpacity
+                        key={gender}
+                        style={[
+                          styles.genderButton,
+                          { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                          editGender === gender && [styles.genderButtonSelected, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]
+                        ]}
+                        onPress={() => handleEditGenderSelect(gender)}
+                      >
+                        <Text style={[
+                          styles.genderButtonText,
+                          { color: theme.colors.secondaryText },
+                          editGender === gender && { color: theme.colors.buttonText }
+                        ]}>
+                          {gender}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* PRODUCT SIZE Section */}
+                <View style={styles.postingSection}>
+                  <Text style={[styles.postingSectionTitle, { color: theme.colors.primaryText }]}>
+                    PRODUCT SIZE<Text style={{ color: 'red' }}>*</Text>
+                  </Text>
+                  
+                  {/* TOP */}
+                  <View style={styles.sizeCategoryRow}>
+                    <View style={styles.sizeCategoryHeader}>
+                      <TouchableOpacity
+                        style={[styles.checkbox, { borderColor: theme.colors.border }]}
+                        onPress={() => handleEditSizeCategoryToggle('tops')}
+                      >
+                        {expandedSizeCategories.tops && (
+                          <Ionicons name="checkmark" size={16} color={theme.colors.accent} />
+                        )}
+                      </TouchableOpacity>
+                      <Text style={[styles.sizeCategoryLabel, { color: theme.colors.primaryText }]}>TOP</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setCurrentEditSizeChart('tops');
+                          setShowEditSizeChart(true);
+                        }}
+                        style={styles.sizeChartIcon}
+                      >
+                        <Ionicons name="help-circle-outline" size={20} color={theme.colors.accent} />
+                      </TouchableOpacity>
+                    </View>
+                    {expandedSizeCategories.tops && (
+                      <View style={styles.sizeOptionsContainer}>
+                        {sizeOptions.tops.map((size) => (
+                          <TouchableOpacity
+                            key={`tops-${size}`}
+                            style={[
+                              styles.sizeOptionButton,
+                              { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                              editSizes.tops.includes(size) && [styles.sizeOptionButtonSelected, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]
+                            ]}
+                            onPress={() => handleEditSizeToggle('tops', size)}
+                          >
+                            <Text style={[
+                              styles.sizeOptionText,
+                              { color: theme.colors.secondaryText },
+                              editSizes.tops.includes(size) && { color: theme.colors.buttonText }
+                            ]}>
+                              {size}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+
+                  {/* BOTTOM */}
+                  <View style={styles.sizeCategoryRow}>
+                    <View style={styles.sizeCategoryHeader}>
+                      <TouchableOpacity
+                        style={[styles.checkbox, { borderColor: theme.colors.border }]}
+                        onPress={() => handleEditSizeCategoryToggle('bottoms')}
+                      >
+                        {expandedSizeCategories.bottoms && (
+                          <Ionicons name="checkmark" size={16} color={theme.colors.accent} />
+                        )}
+                      </TouchableOpacity>
+                      <Text style={[styles.sizeCategoryLabel, { color: theme.colors.primaryText }]}>BOTTOM</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setCurrentEditSizeChart('bottoms-shorts');
+                          setShowEditSizeChart(true);
+                        }}
+                        style={styles.sizeChartIcon}
+                      >
+                        <Ionicons name="help-circle-outline" size={20} color={theme.colors.accent} />
+                      </TouchableOpacity>
+                    </View>
+                    {expandedSizeCategories.bottoms && (
+                      <View style={styles.sizeOptionsContainer}>
+                        {sizeOptions.bottoms.map((size) => (
+                          <TouchableOpacity
+                            key={`bottoms-${size}`}
+                            style={[
+                              styles.sizeOptionButton,
+                              { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                              editSizes.bottoms.includes(size) && [styles.sizeOptionButtonSelected, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]
+                            ]}
+                            onPress={() => handleEditSizeToggle('bottoms', size)}
+                          >
+                            <Text style={[
+                              styles.sizeOptionText,
+                              { color: theme.colors.secondaryText },
+                              editSizes.bottoms.includes(size) && { color: theme.colors.buttonText }
+                            ]}>
+                              {size}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+
+                  {/* SHOE */}
+                  <View style={styles.sizeCategoryRow}>
+                    <View style={styles.sizeCategoryHeader}>
+                      <TouchableOpacity
+                        style={[styles.checkbox, { borderColor: theme.colors.border }]}
+                        onPress={() => handleEditSizeCategoryToggle('shoes')}
+                      >
+                        {expandedSizeCategories.shoes && (
+                          <Ionicons name="checkmark" size={16} color={theme.colors.accent} />
+                        )}
+                      </TouchableOpacity>
+                      <Text style={[styles.sizeCategoryLabel, { color: theme.colors.primaryText }]}>SHOE</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setCurrentEditSizeChart('shoes');
+                          setShowEditSizeChart(true);
+                        }}
+                        style={styles.sizeChartIcon}
+                      >
+                        <Ionicons name="help-circle-outline" size={20} color={theme.colors.accent} />
+                      </TouchableOpacity>
+                    </View>
+                    {expandedSizeCategories.shoes && (
+                      <View style={styles.sizeOptionsContainer}>
+                        {sizeOptions.shoes.map((size) => (
+                          <TouchableOpacity
+                            key={`shoes-${size}`}
+                            style={[
+                              styles.sizeOptionButton,
+                              { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border },
+                              editSizes.shoes.includes(size) && [styles.sizeOptionButtonSelected, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]
+                            ]}
+                            onPress={() => handleEditSizeToggle('shoes', size)}
+                          >
+                            <Text style={[
+                              styles.sizeOptionText,
+                              { color: theme.colors.secondaryText },
+                              editSizes.shoes.includes(size) && { color: theme.colors.buttonText }
+                            ]}>
+                              {size}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                {/* ACCESSORIES */}
+                <View style={styles.postingSection}>
+                  <View style={styles.accessoriesRow}>
+                    <TouchableOpacity
+                      style={[styles.checkbox, { borderColor: theme.colors.border }]}
+                      onPress={() => setEditIsAccessories(!editIsAccessories)}
+                    >
+                      {editIsAccessories && (
+                        <Ionicons name="checkmark" size={16} color={theme.colors.accent} />
+                      )}
+                    </TouchableOpacity>
+                    <Text style={[styles.accessoriesLabel, { color: theme.colors.primaryText }]}>ACCESSORIES</Text>
+                  </View>
+                  <Text style={[styles.accessoriesNote, { color: theme.colors.secondaryText }]}>
+                    Accessories do not have a single, required standard size.
+                  </Text>
+                </View>
+
+                {/* Required Note */}
+                <Text style={[styles.requiredNote, { color: 'red' }]}>
+                  * required and must fulfill
+                </Text>
+
+                {/* SAVE Button */}
+                <TouchableOpacity 
+                  style={[styles.postButton, { backgroundColor: theme.colors.accent }]} 
               onPress={handleSaveEdit}
               disabled={editLoading}
             >
               {editLoading ? (
-                <Text style={[styles.editSaveButtonText, { color: theme.colors.buttonText }]}>Saving...</Text>
+                    <Text style={[styles.postButtonText, { color: theme.colors.buttonText }]}>SAVING...</Text>
               ) : (
-                <Text style={[styles.editSaveButtonText, { color: theme.colors.buttonText }]}>Save Changes</Text>
+                    <Text style={[styles.postButtonText, { color: theme.colors.buttonText }]}>SAVE CHANGES</Text>
               )}
             </TouchableOpacity>
           </View>
+            </ScrollView>
         </KeyboardAvoidingView>
+        </View>
+
+        {/* Size Chart Modal */}
+        <Modal visible={showEditSizeChart} transparent animationType="fade">
+          <View style={styles.chartModalOverlay}>
+            <View style={[styles.chartModalContent, { backgroundColor: theme.colors.containerBackground }]}>
+              <TouchableOpacity
+                style={styles.chartCloseButton}
+                onPress={() => {
+                  setShowEditSizeChart(false);
+                  setCurrentEditSizeChart(null);
+                }}
+              >
+                <Ionicons name="close" size={24} color={theme.colors.icon} />
+              </TouchableOpacity>
+              
+              {currentEditSizeChart === 'bottoms-shorts' ? (
+                <View style={styles.chartModalImageContainer}>
+                  <Image
+                    source={require('../assets/pants-chart.png')}
+                    style={styles.chartImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              ) : (
+                <View style={styles.chartModalImageContainer}>
+                  {currentEditSizeChart === 'tops' && (
+                    <Image
+                      source={require('../assets/tops-chart.png')}
+                      style={styles.chartImage}
+                      resizeMode="contain"
+                    />
+                  )}
+                  
+                  {currentEditSizeChart === 'shoes' && (
+                    <Image
+                      source={require('../assets/shoes-chart.png')}
+                      style={styles.chartImage}
+                      resizeMode="contain"
+                    />
+                  )}
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
       </Modal>
 
       {/* Delete Confirmation Modal */}
@@ -516,6 +954,16 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderRadius: 4,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  postCheckbox: {
     marginRight: 15,
   },
   postImage: {
@@ -587,7 +1035,7 @@ const styles = StyleSheet.create({
   },
   addMoreButton: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 80,
     right: 30,
     width: 60,
     height: 60,
@@ -758,5 +1206,243 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // New Edit Modal Styles (matching Posting Details)
+  // New Edit Modal Styles (matching Posting Details exactly)
+  marketplaceModalScroll: {
+    flex: 1,
+  },
+  marketplaceModalScrollContent: {
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+  },
+  marketplaceModalContent: {
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
+    marginHorizontal: Platform.OS === 'web' ? 0 : 10,
+  },
+  postingDetailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  postingDetailsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  postingField: {
+    marginBottom: 20,
+  },
+  postingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+    letterSpacing: 0.3,
+  },
+  postingInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 14,
+    fontSize: 16,
+    minHeight: 48,
+  },
+  postingTextarea: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 14,
+    fontSize: 16,
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  postingSection: {
+    marginBottom: 28,
+  },
+  postingSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 14,
+    letterSpacing: 0.5,
+  },
+  colorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+    marginTop: 4,
+  },
+  colorButton: {
+    borderRadius: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    margin: 4,
+    borderWidth: 1.5,
+    minWidth: 85,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  colorButtonSelected: {
+    borderWidth: 2,
+  },
+  colorButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  genderContainer: {
+    flexDirection: 'row',
+    marginHorizontal: -4,
+    marginTop: 4,
+    gap: 8,
+  },
+  genderButton: {
+    borderRadius: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    margin: 4,
+    borderWidth: 1.5,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  genderButtonSelected: {
+    borderWidth: 2,
+  },
+  genderButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  sizeCategoryRow: {
+    marginBottom: 18,
+  },
+  sizeCategoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sizeCategoryLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+    letterSpacing: 0.3,
+  },
+  sizeChartIcon: {
+    padding: 4,
+    marginLeft: 4,
+  },
+  sizeOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginLeft: 32,
+    marginTop: 10,
+    marginHorizontal: -4,
+  },
+  sizeOptionButton: {
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 18,
+    margin: 4,
+    borderWidth: 1.5,
+    minWidth: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sizeOptionButtonSelected: {
+    borderWidth: 2,
+  },
+  sizeOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  accessoriesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  accessoriesLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  accessoriesNote: {
+    fontSize: 13,
+    marginLeft: 32,
+    fontStyle: 'italic',
+    lineHeight: 18,
+  },
+  requiredNote: {
+    fontSize: 12,
+    marginBottom: 20,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  postButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    marginTop: 12,
+    width: '100%',
+  },
+  postButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 1.2,
+  },
+  // Chart Modal Styles
+  chartModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Platform.OS === 'web' ? 10 : 5,
+    paddingVertical: Platform.OS === 'web' ? 20 : 15,
+  },
+  chartModalContent: {
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '70%',
+    padding: 6,
+    paddingTop: Platform.OS === 'web' ? 36 : 34,
+    paddingBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    alignSelf: 'center',
+    overflow: 'hidden',
+  },
+  chartCloseButton: {
+    position: 'absolute',
+    top: Platform.OS === 'web' ? 6 : 8,
+    right: Platform.OS === 'web' ? 6 : 8,
+    zIndex: 10,
+    padding: Platform.OS === 'web' ? 6 : 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  chartModalImageContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  chartImage: {
+    width: '95%',
+    maxWidth: 380,
+    height: undefined,
+    alignSelf: 'center',
+    aspectRatio: undefined,
+    marginHorizontal: 'auto',
   },
 });

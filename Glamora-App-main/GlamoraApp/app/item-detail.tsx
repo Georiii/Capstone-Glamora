@@ -549,11 +549,6 @@ export default function ItemDetail() {
                         </Text>
                       </TouchableOpacity>
                     ))}
-                    <TouchableOpacity
-                      style={[styles.colorButton, styles.colorButtonAdd, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}
-                    >
-                      <Ionicons name="add" size={20} color={theme.colors.secondaryText} />
-                    </TouchableOpacity>
                   </View>
                 </View>
 

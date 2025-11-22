@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, usePathname } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
@@ -36,8 +37,18 @@ export default function Marketplace() {
   const fetchMarketplaceItems = useCallback(async () => {
     setLoading(true);
     try {
-      // 1) Public feed (Approved + legacy)
-      const response = await fetch(API_ENDPOINTS.marketplaceSearch(searchQuery));
+      // Get token for personalized filtering
+      const token = await AsyncStorage.getItem('token');
+      
+      // 1) Public feed (Approved + legacy) with optional personalized filtering
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(API_ENDPOINTS.marketplaceSearch(searchQuery), {
+        headers
+      });
       
       if (!response.ok) {
         let errorMessage = 'Failed to fetch marketplace items.';

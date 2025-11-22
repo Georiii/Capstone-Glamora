@@ -289,7 +289,7 @@ router.post('/marketplace', auth, async (req, res) => {
   }
 });
 
-// GET /api/marketplace - list all marketplace items (with optional search)
+// GET /api/marketplace - list all marketplace items (with optional search and personalized filtering)
 router.get('/marketplace', async (req, res) => {
   try {
     const search = req.query.search || '';
@@ -303,7 +303,104 @@ router.get('/marketplace', async (req, res) => {
     };
 
     const textFilter = search ? { name: { $regex: search, $options: 'i' } } : {};
-    const query = { ...baseStatusFilter, ...textFilter };
+    let query = { ...baseStatusFilter, ...textFilter };
+
+    // Check if user wants personalized recommendations
+    let user = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        if (token) {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          user = await User.findById(decoded.userId).select('stylePreferences profileSettings');
+        }
+      } catch (err) {
+        // Invalid token, continue without filtering
+      }
+    }
+
+    // Apply personalized filtering if toggle is ON
+    if (user && user.profileSettings && user.profileSettings.allowPersonalizedRecommendations) {
+      const userPrefs = user.stylePreferences || {};
+      const preferredColors = (userPrefs.preferredColors || []).map(c => c ? c.toUpperCase() : '');
+      const userGender = userPrefs.gender || '';
+      const userSizePrefs = userPrefs.sizePreferences || {};
+      
+      // Build OR conditions for matching
+      const matchConditions = [];
+      
+      // Color match
+      if (preferredColors.length > 0) {
+        matchConditions.push({ color: { $in: preferredColors } });
+      }
+      
+      // Gender match (item gender matches user gender OR item is UNISEX)
+      if (userGender) {
+        matchConditions.push({
+          $or: [
+            { gender: userGender.toUpperCase() },
+            { gender: 'UNISEX' }
+          ]
+        });
+      }
+      
+      // Size matches (check if item has sizes that match user preferences)
+      // User size preferences are single values (e.g., 'M'), item sizes are arrays
+      const sizeMatches = [];
+      if (userSizePrefs.tops) {
+        sizeMatches.push({
+          'sizes.tops': { $in: [userSizePrefs.tops] }
+        });
+      }
+      if (userSizePrefs.bottoms) {
+        sizeMatches.push({
+          'sizes.bottoms': { $in: [userSizePrefs.bottoms] }
+        });
+      }
+      if (userSizePrefs.shoes) {
+        sizeMatches.push({
+          'sizes.shoes': { $in: [userSizePrefs.shoes] }
+        });
+      }
+      
+      if (sizeMatches.length > 0) {
+        matchConditions.push({ $or: sizeMatches });
+      }
+      
+      // For accessories, only check color and gender (no size check)
+      const accessoryMatch = {
+        isAccessories: true,
+        $or: []
+      };
+      if (preferredColors.length > 0) {
+        accessoryMatch.$or.push({ color: { $in: preferredColors } });
+      }
+      if (userGender) {
+        accessoryMatch.$or.push({
+          $or: [
+            { gender: userGender.toUpperCase() },
+            { gender: 'UNISEX' }
+          ]
+        });
+      }
+      if (accessoryMatch.$or.length > 0) {
+        matchConditions.push(accessoryMatch);
+      }
+      
+      // Apply filter: show items that match at least one condition
+      if (matchConditions.length > 0) {
+        query.$and = [
+          ...(query.$and || []),
+          {
+            $or: matchConditions
+          }
+        ];
+      } else {
+        // If no preferences set, show nothing (or could show all - but user asked to hide if no matches)
+        query._id = { $exists: false }; // This will return no results
+      }
+    }
 
     const items = await MarketplaceItem.find(query)
       .sort({ createdAt: -1 })
@@ -322,6 +419,7 @@ router.get('/marketplace', async (req, res) => {
     
     res.json({ items: itemsWithUpdatedPictures });
   } catch (err) {
+    console.error('Error fetching marketplace items:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
