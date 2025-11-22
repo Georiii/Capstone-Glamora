@@ -5,6 +5,8 @@ import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Image,
+    Modal,
     ScrollView,
     StyleSheet,
     Switch,
@@ -32,6 +34,7 @@ interface BodyMeasurements {
 interface StylePreferences {
   preferredColors: string[];
   preferredStyles: string[];
+  genderPreference?: string;
   sizePreferences: {
     tops?: string;
     bottoms?: string;
@@ -63,15 +66,19 @@ export default function BodyMeasurements() {
       bottoms: 'regular'
     }
   });
-  const [showMeasurements, setShowMeasurements] = useState(false);
   const [allowRecommendations, setAllowRecommendations] = useState(true);
+  
+  // Chart popup states
+  const [showChartModal, setShowChartModal] = useState(false);
+  const [currentChart, setCurrentChart] = useState<'tops' | 'bottoms-shorts' | 'bottoms-pants' | 'shoes' | null>(null);
 
   // Style options
-  const colorOptions = ['Black', 'White', 'Blue', 'Red', 'Green', 'Yellow', 'Purple', 'Pink', 'Brown', 'Gray'];
+  const colorOptions = ['BLACK', 'WHITE', 'BLUE', 'RED', 'GREEN', 'YELLOW', 'PINK', 'PURPLE', 'BROWN', 'GRAY', 'MAROON', 'KHAKI', 'ORANGE'];
+  const genderOptions = ['MAN', 'WOMAN', 'UNISEX'];
   const styleOptions = ['Casual', 'Formal', 'Vintage', 'Minimalist', 'Bohemian', 'Sporty', 'Elegant', 'Streetwear'];
   const sizeOptions = {
-    tops: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    bottoms: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    tops: ['XS', 'XS', 'M', 'L', 'XL', 'XXL'],
+    bottoms: ['XS', 'XS', 'M', 'L', 'XL', 'XXL'],
     shoes: ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45']
   };
   const fitOptions = ['loose', 'regular', 'fitted'];
@@ -111,7 +118,6 @@ export default function BodyMeasurements() {
           setStylePreferences(data.user.stylePreferences);
         }
         if (data.user.profileSettings) {
-          setShowMeasurements(data.user.profileSettings.showMeasurements || false);
           setAllowRecommendations(data.user.profileSettings.allowPersonalizedRecommendations || true);
         }
       }
@@ -277,12 +283,12 @@ export default function BodyMeasurements() {
 
           {/* Basic Measurements */}
           <View style={styles.measurementRow}>
-            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Height ({measurements.measurementsUnit})</Text>
+            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Hieght (cm)</Text>
             <TextInput
               style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.height?.toString() || ''}
               onChangeText={(value) => updateMeasurement('height', value)}
-              placeholder="Enter height"
+              placeholder="Enter Hieght"
               placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
@@ -294,104 +300,20 @@ export default function BodyMeasurements() {
               style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
               value={measurements.weight?.toString() || ''}
               onChangeText={(value) => updateMeasurement('weight', value)}
-              placeholder="Enter weight"
+              placeholder="Enter Weight"
               placeholderTextColor={theme.colors.placeholderText}
               keyboardType="numeric"
             />
           </View>
 
-          {/* Body Measurements */}
-          <View style={styles.measurementRow}>
-            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Bust ({measurements.measurementsUnit})</Text>
-            <TextInput
-              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-              value={measurements.bust?.toString() || ''}
-              onChangeText={(value) => updateMeasurement('bust', value)}
-              placeholder="Enter bust"
-              placeholderTextColor={theme.colors.placeholderText}
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.measurementRow}>
-            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Waist ({measurements.measurementsUnit})</Text>
-            <TextInput
-              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-              value={measurements.waist?.toString() || ''}
-              onChangeText={(value) => updateMeasurement('waist', value)}
-              placeholder="Enter waist"
-              placeholderTextColor={theme.colors.placeholderText}
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.measurementRow}>
-            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Hips ({measurements.measurementsUnit})</Text>
-            <TextInput
-              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-              value={measurements.hips?.toString() || ''}
-              onChangeText={(value) => updateMeasurement('hips', value)}
-              placeholder="Enter hips"
-              placeholderTextColor={theme.colors.placeholderText}
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.measurementRow}>
-            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Inseam ({measurements.measurementsUnit})</Text>
-            <TextInput
-              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-              value={measurements.inseam?.toString() || ''}
-              onChangeText={(value) => updateMeasurement('inseam', value)}
-              placeholder="Enter inseam"
-              placeholderTextColor={theme.colors.placeholderText}
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.measurementRow}>
-            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Shoulder ({measurements.measurementsUnit})</Text>
-            <TextInput
-              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-              value={measurements.shoulder?.toString() || ''}
-              onChangeText={(value) => updateMeasurement('shoulder', value)}
-              placeholder="Enter shoulder"
-              placeholderTextColor={theme.colors.placeholderText}
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.measurementRow}>
-            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Arm Length ({measurements.measurementsUnit})</Text>
-            <TextInput
-              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-              value={measurements.armLength?.toString() || ''}
-              onChangeText={(value) => updateMeasurement('armLength', value)}
-              placeholder="Enter arm length"
-              placeholderTextColor={theme.colors.placeholderText}
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.measurementRow}>
-            <Text style={[styles.measurementLabel, { color: theme.colors.primaryText }]}>Shoe Size (EU)</Text>
-            <TextInput
-              style={[styles.measurementInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-              value={measurements.shoeSize?.toString() || ''}
-              onChangeText={(value) => updateMeasurement('shoeSize', value)}
-              placeholder="Enter shoe size"
-              placeholderTextColor={theme.colors.placeholderText}
-              keyboardType="numeric"
-            />
-          </View>
         </View>
 
-        {/* Style Preferences Section */}
+        {/* Preferences Section */}
         <View style={[styles.section, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Style Preferences</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Preferences</Text>
           
-          {/* Preferred Colors */}
-          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Preferred Colors</Text>
+          {/* Colors */}
+          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Colors</Text>
           <View style={styles.tagContainer}>
             {colorOptions.map((color) => (
               <TouchableOpacity
@@ -414,39 +336,50 @@ export default function BodyMeasurements() {
             ))}
           </View>
 
-          {/* Preferred Styles */}
-          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Preferred Styles</Text>
+          {/* Gender-Based */}
+          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Gender-Based</Text>
           <View style={styles.tagContainer}>
-            {styleOptions.map((style) => (
+            {genderOptions.map((gender) => (
               <TouchableOpacity
-                key={style}
+                key={gender}
                 style={[
                   styles.tag,
                   { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
-                  stylePreferences.preferredStyles.includes(style) && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
+                  stylePreferences.genderPreference === gender && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
                 ]}
-                onPress={() => toggleStyle(style)}
+                onPress={() => setStylePreferences(prev => ({ ...prev, genderPreference: prev.genderPreference === gender ? undefined : gender }))}
               >
                 <Text style={[
                   styles.tagText,
                   { color: theme.colors.primaryText },
-                  stylePreferences.preferredStyles.includes(style) && { color: theme.colors.buttonText }
+                  stylePreferences.genderPreference === gender && { color: theme.colors.buttonText }
                 ]}>
-                  {style}
+                  {gender}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          {/* Size Preferences */}
-          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Size Preferences</Text>
+          {/* Sizes */}
+          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Sizes</Text>
           
           <View style={styles.preferenceRow}>
-            <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>Tops:</Text>
+            <View style={styles.labelWithIcon}>
+              <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>TOPS</Text>
+              <TouchableOpacity 
+                style={styles.helpIcon}
+                onPress={() => {
+                  setCurrentChart('tops');
+                  setShowChartModal(true);
+                }}
+              >
+                <Ionicons name="help-circle" size={18} color="#FF0000" />
+              </TouchableOpacity>
+            </View>
             <View style={styles.sizeButtonContainer}>
-              {sizeOptions.tops.map((size) => (
+              {sizeOptions.tops.map((size, index) => (
                 <TouchableOpacity
-                  key={size}
+                  key={`${size}-${index}`}
                   style={[
                     styles.sizeButton,
                     { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
@@ -467,11 +400,22 @@ export default function BodyMeasurements() {
           </View>
 
           <View style={styles.preferenceRow}>
-            <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>Bottoms:</Text>
+            <View style={styles.labelWithIcon}>
+              <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>BOTTOM</Text>
+              <TouchableOpacity 
+                style={styles.helpIcon}
+                onPress={() => {
+                  setCurrentChart('bottoms-shorts');
+                  setShowChartModal(true);
+                }}
+              >
+                <Ionicons name="help-circle" size={18} color="#FF0000" />
+              </TouchableOpacity>
+            </View>
             <View style={styles.sizeButtonContainer}>
-              {sizeOptions.bottoms.map((size) => (
+              {sizeOptions.bottoms.map((size, index) => (
                 <TouchableOpacity
-                  key={size}
+                  key={`${size}-${index}`}
                   style={[
                     styles.sizeButton,
                     { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
@@ -492,7 +436,18 @@ export default function BodyMeasurements() {
           </View>
 
           <View style={styles.preferenceRow}>
-            <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>Shoes:</Text>
+            <View style={styles.labelWithIcon}>
+              <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>SHOE</Text>
+              <TouchableOpacity 
+                style={styles.helpIcon}
+                onPress={() => {
+                  setCurrentChart('shoes');
+                  setShowChartModal(true);
+                }}
+              >
+                <Ionicons name="help-circle" size={18} color="#FF0000" />
+              </TouchableOpacity>
+            </View>
             <View style={styles.sizeButtonContainer}>
               {sizeOptions.shoes.map((size) => (
                 <TouchableOpacity
@@ -516,74 +471,12 @@ export default function BodyMeasurements() {
             </View>
           </View>
 
-          {/* Fit Preferences */}
-          <Text style={[styles.subsectionTitle, { color: theme.colors.primaryText }]}>Fit Preferences</Text>
-          
-          <View style={styles.preferenceRow}>
-            <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>Tops:</Text>
-            <View style={styles.fitButtonContainer}>
-              {fitOptions.map((fit) => (
-                <TouchableOpacity
-                  key={fit}
-                  style={[
-                    styles.fitButton,
-                    { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
-                    stylePreferences.fitPreferences.tops === fit && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
-                  ]}
-                  onPress={() => updateFitPreference('tops', fit)}
-                >
-                  <Text style={[
-                    styles.fitButtonText,
-                    { color: theme.colors.primaryText },
-                    stylePreferences.fitPreferences.tops === fit && { color: theme.colors.buttonText }
-                  ]}>
-                    {fit.charAt(0).toUpperCase() + fit.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.preferenceRow}>
-            <Text style={[styles.preferenceLabel, { color: theme.colors.primaryText }]}>Bottoms:</Text>
-            <View style={styles.fitButtonContainer}>
-              {fitOptions.map((fit) => (
-                <TouchableOpacity
-                  key={fit}
-                  style={[
-                    styles.fitButton,
-                    { backgroundColor: theme.colors.buttonSecondary, borderColor: theme.colors.border },
-                    stylePreferences.fitPreferences.bottoms === fit && { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }
-                  ]}
-                  onPress={() => updateFitPreference('bottoms', fit)}
-                >
-                  <Text style={[
-                    styles.fitButtonText,
-                    { color: theme.colors.primaryText },
-                    stylePreferences.fitPreferences.bottoms === fit && { color: theme.colors.buttonText }
-                  ]}>
-                    {fit.charAt(0).toUpperCase() + fit.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
         </View>
 
         {/* Privacy Settings Section */}
         <View style={[styles.section, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>Privacy Settings</Text>
           
-          <View style={styles.settingRow}>
-            <Text style={[styles.settingLabel, { color: theme.colors.primaryText }]}>Show measurements to others</Text>
-            <Switch
-              value={showMeasurements}
-              onValueChange={setShowMeasurements}
-              trackColor={{ false: theme.colors.buttonSecondary, true: theme.colors.accent }}
-              thumbColor={theme.colors.buttonText}
-            />
-          </View>
-
           <View style={styles.settingRow}>
             <Text style={[styles.settingLabel, { color: theme.colors.primaryText }]}>Allow personalized recommendations</Text>
             <Switch
@@ -595,6 +488,76 @@ export default function BodyMeasurements() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Chart Modal */}
+      <Modal
+        visible={showChartModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowChartModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.containerBackground }]}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                setShowChartModal(false);
+                setCurrentChart(null);
+              }}
+            >
+              <Ionicons name="close" size={28} color={theme.colors.primaryText} />
+            </TouchableOpacity>
+            
+            {currentChart === 'tops' && (
+              <Image
+                source={require('../assets/tops-chart.png')}
+                style={styles.chartImage}
+                resizeMode="contain"
+              />
+            )}
+            
+            {currentChart === 'bottoms-shorts' && (
+              <>
+                <Image
+                  source={require('../assets/shorts-chart.png')}
+                  style={styles.chartImage}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={[styles.nextButton, { backgroundColor: theme.colors.accent }]}
+                  onPress={() => setCurrentChart('bottoms-pants')}
+                >
+                  <Text style={[styles.nextButtonText, { color: theme.colors.buttonText }]}>Next</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            
+            {currentChart === 'bottoms-pants' && (
+              <>
+                <Image
+                  source={require('../assets/pants-chart.png')}
+                  style={styles.chartImage}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={[styles.nextButton, { backgroundColor: theme.colors.accent }]}
+                  onPress={() => setCurrentChart('bottoms-shorts')}
+                >
+                  <Text style={[styles.nextButtonText, { color: theme.colors.buttonText }]}>Previous</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            
+            {currentChart === 'shoes' && (
+              <Image
+                source={require('../assets/shoes-chart.png')}
+                style={styles.chartImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -817,5 +780,58 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4B2E2B',
     flex: 1,
+  },
+  labelWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  helpIcon: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '90%',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 10,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  chartImage: {
+    width: '100%',
+    maxWidth: '100%',
+    height: undefined,
+    aspectRatio: 1,
+    marginTop: 30,
+  },
+  nextButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  nextButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 }); 

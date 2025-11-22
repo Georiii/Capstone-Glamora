@@ -161,12 +161,6 @@ export default function Profile() {
             </Text>
             <Text style={[styles.measurementLabel, { color: theme.colors.secondaryText }]}>Weight</Text>
           </View>
-          <View style={styles.measurementItem}>
-            <Text style={[styles.measurementValue, { color: theme.colors.primaryText }]}>
-              {measurements?.bust ? `${measurements.bust}${measurements.measurementsUnit || 'cm'}` : '--'}
-            </Text>
-            <Text style={[styles.measurementLabel, { color: theme.colors.secondaryText }]}>Bust</Text>
-          </View>
         </View>
       </View>
       {/* Quick Actions */}
