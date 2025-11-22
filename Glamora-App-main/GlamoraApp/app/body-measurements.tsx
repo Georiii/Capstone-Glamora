@@ -530,24 +530,13 @@ export default function BodyMeasurements() {
             </TouchableOpacity>
             
             {currentChart === 'bottoms-shorts' ? (
-              <ScrollView 
-                ref={scrollViewRef}
-                style={styles.modalScrollView}
-                contentContainerStyle={styles.modalScrollContent}
-                showsVerticalScrollIndicator={true}
-                bounces={Platform.OS === 'ios'}
-              >
+              <View style={styles.modalImageContainer}>
                 <Image
-                  source={require('../assets/shorts-chart.png')}
+                  source={require('../assets/pants-chart.png')}
                   style={styles.chartImage}
                   resizeMode="contain"
                 />
-                <Image
-                  source={require('../assets/pants-chart.png')}
-                  style={[styles.chartImage, styles.chartImageSecond]}
-                  resizeMode="contain"
-                />
-              </ScrollView>
+              </View>
             ) : (
               <View style={styles.modalImageContainer}>
                 {currentChart === 'tops' && (

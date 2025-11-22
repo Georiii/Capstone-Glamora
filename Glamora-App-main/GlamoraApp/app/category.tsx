@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter, usePathname } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { API_ENDPOINTS } from '../config/api';
@@ -382,7 +382,10 @@ export default function Category() {
           transparent={true}
           onRequestClose={() => setShowAddSubcategoryModal(false)}
         >
-          <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.modalOverlay}
+          >
             <View style={[styles.modalContent, { backgroundColor: theme.colors.containerBackground }]}>
               <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
                 <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>Create New Subcategory</Text>
@@ -397,7 +400,13 @@ export default function Category() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <ScrollView 
+                style={styles.modalBody} 
+                contentContainerStyle={styles.modalBodyContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+              >
                 <Text style={[styles.modalLabel, { color: theme.colors.primaryText }]}>Subcategory Name</Text>
                 <TextInput
                   style={[styles.modalInput, { backgroundColor: theme.colors.containerBackground, color: theme.colors.primaryText, borderColor: theme.colors.border }]}
@@ -436,7 +445,7 @@ export default function Category() {
                 </TouchableOpacity>
               </ScrollView>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
         {/* Bottom Navigation (reuse from wardrobe) */}
         <View style={[styles.navigation, { backgroundColor: theme.colors.headerBackground }]}>
@@ -769,10 +778,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: '100%',
     maxWidth: 400,
-    maxHeight: '80%',
+    maxHeight: '85%',
+    marginHorizontal: 16,
     padding: 20,
+    paddingBottom: 8,
     flexDirection: 'column',
-    minHeight: 300,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -790,7 +800,11 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     flex: 1,
-    minHeight: 200,
+  },
+  modalBodyContent: {
+    paddingBottom: 16,
+    paddingTop: 4,
+    flexGrow: 1,
   },
   modalLabel: {
     fontSize: 16,

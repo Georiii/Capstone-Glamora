@@ -476,14 +476,7 @@ export default function ItemDetail() {
                     <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
                   </TouchableOpacity>
                   <Text style={[styles.postingDetailsTitle, { color: theme.colors.primaryText }]}>POSTING DETAILS</Text>
-                  <View style={styles.postingDetailsHeaderRight}>
-                    <TouchableOpacity onPress={() => setShowMarketModal(false)}>
-                      <Ionicons name="close" size={24} color={theme.colors.icon} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={{ marginLeft: 12 }}>
-                      <Ionicons name="trash-outline" size={24} color={theme.colors.icon} />
-                    </TouchableOpacity>
-                  </View>
+                  <View style={{ width: 24 }} />
                 </View>
 
                 {/* Name Field */}
@@ -797,23 +790,13 @@ export default function ItemDetail() {
               </TouchableOpacity>
               
               {currentSizeChart === 'bottoms-shorts' ? (
-                <ScrollView 
-                  style={styles.chartModalScrollView}
-                  contentContainerStyle={styles.chartModalScrollContent}
-                  showsVerticalScrollIndicator={true}
-                  bounces={Platform.OS === 'ios'}
-                >
+                <View style={styles.chartModalImageContainer}>
                   <Image
-                    source={require('../assets/shorts-chart.png')}
+                    source={require('../assets/pants-chart.png')}
                     style={styles.chartImage}
                     resizeMode="contain"
                   />
-                  <Image
-                    source={require('../assets/pants-chart.png')}
-                    style={[styles.chartImage, styles.chartImageSecond]}
-                    resizeMode="contain"
-                  />
-                </ScrollView>
+                </View>
               ) : (
                 <View style={styles.chartModalImageContainer}>
                   {currentSizeChart === 'tops' && (
@@ -983,6 +966,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 500,
     alignSelf: 'center',
+    marginHorizontal: Platform.OS === 'web' ? 0 : 10,
   },
   postingDetailsHeader: {
     flexDirection: 'row',
