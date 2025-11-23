@@ -11,12 +11,17 @@ import UserProvider, { useUser } from "./contexts/UserContext";
 import { AdProvider } from "./contexts/AdContext";
 import { API_ENDPOINTS } from "../config/api";
 
+// Configure notifications to always show in system notification bar (device notification tray)
+// This ensures notifications appear in the device's notification bar, not just in-app
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (notification) => {
+    // Return configuration that shows notification in system tray
+    return {
+      shouldShowAlert: true,      // Show alert in system notification bar
+      shouldPlaySound: true,      // Play sound
+      shouldSetBadge: true,       // Update app badge
+    };
+  },
 });
 
 const PushRegistrationManager = () => {
@@ -44,7 +49,21 @@ const PushRegistrationManager = () => {
         }
 
         if (status !== 'granted') {
+          console.warn('⚠️ Notification permission not granted');
           return;
+        }
+
+        // Configure Android notification channel for system notification bar
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'Default',
+            importance: Notifications.AndroidImportance.MAX, // Highest priority - shows in system notification bar
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF231F7C',
+            sound: 'default',
+            enableVibrate: true,
+            showBadge: true,
+          });
         }
 
         let projectId: string | undefined;
@@ -82,7 +101,7 @@ const PushRegistrationManager = () => {
 
         registeredInfoRef.current = { token: expoToken, userId };
 
-        await fetch(API_ENDPOINTS.notifications.register, {
+        const registerResponse = await fetch(API_ENDPOINTS.notifications.register, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -94,13 +113,10 @@ const PushRegistrationManager = () => {
           }),
         });
 
-        if (Platform.OS === 'android') {
-          await Notifications.setNotificationChannelAsync('default', {
-            name: 'Default',
-            importance: Notifications.AndroidImportance.MAX,
-            vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#FF231F7C',
-          });
+        if (!registerResponse.ok) {
+          console.warn('⚠️ Failed to register push token with backend');
+        } else {
+          console.log('✅ Push token registered successfully');
         }
       } catch (error) {
         console.warn('Push registration failed', error);
@@ -108,6 +124,23 @@ const PushRegistrationManager = () => {
     };
 
     register();
+
+    // Set up notification listeners to ensure notifications appear in system notification bar
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      // Notification received - it will automatically appear in system notification bar
+      // due to the handler configuration (shouldShowAlert: true)
+      console.log('📬 Notification received:', notification.request.content.title);
+    });
+
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      // User tapped on notification from system notification bar
+      console.log('👆 Notification tapped:', response.notification.request.content.title);
+    });
+
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
   }, [user]);
 
   return null;

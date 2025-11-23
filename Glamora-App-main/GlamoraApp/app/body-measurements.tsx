@@ -17,16 +17,18 @@ import {
     View,
     useWindowDimensions,
 } from 'react-native';
+import { Asset } from 'expo-asset';
 import { API_ENDPOINTS } from '../config/api';
 import { useTheme } from './contexts/ThemeContext';
+import { useUser } from './contexts/UserContext';
 
-const TOPS_CHART_SOURCE = Image.resolveAssetSource(require('../assets/tops-chart.png'));
-const BOTTOMS_CHART_SOURCE = Image.resolveAssetSource(require('../assets/pants-chart.png'));
-const SHOES_CHART_SOURCE = Image.resolveAssetSource(require('../assets/shoes-chart.png'));
+const TOPS_CHART_ASSET = Asset.fromModule(require('../assets/tops-chart.png'));
+const BOTTOMS_CHART_ASSET = Asset.fromModule(require('../assets/pants-chart.png'));
+const SHOES_CHART_ASSET = Asset.fromModule(require('../assets/shoes-chart.png'));
 
-const TOPS_CHART_RATIO = TOPS_CHART_SOURCE.width / TOPS_CHART_SOURCE.height;
-const BOTTOMS_CHART_RATIO = BOTTOMS_CHART_SOURCE.width / BOTTOMS_CHART_SOURCE.height;
-const SHOES_CHART_RATIO = SHOES_CHART_SOURCE.width / SHOES_CHART_SOURCE.height;
+const TOPS_CHART_RATIO = (TOPS_CHART_ASSET.width || 1) / (TOPS_CHART_ASSET.height || 1);
+const BOTTOMS_CHART_RATIO = (BOTTOMS_CHART_ASSET.width || 1) / (BOTTOMS_CHART_ASSET.height || 1);
+const SHOES_CHART_RATIO = (SHOES_CHART_ASSET.width || 1) / (SHOES_CHART_ASSET.height || 1);
 
 interface BodyMeasurements {
   height?: number;
@@ -59,6 +61,7 @@ interface StylePreferences {
 export default function BodyMeasurements() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { updateUser } = useUser();
   const windowDimensions = useWindowDimensions();
   const screenWidth = windowDimensions?.width || 375;
   const screenHeight = windowDimensions?.height || 667;
@@ -117,6 +120,12 @@ export default function BodyMeasurements() {
       if (userStr) {
         const user = JSON.parse(userStr);
         setCurrentUser(user);
+        if (
+          user.profileSettings &&
+          typeof user.profileSettings.allowPersonalizedRecommendations === 'boolean'
+        ) {
+          setAllowRecommendations(user.profileSettings.allowPersonalizedRecommendations);
+        }
         
         // Load existing profile data
         if (user.email) {
@@ -187,6 +196,14 @@ export default function BodyMeasurements() {
         const updatedUser = { ...currentUser, ...data.user };
         await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
         setCurrentUser(updatedUser);
+        updateUser({
+          bodyMeasurements: data.user.bodyMeasurements,
+          stylePreferences: data.user.stylePreferences,
+          profileSettings: {
+            ...(data.user.profileSettings || {}),
+            allowPersonalizedRecommendations: allowRecommendations,
+          },
+        });
         
         Alert.alert('Success', 'Body measurements and style preferences saved successfully!');
         router.back();
@@ -827,9 +844,9 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     maxHeight: '80%',
     minHeight: '50%',
-    padding: 10,
+    padding: 12,
     paddingTop: Platform.OS === 'web' ? 34 : 30,
-    paddingBottom: 10,
+    paddingBottom: 12,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -838,21 +855,21 @@ const styles = StyleSheet.create({
   },
   chartModalScrollView: {
     width: '100%',
-    flex: 1,
+    flexGrow: 1,
+    minHeight: 320,
   },
   chartModalScrollContent: {
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 10,
-    paddingBottom: 10,
+    justifyContent: 'center',
+    paddingTop: 16,
+    paddingBottom: 16,
     paddingHorizontal: 0,
   },
   modalImageContainer: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 0,
-    paddingBottom: 0,
+    minHeight: 280,
   },
   closeButton: {
     position: 'absolute',
@@ -865,8 +882,10 @@ const styles = StyleSheet.create({
   },
   chartImage: {
     width: '95%',
-    maxWidth: 380,
+    maxWidth: 420,
+    minWidth: 250,
     alignSelf: 'center',
+    flexShrink: 0,
   },
   chartImageSecond: {
     marginTop: Platform.OS === 'web' ? 8 : 10,

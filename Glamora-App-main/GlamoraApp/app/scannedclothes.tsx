@@ -4,16 +4,17 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import * as FileSystem from 'expo-file-system';
+import { Asset } from 'expo-asset';
 import { API_ENDPOINTS } from '../config/api';
 import { useTheme } from './contexts/ThemeContext';
 
-const TOPS_CHART_SOURCE = Image.resolveAssetSource(require('../assets/tops-chart.png'));
-const BOTTOMS_CHART_SOURCE = Image.resolveAssetSource(require('../assets/pants-chart.png'));
-const SHOES_CHART_SOURCE = Image.resolveAssetSource(require('../assets/shoes-chart.png'));
+const TOPS_CHART_ASSET = Asset.fromModule(require('../assets/tops-chart.png'));
+const BOTTOMS_CHART_ASSET = Asset.fromModule(require('../assets/pants-chart.png'));
+const SHOES_CHART_ASSET = Asset.fromModule(require('../assets/shoes-chart.png'));
 
-const TOPS_CHART_RATIO = TOPS_CHART_SOURCE.width / TOPS_CHART_SOURCE.height;
-const BOTTOMS_CHART_RATIO = BOTTOMS_CHART_SOURCE.width / BOTTOMS_CHART_SOURCE.height;
-const SHOES_CHART_RATIO = SHOES_CHART_SOURCE.width / SHOES_CHART_SOURCE.height;
+const TOPS_CHART_RATIO = (TOPS_CHART_ASSET.width || 1) / (TOPS_CHART_ASSET.height || 1);
+const BOTTOMS_CHART_RATIO = (BOTTOMS_CHART_ASSET.width || 1) / (BOTTOMS_CHART_ASSET.height || 1);
+const SHOES_CHART_RATIO = (SHOES_CHART_ASSET.width || 1) / (SHOES_CHART_ASSET.height || 1);
 
 const isLocalUri = (uri?: string | null): uri is string => {
   if (!uri) {
@@ -1740,11 +1741,12 @@ const styles = StyleSheet.create({
   chartModalContent: {
     borderRadius: 20,
     width: '90%',
-    maxWidth: 400,
-    maxHeight: '70%',
-    padding: 6,
-    paddingTop: Platform.OS === 'web' ? 36 : 34,
-    paddingBottom: 6,
+    maxWidth: 420,
+    minHeight: '50%',
+    maxHeight: '85%',
+    padding: 12,
+    paddingTop: Platform.OS === 'web' ? 34 : 30,
+    paddingBottom: 12,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -1762,27 +1764,29 @@ const styles = StyleSheet.create({
   },
   chartModalScrollView: {
     width: '100%',
-    flex: 1,
+    flexGrow: 1,
+    minHeight: 320,
   },
   chartModalScrollContent: {
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 10,
-    paddingBottom: 10,
+    justifyContent: 'center',
+    paddingTop: 16,
+    paddingBottom: 16,
     paddingHorizontal: 0,
   },
   chartModalImageContainer: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 0,
-    paddingBottom: 0,
+    minHeight: 280,
   },
   chartImage: {
     width: '95%',
-    maxWidth: 380,
+    maxWidth: 420,
+    minWidth: 250,
     alignSelf: 'center',
     marginHorizontal: 'auto',
+    flexShrink: 0,
   },
   chartImageSecond: {
     marginTop: Platform.OS === 'web' ? 8 : 10,

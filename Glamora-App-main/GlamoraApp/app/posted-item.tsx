@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from './contexts/ThemeContext';
 
 export default function PostedItem() {
@@ -44,95 +44,101 @@ export default function PostedItem() {
         <Text style={[styles.title, { color: theme.colors.headerText }]}>MARKETPLACE</Text>
         <View style={{ width: 28 }} />
       </View>
-      {/* Image */}
-      <Image source={{ uri: imageSrc }} style={[styles.image, { borderColor: theme.colors.border }]} />
-      {/* Details */}
-      <Text style={[styles.clothName, { color: theme.colors.primaryText }]}>{name}</Text>
-      <Text style={[styles.description, { color: theme.colors.secondaryText }]}>{description}</Text>
-      <View style={styles.priceRow}>
-        <Text style={[styles.priceLabel, { color: theme.colors.primaryText }]}>Price</Text>
-        <Text style={[styles.priceValue, { color: theme.colors.primaryText }]}>₱{price}</Text>
-      </View>
+      <ScrollView
+        style={styles.contentScroll}
+        contentContainerStyle={styles.contentScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Image */}
+        <Image source={{ uri: imageSrc }} style={[styles.image, { borderColor: theme.colors.border }]} />
+        {/* Details */}
+        <Text style={[styles.clothName, { color: theme.colors.primaryText }]}>{name}</Text>
+        <Text style={[styles.description, { color: theme.colors.secondaryText }]}>{description}</Text>
+        <View style={styles.priceRow}>
+          <Text style={[styles.priceLabel, { color: theme.colors.primaryText }]}>Price</Text>
+          <Text style={[styles.priceValue, { color: theme.colors.primaryText }]}>₱{price}</Text>
+        </View>
 
-      {/* Tags / Metadata */}
-      <View style={styles.tagSection}>
-        <Text style={[styles.tagSectionLabel, { color: theme.colors.primaryText }]}>Details</Text>
+        {/* Tags / Metadata */}
+        <View style={styles.tagSection}>
+          <Text style={[styles.tagSectionLabel, { color: theme.colors.primaryText }]}>Details</Text>
 
-        {color && (
-          <View style={styles.tagRow}>
-            <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Color: </Text>
-            <View style={styles.tagPill}>
-              <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{String(color)}</Text>
+          {color && (
+            <View style={styles.tagRow}>
+              <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Color: </Text>
+              <View style={styles.tagPill}>
+                <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{String(color)}</Text>
+              </View>
             </View>
-          </View>
-        )}
+          )}
 
-        {gender && (
+          {gender && (
+            <View style={styles.tagRow}>
+              <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Gender: </Text>
+              <View style={styles.tagPill}>
+                <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>
+                  {String(gender).toUpperCase()}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {category && (
+            <View style={styles.tagRow}>
+              <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Category: </Text>
+              <View style={styles.tagPill}>
+                <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{String(category)}</Text>
+              </View>
+            </View>
+          )}
+
           <View style={styles.tagRow}>
-            <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Gender: </Text>
+            <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Sizes: </Text>
             <View style={styles.tagPill}>
               <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>
-                {String(gender).toUpperCase()}
+                {String(isAccessories) === 'true'
+                  ? 'N/A (Accessories)'
+                  : parsedSizes
+                  ? [
+                      parsedSizes.tops && `Tops: ${Array.isArray(parsedSizes.tops) ? parsedSizes.tops.join(', ') : parsedSizes.tops}`,
+                      parsedSizes.bottoms && `Bottoms: ${Array.isArray(parsedSizes.bottoms) ? parsedSizes.bottoms.join(', ') : parsedSizes.bottoms}`,
+                      parsedSizes.shoes && `Shoes: ${Array.isArray(parsedSizes.shoes) ? parsedSizes.shoes.join(', ') : parsedSizes.shoes}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' • ')
+                  : 'Not specified'}
               </Text>
             </View>
           </View>
-        )}
-
-        {category && (
-          <View style={styles.tagRow}>
-            <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Category: </Text>
-            <View style={styles.tagPill}>
-              <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{String(category)}</Text>
-            </View>
-          </View>
-        )}
-
-        <View style={styles.tagRow}>
-          <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Sizes: </Text>
-          <View style={styles.tagPill}>
-            <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>
-              {String(isAccessories) === 'true'
-                ? 'N/A (Accessories)'
-                : parsedSizes
-                ? [
-                    parsedSizes.tops && `Tops: ${Array.isArray(parsedSizes.tops) ? parsedSizes.tops.join(', ') : parsedSizes.tops}`,
-                    parsedSizes.bottoms && `Bottoms: ${Array.isArray(parsedSizes.bottoms) ? parsedSizes.bottoms.join(', ') : parsedSizes.bottoms}`,
-                    parsedSizes.shoes && `Shoes: ${Array.isArray(parsedSizes.shoes) ? parsedSizes.shoes.join(', ') : parsedSizes.shoes}`,
-                  ]
-                    .filter(Boolean)
-                    .join(' • ')
-                : 'Not specified'}
+        </View>
+        {/* User Info */}
+        <View style={styles.userInfoContainer}>
+          <Image 
+            source={sellerProfilePic ? { uri: sellerProfilePic } : defaultAvatar} 
+            style={styles.userAvatar} 
+          />
+          <View style={styles.sellerTextContainer}>
+            <Text style={[styles.userName, { color: theme.colors.primaryText }]} numberOfLines={2}>
+              {userName || 'Name'}
+            </Text>
+            <Text style={[styles.userEmail, { color: theme.colors.secondaryText }]} numberOfLines={2}>
+              {userEmail || 'Email'}
             </Text>
           </View>
         </View>
-      </View>
-      {/* User Info */}
-      <View style={styles.userInfoContainer}>
-        <Image 
-          source={sellerProfilePic ? { uri: sellerProfilePic } : defaultAvatar} 
-          style={styles.userAvatar} 
-        />
-        <View style={styles.sellerTextContainer}>
-          <Text style={[styles.userName, { color: theme.colors.primaryText }]} numberOfLines={2}>
-            {userName || 'Name'}
-          </Text>
-          <Text style={[styles.userEmail, { color: theme.colors.secondaryText }]} numberOfLines={2}>
-            {userEmail || 'Email'}
-          </Text>
-        </View>
-      </View>
-      <TouchableOpacity style={[styles.messageButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={() => router.push({
-        pathname: '/message-user',
-        params: {
-          sellerId: userName,
-          sellerEmail: userEmail,
-          sellerProfilePicture: sellerProfilePic || defaultAvatar,
-          productName: name,
-          productImage: imageSrc
-        }
-      })}>
-        <Text style={[styles.messageButtonText, { color: theme.colors.buttonText }]}>Message User</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={[styles.messageButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={() => router.push({
+          pathname: '/message-user',
+          params: {
+            sellerId: userName,
+            sellerEmail: userEmail,
+            sellerProfilePicture: sellerProfilePic || defaultAvatar,
+            productName: name,
+            productImage: imageSrc
+          }
+        })}>
+          <Text style={[styles.messageButtonText, { color: theme.colors.buttonText }]}>Message User</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
@@ -160,11 +166,21 @@ const styles = StyleSheet.create({
   userName: { fontWeight: 'bold', fontSize: 15, color: '#222', flexWrap: 'wrap' },
   userEmail: { fontSize: 13, color: '#444', flexWrap: 'wrap' },
   messageButton: {
-    backgroundColor: '#FFE0B2', borderRadius: 20, paddingVertical: 14, paddingHorizontal: 28,
-    position: 'absolute', right: 20, bottom: 20, elevation: 4, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
+    backgroundColor: '#FFE0B2',
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    alignSelf: 'center',
+    marginTop: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   messageButtonText: { color: '#222', fontWeight: 'bold', fontSize: 16 },
+  contentScroll: { flex: 1 },
+  contentScrollContent: { paddingBottom: 40 },
   tagSection: { marginTop: 8, marginBottom: 16 },
   tagSectionLabel: { fontWeight: 'bold', fontSize: 16, marginBottom: 8, color: '#222' },
   tagRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' },

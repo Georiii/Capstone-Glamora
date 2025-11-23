@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInpu
 import { API_ENDPOINTS } from '../config/api';
 import { useSocket } from './contexts/SocketContext';
 import { useTheme } from './contexts/ThemeContext';
+import { useUser } from './contexts/UserContext';
 
 interface MarketplaceItem {
   _id: string;
@@ -25,6 +26,7 @@ export default function Marketplace() {
   const pathname = usePathname();
   const { theme } = useTheme();
   const { socket } = useSocket();
+  const { user } = useUser();
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,6 +36,8 @@ export default function Marketplace() {
   const cardWidth = Math.max(150, (screenWidth - contentPadding - columnGap) / 2);
   const imageWidth = cardWidth - 20;
 
+  const personalizedEnabled = user?.profileSettings?.allowPersonalizedRecommendations !== false;
+
   const fetchMarketplaceItems = useCallback(async () => {
     setLoading(true);
     try {
@@ -42,7 +46,7 @@ export default function Marketplace() {
       
       // 1) Public feed (Approved + legacy) with optional personalized filtering
       const headers: HeadersInit = {};
-      if (token) {
+      if (token && personalizedEnabled) {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
@@ -83,7 +87,7 @@ export default function Marketplace() {
         Alert.alert('Error', error.message || 'Failed to fetch marketplace items');
       }
     }
-  }, [searchQuery]);
+  }, [searchQuery, personalizedEnabled]);
 
   useEffect(() => {
     fetchMarketplaceItems();

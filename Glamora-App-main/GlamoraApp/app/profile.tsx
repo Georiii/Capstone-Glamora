@@ -1,7 +1,7 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, usePathname } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useUser } from './contexts/UserContext';
@@ -36,23 +36,32 @@ export default function Profile() {
   const [email, setEmail] = useState('Email');
   const [measurements, setMeasurements] = useState<any>(null);
   const [recentOutfits, setRecentOutfits] = useState<Outfit[]>([]);
+  const measurementsLoadedRef = useRef(false);
   // Get profile image from user context or use default
   const profileImage = user?.profilePicture?.url || require('../assets/avatar.png');
 
   useEffect(() => {
-    // Update local state from user context
-    if (user) {
-      setName(user.name || 'Name');
-      setEmail(user.email || 'Email');
-      setMeasurements(user.bodyMeasurements || null);
-      
-      // Load user profile with measurements if not in context
-      if (user.email && !user.bodyMeasurements) {
-        loadUserProfile(user.email);
-      }
-      
-      loadRecentOutfits();
+    if (!user) {
+      return;
     }
+
+    setName(user.name || 'Name');
+    setEmail(user.email || 'Email');
+
+    const userMeasurements = user.bodyMeasurements;
+
+    if (userMeasurements) {
+      const currentSerialized = measurements ? JSON.stringify(measurements) : null;
+      const nextSerialized = JSON.stringify(userMeasurements);
+      if (currentSerialized !== nextSerialized) {
+        setMeasurements(userMeasurements);
+        measurementsLoadedRef.current = true;
+      }
+    } else if (!measurementsLoadedRef.current && user.email) {
+      loadUserProfile(user.email);
+    }
+
+    loadRecentOutfits();
   }, [user]);
 
   const loadUserProfile = async (userEmail: string) => {
@@ -62,6 +71,7 @@ export default function Profile() {
         const data = await response.json();
         if (data.user.bodyMeasurements) {
           setMeasurements(data.user.bodyMeasurements);
+          measurementsLoadedRef.current = true;
         }
       }
     } catch (error) {

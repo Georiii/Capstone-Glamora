@@ -938,17 +938,19 @@ export default function MessageUser() {
         </View>
       </View>
 
-      {/* Product Info */}
-      <View style={styles.productSection}>
-        <View style={[styles.productCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }]}>
-          <Image source={{ uri: (contextProductImage as string) || defaultProductImage }} style={styles.productImage} />
-          <View style={styles.productInfo}>
-            <Text style={[styles.productName, { color: theme.colors.primaryText }]} numberOfLines={2}>
-              {contextProductName || 'Conversation'}
-            </Text>
+      {/* Product Info - hidden for admin announcements */}
+      {!isAdminConversation && (
+        <View style={styles.productSection}>
+          <View style={[styles.productCard, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }]}>
+            <Image source={{ uri: (contextProductImage as string) || defaultProductImage }} style={styles.productImage} />
+            <View style={styles.productInfo}>
+              <Text style={[styles.productName, { color: theme.colors.primaryText }]} numberOfLines={2}>
+                {contextProductName || 'Conversation'}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
       {/* Chat Messages */}
       <ScrollView 

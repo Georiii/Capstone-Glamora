@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing } from 'react-native';
+import { Alert, ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing, ScrollView } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useTheme } from './contexts/ThemeContext';
 
@@ -392,6 +392,11 @@ export default function Security() {
       </View>
 
       {/* Security Options */}
+      <ScrollView
+        style={styles.securityScroll}
+        contentContainerStyle={styles.securityScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.securityContainer}>
         {/* Username Section */}
         <View style={[styles.section, { backgroundColor: theme.colors.containerBackground, borderColor: theme.colors.border }]}>
@@ -666,6 +671,7 @@ export default function Security() {
           )}
         </View>
       </View>
+      </ScrollView>
 
       {/* Success Modal */}
       {showSuccessModal && (
@@ -715,6 +721,12 @@ const styles = StyleSheet.create({
   securityContainer: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  securityScroll: {
+    flex: 1,
+  },
+  securityScrollContent: {
+    paddingBottom: 40,
   },
   section: {
     paddingVertical: 20,

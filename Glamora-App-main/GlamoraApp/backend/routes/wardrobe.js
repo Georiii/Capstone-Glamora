@@ -323,9 +323,17 @@ router.get('/marketplace', async (req, res) => {
     // Apply personalized filtering if toggle is ON
     if (user && user.profileSettings && user.profileSettings.allowPersonalizedRecommendations) {
       const userPrefs = user.stylePreferences || {};
-      const preferredColors = (userPrefs.preferredColors || []).map(c => c ? c.toUpperCase() : '');
+      const preferredColors = (userPrefs.preferredColors || [])
+        .map(c => (c || '').toUpperCase())
+        .filter(Boolean);
       const userGender = userPrefs.gender || '';
       const userSizePrefs = userPrefs.sizePreferences || {};
+      const hasSizePrefs = Boolean(userSizePrefs.tops || userSizePrefs.bottoms || userSizePrefs.shoes);
+
+      // If no meaningful preference is set, skip filtering so old items remain visible
+      if (!preferredColors.length && !userGender && !hasSizePrefs) {
+        // do nothing – fall back to base query
+      } else {
       
       // Build OR conditions for matching
       const matchConditions = [];
@@ -388,14 +396,15 @@ router.get('/marketplace', async (req, res) => {
         matchConditions.push(accessoryMatch);
       }
       
-      // Apply filter: show items that match at least one condition
-      if (matchConditions.length > 0) {
-        query.$and = [
-          ...(query.$and || []),
-          {
-            $or: matchConditions
-          }
-        ];
+        // Apply filter: show items that match at least one condition
+        if (matchConditions.length > 0) {
+          query.$and = [
+            ...(query.$and || []),
+            {
+              $or: matchConditions
+            }
+          ];
+        }
       }
     }
 

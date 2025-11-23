@@ -176,7 +176,7 @@ router.get('/user/:email', async (req, res) => {
 // Update user body measurements and style preferences
 router.put('/profile/measurements', async (req, res) => {
   try {
-    const { email, bodyMeasurements, stylePreferences } = req.body;
+    const { email, bodyMeasurements, stylePreferences, profileSettings } = req.body;
     
     if (!email) {
       return res.status(400).json({ message: 'Email is required.' });
@@ -187,6 +187,11 @@ router.put('/profile/measurements', async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
     
+    // Ensure profileSettings exists so we can safely mutate measurement metadata or merge new settings
+    if (!user.profileSettings) {
+      user.profileSettings = {};
+    }
+
     // Update body measurements if provided
     if (bodyMeasurements) {
       user.bodyMeasurements = { ...user.bodyMeasurements, ...bodyMeasurements };
@@ -196,6 +201,14 @@ router.put('/profile/measurements', async (req, res) => {
     // Update style preferences if provided
     if (stylePreferences) {
       user.stylePreferences = { ...user.stylePreferences, ...stylePreferences };
+    }
+
+    // Update profile settings if provided (e.g., allowPersonalizedRecommendations toggle)
+    if (profileSettings) {
+      user.profileSettings = {
+        ...user.profileSettings,
+        ...profileSettings,
+      };
     }
     
     await user.save();
