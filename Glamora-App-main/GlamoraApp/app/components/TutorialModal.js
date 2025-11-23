@@ -66,19 +66,7 @@ export default function TutorialModal({ visible, onClose }) {
       return;
     }
 
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: true,
-    }).start(() => {
-      setCurrentIndex(newIndex);
-      fadeAnim.setValue(0);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    });
+    setCurrentIndex(newIndex);
   };
 
   const handleClose = () => {

@@ -151,6 +151,11 @@ export default function Marketplace() {
                       userName: item.userName,
                       userEmail: item.userEmail,
                       userProfilePicture: item.userProfilePicture || '', // Pass seller's profile picture
+                      color: item.color,
+                      gender: item.gender,
+                      category: item.category,
+                      sizes: JSON.stringify(item.sizes || {}),
+                      isAccessories: item.isAccessories ? 'true' : 'false',
                     }
                   })}
                 >

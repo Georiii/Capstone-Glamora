@@ -7,10 +7,32 @@ import { useTheme } from './contexts/ThemeContext';
 export default function PostedItem() {
   const { theme } = useTheme();
   const params = useLocalSearchParams();
-  const { imageUrl, name, description, price, userName, userEmail, userProfilePicture } = params;
+  const {
+    imageUrl,
+    name,
+    description,
+    price,
+    userName,
+    userEmail,
+    userProfilePicture,
+    color,
+    gender,
+    category,
+    sizes,
+    isAccessories,
+  } = params;
   const imageSrc = Array.isArray(imageUrl) ? imageUrl[0] : imageUrl;
   const sellerProfilePic = Array.isArray(userProfilePicture) ? userProfilePicture[0] : userProfilePicture;
   const defaultAvatar = require('../assets/avatar.png');
+
+  let parsedSizes: any = null;
+  if (sizes) {
+    try {
+      parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes as string) : sizes;
+    } catch {
+      parsedSizes = null;
+    }
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
@@ -30,6 +52,59 @@ export default function PostedItem() {
       <View style={styles.priceRow}>
         <Text style={[styles.priceLabel, { color: theme.colors.primaryText }]}>Price</Text>
         <Text style={[styles.priceValue, { color: theme.colors.primaryText }]}>₱{price}</Text>
+      </View>
+
+      {/* Tags / Metadata */}
+      <View style={styles.tagSection}>
+        <Text style={[styles.tagSectionLabel, { color: theme.colors.primaryText }]}>Details</Text>
+
+        {color && (
+          <View style={styles.tagRow}>
+            <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Color: </Text>
+            <View style={styles.tagPill}>
+              <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{String(color)}</Text>
+            </View>
+          </View>
+        )}
+
+        {gender && (
+          <View style={styles.tagRow}>
+            <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Gender: </Text>
+            <View style={styles.tagPill}>
+              <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>
+                {String(gender).toUpperCase()}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {category && (
+          <View style={styles.tagRow}>
+            <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Category: </Text>
+            <View style={styles.tagPill}>
+              <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>{String(category)}</Text>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.tagRow}>
+          <Text style={[styles.tagLabel, { color: theme.colors.primaryText }]}>Sizes: </Text>
+          <View style={styles.tagPill}>
+            <Text style={[styles.tagText, { color: theme.colors.primaryText }]}>
+              {String(isAccessories) === 'true'
+                ? 'N/A (Accessories)'
+                : parsedSizes
+                ? [
+                    parsedSizes.tops && `Tops: ${Array.isArray(parsedSizes.tops) ? parsedSizes.tops.join(', ') : parsedSizes.tops}`,
+                    parsedSizes.bottoms && `Bottoms: ${Array.isArray(parsedSizes.bottoms) ? parsedSizes.bottoms.join(', ') : parsedSizes.bottoms}`,
+                    parsedSizes.shoes && `Shoes: ${Array.isArray(parsedSizes.shoes) ? parsedSizes.shoes.join(', ') : parsedSizes.shoes}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' • ')
+                : 'Not specified'}
+            </Text>
+          </View>
+        </View>
       </View>
       {/* User Info */}
       <View style={styles.userInfoContainer}>
@@ -90,4 +165,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
   },
   messageButtonText: { color: '#222', fontWeight: 'bold', fontSize: 16 },
+  tagSection: { marginTop: 8, marginBottom: 16 },
+  tagSectionLabel: { fontWeight: 'bold', fontSize: 16, marginBottom: 8, color: '#222' },
+  tagRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' },
+  tagLabel: { fontWeight: 'bold', fontSize: 14, marginRight: 4, color: '#222' },
+  tagPill: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#222',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 2,
+  },
+  tagText: { fontSize: 14, color: '#222' },
 }); 

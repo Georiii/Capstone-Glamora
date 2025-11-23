@@ -180,6 +180,8 @@ export default function MessageUser() {
   const [contextProductId, setContextProductId] = useState<string | null>(normalizedProductId || null);
   const defaultProductImage = 'https://via.placeholder.com/120?text=Item';
 
+  const isAdminConversation = !!otherUser && otherUser.role === 'admin';
+
   const loadCurrentUser = async () => {
     try {
       const userData = await AsyncStorage.getItem('user');
@@ -507,6 +509,9 @@ export default function MessageUser() {
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
+    if (isAdminConversation) {
+      return;
+    }
 
     console.log('📝 Sending message:', newMessage.trim());
     const messageText = newMessage.trim();
@@ -922,9 +927,11 @@ export default function MessageUser() {
         </View>
         
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => setShowReportModal(true)} style={styles.actionButton}>
-            <Ionicons name="warning-outline" size={24} color="#FF3B30" />
-          </TouchableOpacity>
+          {!isAdminConversation && (
+            <TouchableOpacity onPress={() => setShowReportModal(true)} style={styles.actionButton}>
+              <Ionicons name="warning-outline" size={24} color="#FF3B30" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.actionButton} onPress={() => setShowDeleteModal(true)}>
             <Ionicons name="trash-outline" size={24} color="#FF3B30" />
           </TouchableOpacity>
@@ -985,23 +992,33 @@ export default function MessageUser() {
 
       {/* Message Input */}
       <View style={[styles.inputContainer, { backgroundColor: theme.colors.headerBackground }]}>
-        <View style={[styles.inputWrapper, { backgroundColor: theme.colors.containerBackground }]}>
-          <TextInput
-            style={[styles.textInput, { color: theme.colors.primaryText }]}
-            placeholder="Write a message."
-            placeholderTextColor={theme.colors.secondaryText}
-            value={newMessage}
-            onChangeText={handleTextChange}
-            multiline={true}
-            textAlignVertical="center"
-            returnKeyType="send"
-            onSubmitEditing={sendMessage}
-            blurOnSubmit={false}
-          />
-        </View>
-        <TouchableOpacity style={[styles.sendButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={sendMessage}>
-          <Ionicons name="send" size={20} color={theme.colors.buttonText} />
-        </TouchableOpacity>
+        {isAdminConversation ? (
+          <View style={[styles.adminNoticeContainer, { backgroundColor: theme.colors.containerBackground }]}>
+            <Text style={[styles.adminNoticeText, { color: theme.colors.secondaryText }]}>
+              You can view announcements from Admin here. Replies are disabled.
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={[styles.inputWrapper, { backgroundColor: theme.colors.containerBackground }]}>
+              <TextInput
+                style={[styles.textInput, { color: theme.colors.primaryText }]}
+                placeholder="Write a message."
+                placeholderTextColor={theme.colors.secondaryText}
+                value={newMessage}
+                onChangeText={handleTextChange}
+                multiline={true}
+                textAlignVertical="center"
+                returnKeyType="send"
+                onSubmitEditing={sendMessage}
+                blurOnSubmit={false}
+              />
+            </View>
+            <TouchableOpacity style={[styles.sendButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={sendMessage}>
+              <Ionicons name="send" size={20} color={theme.colors.buttonText} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {/* Report Modal */}
@@ -1287,6 +1304,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E0E0E0',
     minHeight: 68,
+  },
+  adminNoticeContainer: {
+    flex: 1,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  adminNoticeText: {
+    fontSize: 13,
+    textAlign: 'center',
   },
   inputWrapper: {
     flex: 1,

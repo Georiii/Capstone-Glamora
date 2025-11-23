@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Platform } from "react-native";
+import * as Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
@@ -46,7 +47,23 @@ const PushRegistrationManager = () => {
           return;
         }
 
-        const expoToken = (await Notifications.getExpoPushTokenAsync()).data;
+        let projectId: string | undefined;
+        try {
+          // Try to infer projectId from expo config
+          // @ts-ignore
+          projectId =
+            (Constants?.default as any)?.expoConfig?.extra?.eas?.projectId ||
+            // @ts-ignore
+            (Constants?.default as any)?.easConfig?.projectId ||
+            // @ts-ignore
+            (Constants?.default as any)?.manifest?.extra?.eas?.projectId;
+        } catch {
+          projectId = undefined;
+        }
+
+        const expoToken = projectId
+          ? (await Notifications.getExpoPushTokenAsync({ projectId })).data
+          : (await Notifications.getExpoPushTokenAsync()).data;
         const userId = user?._id;
         if (!userId) {
           return;

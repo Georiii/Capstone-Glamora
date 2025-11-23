@@ -20,6 +20,14 @@ import {
 import { API_ENDPOINTS } from '../config/api';
 import { useTheme } from './contexts/ThemeContext';
 
+const TOPS_CHART_SOURCE = Image.resolveAssetSource(require('../assets/tops-chart.png'));
+const BOTTOMS_CHART_SOURCE = Image.resolveAssetSource(require('../assets/pants-chart.png'));
+const SHOES_CHART_SOURCE = Image.resolveAssetSource(require('../assets/shoes-chart.png'));
+
+const TOPS_CHART_RATIO = TOPS_CHART_SOURCE.width / TOPS_CHART_SOURCE.height;
+const BOTTOMS_CHART_RATIO = BOTTOMS_CHART_SOURCE.width / BOTTOMS_CHART_SOURCE.height;
+const SHOES_CHART_RATIO = SHOES_CHART_SOURCE.width / SHOES_CHART_SOURCE.height;
+
 interface BodyMeasurements {
   height?: number;
   weight?: number;
@@ -134,7 +142,11 @@ export default function BodyMeasurements() {
           setStylePreferences(data.user.stylePreferences);
         }
         if (data.user.profileSettings) {
-          setAllowRecommendations(data.user.profileSettings.allowPersonalizedRecommendations || true);
+          setAllowRecommendations(
+            typeof data.user.profileSettings.allowPersonalizedRecommendations === 'boolean'
+              ? data.user.profileSettings.allowPersonalizedRecommendations
+              : true
+          );
         }
       }
     } catch (error) {
@@ -162,6 +174,9 @@ export default function BodyMeasurements() {
           email: currentUser.email,
           bodyMeasurements: measurements,
           stylePreferences: stylePreferences,
+          profileSettings: {
+            allowPersonalizedRecommendations: allowRecommendations,
+          },
         }),
       });
 
@@ -505,7 +520,7 @@ export default function BodyMeasurements() {
         </View>
       </ScrollView>
 
-      {/* Chart Modal */}
+        {/* Chart Modal */}
       <Modal
         visible={showChartModal}
         transparent={true}
@@ -529,33 +544,40 @@ export default function BodyMeasurements() {
               <Ionicons name="close" size={Platform.OS === 'web' ? 24 : 28} color={theme.colors.primaryText} />
             </TouchableOpacity>
             
-            {currentChart === 'bottoms-shorts' ? (
-              <View style={styles.modalImageContainer}>
-                <Image
-                  source={require('../assets/pants-chart.png')}
-                  style={styles.chartImage}
-                  resizeMode="contain"
-                />
-              </View>
-            ) : (
-              <View style={styles.modalImageContainer}>
-                {currentChart === 'tops' && (
+            <ScrollView
+              style={styles.chartModalScrollView}
+              contentContainerStyle={styles.chartModalScrollContent}
+              maximumZoomScale={1.5}
+              minimumZoomScale={1}
+            >
+              {currentChart === 'bottoms-shorts' ? (
+                <View style={styles.chartModalImageContainer}>
                   <Image
-                    source={require('../assets/tops-chart.png')}
-                    style={styles.chartImage}
+                    source={require('../assets/pants-chart.png')}
+                    style={[styles.chartImage, { aspectRatio: BOTTOMS_CHART_RATIO }]}
                     resizeMode="contain"
                   />
-                )}
-                
-                {currentChart === 'shoes' && (
-                  <Image
-                    source={require('../assets/shoes-chart.png')}
-                    style={styles.chartImage}
-                    resizeMode="contain"
-                  />
-                )}
-              </View>
-            )}
+                </View>
+              ) : (
+                <View style={styles.chartModalImageContainer}>
+                  {currentChart === 'tops' && (
+                    <Image
+                      source={require('../assets/tops-chart.png')}
+                      style={[styles.chartImage, { aspectRatio: TOPS_CHART_RATIO }]}
+                      resizeMode="contain"
+                    />
+                  )}
+                  
+                  {currentChart === 'shoes' && (
+                    <Image
+                      source={require('../assets/shoes-chart.png')}
+                      style={[styles.chartImage, { aspectRatio: SHOES_CHART_RATIO }]}
+                      resizeMode="contain"
+                    />
+                  )}
+                </View>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -802,16 +824,28 @@ const styles = StyleSheet.create({
   modalContent: {
     borderRadius: 20,
     width: '90%',
-    maxWidth: 400,
-    maxHeight: '70%',
-    padding: 6,
-    paddingTop: Platform.OS === 'web' ? 36 : 34,
-    paddingBottom: 6,
+    maxWidth: 420,
+    maxHeight: '80%',
+    minHeight: '50%',
+    padding: 10,
+    paddingTop: Platform.OS === 'web' ? 34 : 30,
+    paddingBottom: 10,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
     alignSelf: 'center',
     overflow: 'hidden',
+  },
+  chartModalScrollView: {
+    width: '100%',
+    flex: 1,
+  },
+  chartModalScrollContent: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingHorizontal: 0,
   },
   modalImageContainer: {
     width: '100%',
@@ -819,17 +853,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: 0,
     paddingBottom: 0,
-  },
-  modalScrollView: {
-    width: '100%',
-    flex: 1,
-  },
-  modalScrollContent: {
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 0,
-    paddingBottom: 0,
-    paddingHorizontal: 0,
   },
   closeButton: {
     position: 'absolute',
@@ -844,10 +867,8 @@ const styles = StyleSheet.create({
     width: '95%',
     maxWidth: 380,
     alignSelf: 'center',
-    marginVertical: 0,
   },
   chartImageSecond: {
     marginTop: Platform.OS === 'web' ? 8 : 10,
-    marginBottom: 0,
   },
 }); 
