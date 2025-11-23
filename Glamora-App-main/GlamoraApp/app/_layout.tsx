@@ -20,6 +20,8 @@ Notifications.setNotificationHandler({
       shouldShowAlert: true,      // Show alert in system notification bar
       shouldPlaySound: true,      // Play sound
       shouldSetBadge: true,       // Update app badge
+      shouldShowBanner: true,     // Show banner on Android
+      shouldShowList: true,       // Show in notification list on Android
     };
   },
 });
@@ -80,9 +82,20 @@ const PushRegistrationManager = () => {
           projectId = undefined;
         }
 
-        const expoToken = projectId
-          ? (await Notifications.getExpoPushTokenAsync({ projectId })).data
-          : (await Notifications.getExpoPushTokenAsync()).data;
+        let expoToken: string;
+        try {
+          expoToken = projectId
+            ? (await Notifications.getExpoPushTokenAsync({ projectId })).data
+            : (await Notifications.getExpoPushTokenAsync()).data;
+        } catch (tokenError: any) {
+          // Handle Firebase/FCM configuration errors
+          if (tokenError?.code === 'E_REGISTRATION_FAILED' || tokenError?.message?.includes('FirebaseApp')) {
+            console.warn('⚠️ Push notifications require Firebase/FCM configuration. Please configure FCM credentials in Expo dashboard: https://docs.expo.dev/push-notifications/fcm-credentials/');
+            return;
+          }
+          throw tokenError;
+        }
+
         const userId = user?._id;
         if (!userId) {
           return;
