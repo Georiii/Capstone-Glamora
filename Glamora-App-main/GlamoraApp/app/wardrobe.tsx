@@ -1,14 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from './contexts/ThemeContext';
+import TutorialModal from './components/TutorialModal';
+import { getHasSeenTutorial, setHasSeenTutorial } from './utils/storage';
 
 export default function Wardrobe() {
   const { theme } = useTheme();
   const pathname = usePathname();
-  const isWardrobeRoute = pathname === '/wardrobe' || pathname.startsWith('/category') || 
-    pathname === '/bottoms-category' || pathname === '/shoes-category' || pathname === '/accessories-category';
+  const isWardrobeRoute =
+    pathname === '/wardrobe' ||
+    pathname.startsWith('/category') ||
+    pathname === '/bottoms-category' ||
+    pathname === '/shoes-category' ||
+    pathname === '/accessories-category';
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
   const categories = [
     { name: 'Tops', icon: require('../assets/tops-icon.png'), route: '/category' as const, defaultType: 'T-shirt', subcategories: [
       { name: 'T-shirt', type: 'T-shirt' },
@@ -45,6 +52,39 @@ export default function Wardrobe() {
   const handleCategoryPress = (category: typeof categories[0]) => {
     router.push({ pathname: category.route }); // No type param, show subcategory grid
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkTutorial = async () => {
+      try {
+        const seen = await getHasSeenTutorial();
+        if (!seen && isMounted) {
+          setShowTutorialModal(true);
+        }
+      } catch (err) {
+        console.warn('Unable to read tutorial preference:', err);
+      }
+    };
+    checkTutorial();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleTutorialClose = useCallback(
+    async (dontShowAgain: boolean) => {
+      try {
+        if (dontShowAgain) {
+          await setHasSeenTutorial(true);
+        }
+      } catch (err) {
+        console.warn('Unable to persist tutorial preference:', err);
+      } finally {
+        setShowTutorialModal(false);
+      }
+    },
+    []
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bodyBackground }]}>
@@ -101,6 +141,8 @@ export default function Wardrobe() {
           <Text style={[styles.navText, { color: theme.colors.secondaryText }]}>Profile</Text>
         </TouchableOpacity>
       </View>
+
+      {showTutorialModal && <TutorialModal visible={showTutorialModal} onClose={handleTutorialClose} />}
     </View>
   );
 }
