@@ -1,11 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
+interface SubscriptionInfo {
+  isSubscribed?: boolean;
+  subscriptionType?: string;
+  subscribedAt?: string;
+  expiresAt?: string;
+}
+
 interface User {
   _id: string;
   name: string;
   email: string;
   role: string;
+  isSubscribed?: boolean;
   profilePicture?: {
     url: string;
     publicId?: string;
@@ -14,6 +22,7 @@ interface User {
   bodyMeasurements?: any;
   stylePreferences?: any;
   profileSettings?: any;
+  subscription?: SubscriptionInfo;
   createdAt?: string;
   updatedAt?: string;
 }
