@@ -45,6 +45,7 @@ export const API_ENDPOINTS = {
   resendEmailChangePin: `${API_BASE_URL}/api/auth/resend-email-change-pin`,
   confirmEmailChange: (token: string) => `${API_BASE_URL}/api/auth/confirm-email-change?token=${token}`,
   changePassword: `${API_BASE_URL}/api/auth/change-password`,
+  submitRatingFeedback: `${API_BASE_URL}/api/auth/feedback/ratings`,
   
   // Profile & Measurements
   baseUrl: API_BASE_URL,

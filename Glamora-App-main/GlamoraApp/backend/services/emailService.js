@@ -301,7 +301,83 @@ async function sendEmailChangePin(toEmail, pin, userName = 'User', newEmail) {
   }
 }
 
+/**
+ * Send rating/feedback email to admin
+ * @param {Object} payload
+ * @param {number} payload.stars - 1..5
+ * @param {string} [payload.feedback] - Optional feedback text
+ * @param {string} [payload.userEmail] - Optional user email
+ * @param {string} [payload.userId] - Optional user id
+ * @param {string} [payload.platform] - 'ios' | 'android' | 'web'
+ * @param {string} [payload.appVersion] - Optional app version
+ * @param {string} [payload.deviceModel] - Optional device model
+ * @param {string} [payload.sentTo] - Destination email (admin)
+ */
+async function sendRatingFeedbackEmail({
+  stars,
+  feedback = '',
+  userEmail = '',
+  userId = '',
+  platform = '',
+  appVersion = '',
+  deviceModel = '',
+  sentTo = 'glamoraapp.customer.service@gmail.com'
+}) {
+  const rating = Math.max(1, Math.min(5, Number(stars) || 1));
+  const starSymbols = '★★★★★'.slice(0, rating).padEnd(5, '☆');
+  const priorityPrefix = rating <= 2 ? '⚠️' : rating === 3 ? 'ℹ️' : '✅';
+  const subject = `${priorityPrefix} Glamora - New ${rating}-Star Rating (${starSymbols})`;
+
+  const sendSmtpEmail = new brevo.SendSmtpEmail();
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.to = [{ email: sentTo, name: 'Glamora Admin' }];
+  sendSmtpEmail.sender = {
+    name: 'Glamora Feedback',
+    email: 'aanciafo@gmail.com'
+  };
+
+  const submittedAt = new Date().toISOString();
+  const safeFeedback = feedback && feedback.trim().length > 0 ? feedback.trim() : '(No comment provided)';
+
+  sendSmtpEmail.htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
+        <h2 style="margin-top:0;">New Rating Submitted</h2>
+        <p><strong>Stars:</strong> ${starSymbols} (${rating}/5)</p>
+        <p><strong>Comment:</strong><br/>${safeFeedback.replace(/\n/g, '<br/>')}</p>
+        <hr/>
+        <p><strong>User Email:</strong> ${userEmail || '(unknown)'}<br/>
+           <strong>User ID:</strong> ${userId || '(unknown)'}<br/>
+           <strong>Platform:</strong> ${platform || '(unknown)'}<br/>
+           <strong>App Version:</strong> ${appVersion || '(unknown)'}<br/>
+           <strong>Device Model:</strong> ${deviceModel || '(unknown)'}<br/>
+           <strong>Submitted At:</strong> ${submittedAt}</p>
+      </body>
+    </html>
+  `;
+
+  sendSmtpEmail.textContent = `
+New Rating Submitted
+
+Stars: ${rating}/5
+Comment:
+${safeFeedback}
+
+User Email: ${userEmail || '(unknown)'}
+User ID: ${userId || '(unknown)'}
+Platform: ${platform || '(unknown)'}
+App Version: ${appVersion || '(unknown)'}
+Device Model: ${deviceModel || '(unknown)'}
+Submitted At: ${submittedAt}
+  `;
+
+  const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+  return { success: true, messageId: data.messageId };
+}
+
 module.exports = {
   sendPasswordResetEmail,
-  sendEmailChangePin
+  sendEmailChangePin,
+  sendRatingFeedbackEmail
 };

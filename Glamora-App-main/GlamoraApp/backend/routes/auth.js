@@ -6,13 +6,17 @@ const path = require('path');
 const fs = require('fs');
 const { JWT_SECRET } = require('../config/database');
 const User = require('../models/User');
-const { sendPasswordResetEmail, sendEmailChangePin } = require('../services/emailService');
+const { sendPasswordResetEmail, sendEmailChangePin, sendRatingFeedbackEmail } = require('../services/emailService');
 const cloudinary = require('../config/cloudinary');
 
 // In-memory storage for email change PINs (userId -> { pin, newEmail, expiresAt, lastSentAt })
 const emailChangePins = new Map();
 const PIN_EXPIRY = 10 * 60 * 1000; // 10 minutes
 const RESEND_COOLDOWN = 60 * 1000; // 60 seconds
+
+// In-memory daily rate limiting for ratings: userId -> { date: 'YYYY-MM-DD', count: number }
+const ratingDailyLimits = new Map();
+const RATINGS_PER_DAY_LIMIT = 1;
 
 // Configure multer for file uploads - use memory storage for profile pictures to avoid file system issues
 const memoryStorage = multer.memoryStorage();
@@ -723,6 +727,58 @@ router.post('/resend-email-change-pin', auth, async (req, res) => {
   } catch (err) {
     console.error('Error resending email change PIN:', err);
     res.status(500).json({ message: 'Failed to resend verification code.', error: err.message });
+  }
+});
+
+// POST /api/auth/feedback/ratings - Submit rating and feedback (rate-limited per day)
+router.post('/feedback/ratings', auth, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { stars, feedback, platform, appVersion, deviceModel } = req.body || {};
+
+    const ratingNum = Number(stars);
+    if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
+      return res.status(400).json({ message: 'Stars must be an integer between 1 and 5.' });
+    }
+
+    // Enforce per-user daily rate limit
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dateKey = today.toISOString().slice(0, 10); // YYYY-MM-DD
+
+    const entry = ratingDailyLimits.get(userId) || { date: dateKey, count: 0 };
+    if (entry.date !== dateKey) {
+      entry.date = dateKey;
+      entry.count = 0;
+    }
+    if (entry.count >= RATINGS_PER_DAY_LIMIT) {
+      return res.status(429).json({ message: 'You can submit only one rating per day. Please try again tomorrow.' });
+    }
+
+    // Look up user for email context (optional)
+    const user = await User.findById(userId).select('email name');
+    const userEmail = user?.email || '';
+
+    // Send email to admin
+    await sendRatingFeedbackEmail({
+      stars: ratingNum,
+      feedback: typeof feedback === 'string' ? feedback : '',
+      userEmail,
+      userId: userId?.toString?.() || '',
+      platform: typeof platform === 'string' ? platform : '',
+      appVersion: typeof appVersion === 'string' ? appVersion : '',
+      deviceModel: typeof deviceModel === 'string' ? deviceModel : '',
+      sentTo: 'glamoraapp.customer.service@gmail.com'
+    });
+
+    // Update rate limit usage
+    entry.count += 1;
+    ratingDailyLimits.set(userId, entry);
+
+    return res.status(200).json({ message: 'Thank you for your feedback!' });
+  } catch (err) {
+    console.error('Error submitting rating:', err);
+    return res.status(500).json({ message: 'Failed to submit rating. Please try again later.' });
   }
 });
 

@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 import RateUsModal from './components/RateUsModal';
 import { useSocket } from './contexts/SocketContext';
 import { useTheme } from './contexts/ThemeContext';
+import { API_ENDPOINTS } from '../config/api';
 
 export default function Settings() {
   const router = useRouter();
@@ -48,14 +49,53 @@ export default function Settings() {
     setShowRateUsModal(true);
   };
 
-  const handleRateUsSubmit = (rating: number, feedback: string) => {
-    // Here you can implement the logic to save the rating and feedback
-    console.log('Rating:', rating, 'Feedback:', feedback);
-    Alert.alert(
-      'Thank You!',
-      `Thank you for your ${rating}-star rating! Your feedback helps us improve.`,
-      [{ text: 'OK' }]
-    );
+  const handleRateUsSubmit = async (rating: number, feedback: string) => {
+    try {
+      const stars = Math.max(1, Math.min(5, Math.floor(Number(rating) || 1)));
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Authentication Required', 'Please log in to submit a rating.');
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.submitRatingFeedback, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          stars,
+          feedback: feedback || '',
+          platform: Platform.OS
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          Alert.alert('Rate Limit', data?.message || 'Only one rating per day is allowed. Please try again tomorrow.');
+        } else {
+          Alert.alert('Error', data?.message || 'Failed to submit rating. Please try again.');
+        }
+        return;
+      }
+
+      Alert.alert(
+        'Thank You!',
+        `Thank you for your ${stars}-star rating! Your feedback helps us improve.`,
+        [{ text: 'OK' }]
+      );
+      setShowRateUsModal(false);
+    } catch (err: any) {
+      Alert.alert(
+        'Error',
+        err?.message?.includes('Network request failed')
+          ? 'Unable to connect to server. Please check your internet connection.'
+          : 'Failed to submit rating. Please try again.'
+      );
+    }
   };
 
   return (
