@@ -12,6 +12,14 @@ const isLocalUri = (uri?: string | null): boolean => {
   return uri.startsWith('file://') || uri.startsWith('data:');
 };
 
+const TOPS_CHART_SOURCE = Image.resolveAssetSource(require('../assets/tops-chart.png'));
+const BOTTOMS_CHART_SOURCE = Image.resolveAssetSource(require('../assets/pants-chart.png'));
+const SHOES_CHART_SOURCE = Image.resolveAssetSource(require('../assets/shoes-chart.png'));
+
+const TOPS_CHART_RATIO = TOPS_CHART_SOURCE.width / TOPS_CHART_SOURCE.height;
+const BOTTOMS_CHART_RATIO = BOTTOMS_CHART_SOURCE.width / BOTTOMS_CHART_SOURCE.height;
+const SHOES_CHART_RATIO = SHOES_CHART_SOURCE.width / SHOES_CHART_SOURCE.height;
+
 // Helper function to upload image via backend
 const uploadImageToCloudinary = async (uri: string, folder: string, token: string): Promise<string> => {
   const uploadResponse = await fetch(API_ENDPOINTS.uploadImage, {
@@ -69,6 +77,11 @@ export default function ItemDetail() {
     bottoms: string[];
     shoes: string[];
   }>({ tops: [], bottoms: [], shoes: [] });
+  const [expandedSizeCategories, setExpandedSizeCategories] = useState<{
+    tops: boolean;
+    bottoms: boolean;
+    shoes: boolean;
+  }>({ tops: false, bottoms: false, shoes: false });
   const [isAccessories, setIsAccessories] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
   const [currentSizeChart, setCurrentSizeChart] = useState<'tops' | 'bottoms-shorts' | 'shoes' | null>(null);
@@ -164,18 +177,16 @@ export default function ItemDetail() {
   };
 
   const handleSizeCategoryToggle = (category: 'tops' | 'bottoms' | 'shoes'): void => {
-    const currentSizes = selectedSizes[category];
-    if (currentSizes.length > 0) {
-      setSelectedSizes(prev => ({
-        ...prev,
-        [category]: []
-      }));
-    } else {
-      setSelectedSizes(prev => ({
-        ...prev,
-        [category]: [...sizeOptions[category]]
-      }));
-    }
+    setExpandedSizeCategories(prev => {
+      const next = !prev[category];
+      if (!next) {
+        setSelectedSizes(prevSizes => ({
+          ...prevSizes,
+          [category]: [],
+        }));
+      }
+      return { ...prev, [category]: next };
+    });
   };
 
   const handlePostToMarketplace = async () => {
@@ -461,7 +472,7 @@ export default function ItemDetail() {
       >
         <View style={[styles.modalOverlay, { backgroundColor: theme.colors.modalOverlay || 'rgba(0,0,0,0.4)' }]}>
           <KeyboardAvoidingView 
-            style={{ flex: 1 }} 
+            style={styles.modalKeyboardWrapper} 
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <ScrollView 
@@ -589,14 +600,14 @@ export default function ItemDetail() {
                   {/* TOP */}
                   <View style={styles.sizeCategoryRow}>
                     <View style={styles.sizeCategoryHeader}>
-                      <TouchableOpacity
-                        style={styles.checkbox}
-                        onPress={() => handleSizeCategoryToggle('tops')}
-                      >
-                        {selectedSizes.tops.length > 0 && (
-                          <Ionicons name="checkmark" size={16} color={theme.colors.accent} />
-                        )}
-                      </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.checkbox}
+                      onPress={() => handleSizeCategoryToggle('tops')}
+                    >
+                      {expandedSizeCategories.tops && (
+                        <Ionicons name="checkmark" size={16} color={theme.colors.accent} />
+                      )}
+                    </TouchableOpacity>
                       <Text style={[styles.sizeCategoryLabel, { color: theme.colors.primaryText }]}>TOP</Text>
                       <TouchableOpacity
                         onPress={() => {
@@ -608,7 +619,7 @@ export default function ItemDetail() {
                         <Ionicons name="help-circle-outline" size={20} color={theme.colors.accent} />
                       </TouchableOpacity>
                     </View>
-                    {selectedSizes.tops.length > 0 && (
+                    {expandedSizeCategories.tops && (
                       <View style={styles.sizeOptionsContainer}>
                         {sizeOptions.tops.map((size) => (
                           <TouchableOpacity
@@ -636,14 +647,14 @@ export default function ItemDetail() {
                   {/* BOTTOM */}
                   <View style={styles.sizeCategoryRow}>
                     <View style={styles.sizeCategoryHeader}>
-                      <TouchableOpacity
-                        style={styles.checkbox}
-                        onPress={() => handleSizeCategoryToggle('bottoms')}
-                      >
-                        {selectedSizes.bottoms.length > 0 && (
-                          <Ionicons name="checkmark" size={16} color={theme.colors.accent} />
-                        )}
-                      </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.checkbox}
+                      onPress={() => handleSizeCategoryToggle('bottoms')}
+                    >
+                      {expandedSizeCategories.bottoms && (
+                        <Ionicons name="checkmark" size={16} color={theme.colors.accent} />
+                      )}
+                    </TouchableOpacity>
                       <Text style={[styles.sizeCategoryLabel, { color: theme.colors.primaryText }]}>BOTTOM</Text>
                       <TouchableOpacity
                         onPress={() => {
@@ -655,7 +666,7 @@ export default function ItemDetail() {
                         <Ionicons name="help-circle-outline" size={20} color={theme.colors.accent} />
                       </TouchableOpacity>
                     </View>
-                    {selectedSizes.bottoms.length > 0 && (
+                    {expandedSizeCategories.bottoms && (
                       <View style={styles.sizeOptionsContainer}>
                         {sizeOptions.bottoms.map((size) => (
                           <TouchableOpacity
@@ -683,14 +694,14 @@ export default function ItemDetail() {
                   {/* SHOE */}
                   <View style={styles.sizeCategoryRow}>
                     <View style={styles.sizeCategoryHeader}>
-                      <TouchableOpacity
-                        style={styles.checkbox}
-                        onPress={() => handleSizeCategoryToggle('shoes')}
-                      >
-                        {selectedSizes.shoes.length > 0 && (
-                          <Ionicons name="checkmark" size={16} color={theme.colors.accent} />
-                        )}
-                      </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.checkbox}
+                      onPress={() => handleSizeCategoryToggle('shoes')}
+                    >
+                      {expandedSizeCategories.shoes && (
+                        <Ionicons name="checkmark" size={16} color={theme.colors.accent} />
+                      )}
+                    </TouchableOpacity>
                       <Text style={[styles.sizeCategoryLabel, { color: theme.colors.primaryText }]}>SHOE</Text>
                       <TouchableOpacity
                         onPress={() => {
@@ -702,7 +713,7 @@ export default function ItemDetail() {
                         <Ionicons name="help-circle-outline" size={20} color={theme.colors.accent} />
                       </TouchableOpacity>
                     </View>
-                    {selectedSizes.shoes.length > 0 && (
+                    {expandedSizeCategories.shoes && (
                       <View style={styles.sizeOptionsContainer}>
                         {sizeOptions.shoes.map((size) => (
                           <TouchableOpacity
@@ -783,34 +794,40 @@ export default function ItemDetail() {
               >
                 <Ionicons name="close" size={24} color={theme.colors.icon} />
               </TouchableOpacity>
-              
-              {currentSizeChart === 'bottoms-shorts' ? (
-                <View style={styles.chartModalImageContainer}>
-                  <Image
-                    source={require('../assets/pants-chart.png')}
-                    style={styles.chartImage}
-                    resizeMode="contain"
-                  />
-                </View>
-              ) : (
-                <View style={styles.chartModalImageContainer}>
-                  {currentSizeChart === 'tops' && (
+              <ScrollView
+                style={styles.chartModalScrollView}
+                contentContainerStyle={styles.chartModalScrollContent}
+                maximumZoomScale={1.5}
+                minimumZoomScale={1}
+              >
+                {currentSizeChart === 'bottoms-shorts' ? (
+                  <View style={styles.chartModalImageContainer}>
                     <Image
-                      source={require('../assets/tops-chart.png')}
-                      style={styles.chartImage}
+                      source={require('../assets/pants-chart.png')}
+                      style={[styles.chartImage, { aspectRatio: BOTTOMS_CHART_RATIO }]}
                       resizeMode="contain"
                     />
-                  )}
-                  
-                  {currentSizeChart === 'shoes' && (
-                    <Image
-                      source={require('../assets/shoes-chart.png')}
-                      style={styles.chartImage}
-                      resizeMode="contain"
-                    />
-                  )}
-                </View>
-              )}
+                  </View>
+                ) : (
+                  <View style={styles.chartModalImageContainer}>
+                    {currentSizeChart === 'tops' && (
+                      <Image
+                        source={require('../assets/tops-chart.png')}
+                        style={[styles.chartImage, { aspectRatio: TOPS_CHART_RATIO }]}
+                        resizeMode="contain"
+                      />
+                    )}
+                    
+                    {currentSizeChart === 'shoes' && (
+                      <Image
+                        source={require('../assets/shoes-chart.png')}
+                        style={[styles.chartImage, { aspectRatio: SHOES_CHART_RATIO }]}
+                        resizeMode="contain"
+                      />
+                    )}
+                  </View>
+                )}
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -860,6 +877,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalKeyboardWrapper: {
+    flex: 1,
+    width: '100%',
   },
   marketModalContent: {
     backgroundColor: 'white',
@@ -954,11 +975,12 @@ const styles = StyleSheet.create({
   marketplaceModalScrollContent: {
     paddingVertical: 20,
     paddingHorizontal: 10,
+    alignItems: 'center',
   },
   marketplaceModalContent: {
     borderRadius: 20,
     padding: 20,
-    width: '100%',
+    width: '92%',
     maxWidth: 500,
     alignSelf: 'center',
     marginHorizontal: Platform.OS === 'web' ? 0 : 10,
@@ -1174,8 +1196,8 @@ const styles = StyleSheet.create({
   chartModalScrollContent: {
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: 0,
-    paddingBottom: 0,
+    paddingTop: 10,
+    paddingBottom: 10,
     paddingHorizontal: 0,
   },
   chartModalImageContainer: {
@@ -1188,9 +1210,7 @@ const styles = StyleSheet.create({
   chartImage: {
     width: '95%',
     maxWidth: 380,
-    height: undefined,
     alignSelf: 'center',
-    aspectRatio: undefined,
     marginHorizontal: 'auto',
   },
   chartImageSecond: {

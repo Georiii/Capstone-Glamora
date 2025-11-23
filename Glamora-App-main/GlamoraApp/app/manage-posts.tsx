@@ -7,6 +7,14 @@ import { API_ENDPOINTS } from '../config/api';
 import { useSocket } from './contexts/SocketContext';
 import { useTheme } from './contexts/ThemeContext';
 
+const TOPS_CHART_SOURCE = Image.resolveAssetSource(require('../assets/tops-chart.png'));
+const BOTTOMS_CHART_SOURCE = Image.resolveAssetSource(require('../assets/pants-chart.png'));
+const SHOES_CHART_SOURCE = Image.resolveAssetSource(require('../assets/shoes-chart.png'));
+
+const TOPS_CHART_RATIO = TOPS_CHART_SOURCE.width / TOPS_CHART_SOURCE.height;
+const BOTTOMS_CHART_RATIO = BOTTOMS_CHART_SOURCE.width / BOTTOMS_CHART_SOURCE.height;
+const SHOES_CHART_RATIO = SHOES_CHART_SOURCE.width / SHOES_CHART_SOURCE.height;
+
 interface MarketplaceItem {
   _id: string;
   imageUrl: string;
@@ -792,23 +800,28 @@ export default function ManagePosts() {
 
         {/* Size Chart Modal */}
         <Modal visible={showEditSizeChart} transparent animationType="fade">
-          <View style={styles.chartModalOverlay}>
-            <View style={[styles.chartModalContent, { backgroundColor: theme.colors.containerBackground }]}>
-              <TouchableOpacity
-                style={styles.chartCloseButton}
-                onPress={() => {
-                  setShowEditSizeChart(false);
-                  setCurrentEditSizeChart(null);
-                }}
-              >
-                <Ionicons name="close" size={24} color={theme.colors.icon} />
-              </TouchableOpacity>
-              
+        <View style={styles.chartModalOverlay}>
+          <View style={[styles.chartModalContent, { backgroundColor: theme.colors.containerBackground }]}>
+            <TouchableOpacity
+              style={styles.chartCloseButton}
+              onPress={() => {
+                setShowEditSizeChart(false);
+                setCurrentEditSizeChart(null);
+              }}
+            >
+              <Ionicons name="close" size={24} color={theme.colors.icon} />
+            </TouchableOpacity>
+            <ScrollView
+              style={styles.chartModalScrollView}
+              contentContainerStyle={styles.chartModalScrollContent}
+              maximumZoomScale={1.5}
+              minimumZoomScale={1}
+            >
               {currentEditSizeChart === 'bottoms-shorts' ? (
                 <View style={styles.chartModalImageContainer}>
                   <Image
                     source={require('../assets/pants-chart.png')}
-                    style={styles.chartImage}
+                    style={[styles.chartImage, { aspectRatio: BOTTOMS_CHART_RATIO }]}
                     resizeMode="contain"
                   />
                 </View>
@@ -817,7 +830,7 @@ export default function ManagePosts() {
                   {currentEditSizeChart === 'tops' && (
                     <Image
                       source={require('../assets/tops-chart.png')}
-                      style={styles.chartImage}
+                      style={[styles.chartImage, { aspectRatio: TOPS_CHART_RATIO }]}
                       resizeMode="contain"
                     />
                   )}
@@ -825,14 +838,15 @@ export default function ManagePosts() {
                   {currentEditSizeChart === 'shoes' && (
                     <Image
                       source={require('../assets/shoes-chart.png')}
-                      style={styles.chartImage}
+                      style={[styles.chartImage, { aspectRatio: SHOES_CHART_RATIO }]}
                       resizeMode="contain"
                     />
                   )}
                 </View>
               )}
-            </View>
+            </ScrollView>
           </View>
+        </View>
         </Modal>
       </Modal>
 
@@ -1215,11 +1229,12 @@ const styles = StyleSheet.create({
   marketplaceModalScrollContent: {
     paddingVertical: 20,
     paddingHorizontal: 10,
+    alignItems: 'center',
   },
   marketplaceModalContent: {
     borderRadius: 20,
     padding: 20,
-    width: '100%',
+    width: '92%',
     maxWidth: 500,
     alignSelf: 'center',
     marginHorizontal: Platform.OS === 'web' ? 0 : 10,
@@ -1430,6 +1445,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
+  chartModalScrollView: {
+    width: '100%',
+    flex: 1,
+  },
+  chartModalScrollContent: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingHorizontal: 0,
+  },
   chartModalImageContainer: {
     width: '100%',
     alignItems: 'center',
@@ -1440,9 +1466,7 @@ const styles = StyleSheet.create({
   chartImage: {
     width: '95%',
     maxWidth: 380,
-    height: undefined,
     alignSelf: 'center',
-    aspectRatio: undefined,
     marginHorizontal: 'auto',
   },
 });

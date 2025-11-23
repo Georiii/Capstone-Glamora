@@ -396,9 +396,6 @@ router.get('/marketplace', async (req, res) => {
             $or: matchConditions
           }
         ];
-      } else {
-        // If no preferences set, show nothing (or could show all - but user asked to hide if no matches)
-        query._id = { $exists: false }; // This will return no results
       }
     }
 

@@ -11,6 +11,7 @@ import React, {
 } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import AdOverlay from '../components/AdOverlay';
+import { API_ENDPOINTS } from '../../config/api';
 import { useUser } from './UserContext';
 
 const AD_INTERVAL_MS = 2 * 60 * 1000;
@@ -44,7 +45,7 @@ interface AdProviderProps {
 }
 
 export const AdProvider: React.FC<AdProviderProps> = ({ children }) => {
-  const { user } = useUser();
+  const { user, updateUser } = useUser();
   const hasPremium =
     user?.subscription?.isSubscribed === true || user?.isSubscribed === true;
   const shouldShowAds = !!user && !hasPremium;
@@ -58,6 +59,38 @@ export const AdProvider: React.FC<AdProviderProps> = ({ children }) => {
     (state: AppStateStatus) => state === 'background' || state === 'inactive',
     [],
   );
+
+  const refreshSubscriptionStatus = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        return;
+      }
+      const response = await fetch(API_ENDPOINTS.subscriptionStatus, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        updateUser({
+          isSubscribed: data.isSubscribed,
+          subscription: {
+            ...(user.subscription || {}),
+            isSubscribed: data.isSubscribed,
+            subscriptionType: data.subscriptionType || user.subscription?.subscriptionType,
+            subscribedAt: data.subscribedAt || user.subscription?.subscribedAt,
+            expiresAt: data.expiresAt || user.subscription?.expiresAt,
+          },
+        });
+      }
+    } catch (error) {
+      console.warn('Unable to refresh subscription status', error);
+    }
+  }, [updateUser, user]);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -145,6 +178,10 @@ export const AdProvider: React.FC<AdProviderProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    refreshSubscriptionStatus();
+  }, [refreshSubscriptionStatus]);
+
+  useEffect(() => {
     if (!shouldShowAds) {
       clearTimer();
       setIsVisible(false);
@@ -172,18 +209,16 @@ export const AdProvider: React.FC<AdProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
-      if (
-        isBackgroundLike(appState.current) &&
-        nextAppState === 'active' &&
-        shouldShowAds &&
-        !isVisible
-      ) {
-        const now = Date.now();
-        const elapsed = lastShownAt ? now - lastShownAt : AD_INTERVAL_MS;
-        if (elapsed >= AD_INTERVAL_MS) {
-          showAd();
-        } else {
-          scheduleNextAd(AD_INTERVAL_MS - elapsed);
+      if (isBackgroundLike(appState.current) && nextAppState === 'active') {
+        refreshSubscriptionStatus();
+        if (shouldShowAds && !isVisible) {
+          const now = Date.now();
+          const elapsed = lastShownAt ? now - lastShownAt : AD_INTERVAL_MS;
+          if (elapsed >= AD_INTERVAL_MS) {
+            showAd();
+          } else {
+            scheduleNextAd(AD_INTERVAL_MS - elapsed);
+          }
         }
       } else if (isBackgroundLike(nextAppState)) {
         clearTimer();
@@ -193,7 +228,7 @@ export const AdProvider: React.FC<AdProviderProps> = ({ children }) => {
     });
 
     return () => subscription.remove();
-  }, [shouldShowAds, lastShownAt, scheduleNextAd, clearTimer, showAd, isVisible, isBackgroundLike]);
+  }, [shouldShowAds, lastShownAt, scheduleNextAd, clearTimer, showAd, isVisible, isBackgroundLike, refreshSubscriptionStatus]);
 
   const contextValue = useMemo(
     () => ({

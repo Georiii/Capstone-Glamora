@@ -14,6 +14,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS } from '../config/api';
 import { useTheme } from './contexts/ThemeContext';
 
@@ -23,6 +24,9 @@ export default function ResetPassword() {
   const { token } = useLocalSearchParams();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | ''>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
@@ -80,6 +84,28 @@ export default function ResetPassword() {
     verifyToken();
   }, [token, router]);
 
+  const evaluatePassword = (pwd: string): 'weak' | 'medium' | 'strong' => {
+    const lengthOk = pwd.length >= 8;
+    const upper = /[A-Z]/.test(pwd);
+    const lower = /[a-z]/.test(pwd);
+    const number = /[0-9]/.test(pwd);
+    const special = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
+    const score = [lengthOk, upper, lower, number, special].filter(Boolean).length;
+
+    if (score >= 5) return 'strong';
+    if (score >= 3) return 'medium';
+    return 'weak';
+  };
+
+  const onChangeNewPassword = (text: string) => {
+    setNewPassword(text);
+    if (!text) {
+      setPasswordStrength('');
+      return;
+    }
+    setPasswordStrength(evaluatePassword(text));
+  };
+
   const handleResetPassword = async () => {
     if (!newPassword.trim() || !confirmPassword.trim()) {
       Alert.alert('Error', 'Please fill in all fields.');
@@ -91,8 +117,13 @@ export default function ResetPassword() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long.');
+    if (newPassword.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (passwordStrength === 'weak' || passwordStrength === '') {
+      Alert.alert('Weak password', 'Password must include uppercase, lowercase, number, and special character.');
       return;
     }
 
@@ -185,25 +216,55 @@ export default function ResetPassword() {
         </Text>
 
         <View style={styles.inputContainer}>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-            placeholder="New Password"
-            placeholderTextColor={theme.colors.placeholderText}
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry
-            autoCapitalize="none"
-          />
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={[styles.input, styles.passwordInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
+              placeholder="New Password"
+              placeholderTextColor={theme.colors.placeholderText}
+              value={newPassword}
+              onChangeText={onChangeNewPassword}
+              secureTextEntry={!showNewPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowNewPassword(prev => !prev)}>
+              <Ionicons name={showNewPassword ? 'eye-off' : 'eye'} size={20} color={theme.colors.secondaryText} />
+            </TouchableOpacity>
+          </View>
 
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
-            placeholder="Confirm New Password"
-            placeholderTextColor={theme.colors.placeholderText}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoCapitalize="none"
-          />
+          <View style={styles.guidelineBox}>
+            <Text style={[styles.guidelineHeader, { color: theme.colors.primaryText }]}>Password must include:</Text>
+            <Text style={[styles.guidelineText, { color: theme.colors.secondaryText }]}>• At least 8 characters</Text>
+            <Text style={[styles.guidelineText, { color: theme.colors.secondaryText }]}>• One uppercase (A-Z) and lowercase (a-z)</Text>
+            <Text style={[styles.guidelineText, { color: theme.colors.secondaryText }]}>• One number (0-9)</Text>
+            <Text style={[styles.guidelineText, { color: theme.colors.secondaryText }]}>• One special character (!,@,#,$,...)</Text>
+            {passwordStrength !== '' && (
+              <Text style={[
+                styles.strengthLabel,
+                passwordStrength === 'strong'
+                  ? { color: '#06D6A0' }
+                  : passwordStrength === 'medium'
+                    ? { color: '#FFD166' }
+                    : { color: '#F15A5A' }
+              ]}>
+                Password strength: {passwordStrength.toUpperCase()}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={[styles.input, styles.passwordInput, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.inputText }]}
+              placeholder="Confirm New Password"
+              placeholderTextColor={theme.colors.placeholderText}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowConfirmPassword(prev => !prev)}>
+              <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color={theme.colors.secondaryText} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <TouchableOpacity 
@@ -312,6 +373,40 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  passwordContainer: {
+    width: '100%',
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 48,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 18,
+    top: '50%',
+    marginTop: -12,
+    padding: 6,
+  },
+  guidelineBox: {
+    width: '100%',
+    marginTop: 10,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+  },
+  guidelineHeader: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  guidelineText: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  strengthLabel: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '600',
   },
   input: {
     width: 270,

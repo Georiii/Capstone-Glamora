@@ -756,9 +756,11 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: '#fff',
     borderRadius: 20,
-    width: '100%',
+    width: '92%',
     maxWidth: 400,
+    minHeight: '60%',
     maxHeight: '85%',
+    flexShrink: 1,
     marginHorizontal: 16,
     padding: 20,
     paddingBottom: 8,
@@ -778,12 +780,11 @@ const styles = StyleSheet.create({
     color: '#222',
   },
   modalBody: {
-    flex: 1,
+    maxHeight: '100%',
   },
   modalBodyContent: {
-    paddingBottom: 16,
+    paddingBottom: 24,
     paddingTop: 4,
-    flexGrow: 1,
   },
   modalLabel: {
     fontSize: 16,
