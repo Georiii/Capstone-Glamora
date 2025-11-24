@@ -139,10 +139,14 @@ export default function MessageBox() {
       console.log('🌐 API Endpoint:', API_ENDPOINTS.chatConversations);
       
       const controller = new AbortController();
+      // Increased timeout to 30 seconds for Render.com free tier (can be slow on cold starts)
       const timeoutId = setTimeout(() => {
-        console.log('⏰ Request timeout after 10 seconds');
+        console.log('⏰ Request timeout after 30 seconds');
         controller.abort();
-      }, 10000);
+      }, 30000);
+      
+      console.log('📡 Making request to:', API_ENDPOINTS.chatConversations);
+      const startTime = Date.now();
       
       const response = await fetch(API_ENDPOINTS.chatConversations, {
         headers: {
@@ -151,12 +155,16 @@ export default function MessageBox() {
         },
         signal: controller.signal,
       });
+      
+      const requestTime = Date.now() - startTime;
+      console.log(`⏱️ Request completed in ${requestTime}ms`);
     
       clearTimeout(timeoutId);
       console.log('📡 Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Conversations loaded:', data.conversations?.length || 0, 'conversations');
         const transformedConversations = (data.conversations || []).map((conv: any) => ({
           _id: conv._id,
           user: conv.user || { name: 'Unknown User', email: 'unknown@example.com' },
@@ -172,17 +180,36 @@ export default function MessageBox() {
         
         setConversations(transformedConversations);
       } else {
-        console.error('❌ Failed to load conversations:', response.status);
-        Alert.alert('Error', 'Failed to load conversations. Please try again.');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('❌ Failed to load conversations:', response.status, errorData);
+        
+        if (response.status === 401) {
+          Alert.alert('Authentication Error', 'Please login again.', [
+            { text: 'OK', onPress: () => router.push('/login') }
+          ]);
+        } else if (response.status === 500) {
+          Alert.alert('Server Error', 'The server is experiencing issues. Please try again later.');
+        } else {
+          Alert.alert('Error', `Failed to load conversations (${response.status}). Please try again.`);
+        }
         setConversations([]);
       }
     } catch (error: any) {
       console.error('❌ Error loading conversations:', error);
       
       if (error?.name === 'AbortError') {
-        Alert.alert('Timeout', 'Request timed out. Please check your connection and try again.');
+        Alert.alert(
+          'Request Timeout', 
+          'The server is taking too long to respond. This may happen on the first request. Please try again.',
+          [
+            { text: 'Retry', onPress: () => loadConversations(isRefresh) },
+            { text: 'Cancel', style: 'cancel' }
+          ]
+        );
+      } else if (error?.message?.includes('Network request failed')) {
+        Alert.alert('Network Error', 'Unable to connect to the server. Please check your internet connection.');
       } else {
-        Alert.alert('Error', 'Network error. Please check your connection.');
+        Alert.alert('Error', `Network error: ${error?.message || 'Unknown error'}`);
       }
       setConversations([]);
     } finally {
