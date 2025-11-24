@@ -31,29 +31,42 @@ const PushRegistrationManager = () => {
   const registeredInfoRef = useRef<{ token: string; userId: string } | null>(null);
 
   useEffect(() => {
+    console.log('🔄 PushRegistrationManager effect triggered, user:', user ? 'exists' : 'null');
+    
     if (!user) {
+      console.log('⚠️ No user found, skipping push registration');
       return;
     }
 
     const register = async () => {
       try {
+        console.log('🔔 Starting push registration...');
+        
         if (Platform.OS === 'web') {
+          console.log('⚠️ Skipping push registration on web');
           return;
         }
         if (!Device.isDevice) {
+          console.log('⚠️ Skipping push registration - not a physical device');
           return;
         }
 
         let { status } = await Notifications.getPermissionsAsync();
+        console.log('📱 Current permission status:', status);
+        
         if (status !== 'granted') {
+          console.log('📱 Requesting notification permissions...');
           const permissionResult = await Notifications.requestPermissionsAsync();
           status = permissionResult.status;
+          console.log('📱 Permission result:', status);
         }
 
         if (status !== 'granted') {
           console.warn('⚠️ Notification permission not granted');
           return;
         }
+        
+        console.log('✅ Notification permission granted');
 
         // Configure Android notification channel for system notification bar
         if (Platform.OS === 'android') {
@@ -82,13 +95,18 @@ const PushRegistrationManager = () => {
           projectId = undefined;
         }
 
+        console.log('🔑 Getting Expo push token...');
+        console.log('📦 Project ID:', projectId || 'not found');
+        
         let expoToken: string;
         try {
           expoToken = projectId
             ? (await Notifications.getExpoPushTokenAsync({ projectId })).data
             : (await Notifications.getExpoPushTokenAsync()).data;
+          console.log('✅ Expo push token received:', expoToken.substring(0, 20) + '...');
         } catch (tokenError: any) {
           // Handle Firebase/FCM configuration errors
+          console.error('❌ Token generation failed:', tokenError);
           if (tokenError?.code === 'E_REGISTRATION_FAILED' || tokenError?.message?.includes('FirebaseApp')) {
             console.warn('⚠️ Push notifications require Firebase/FCM configuration. Please configure FCM credentials in Expo dashboard: https://docs.expo.dev/push-notifications/fcm-credentials/');
             return;
@@ -98,22 +116,32 @@ const PushRegistrationManager = () => {
 
         const userId = user?._id;
         if (!userId) {
+          console.warn('⚠️ User ID not found, skipping registration');
           return;
         }
+        console.log('👤 User ID:', userId);
+        
         if (
           registeredInfoRef.current &&
           registeredInfoRef.current.token === expoToken &&
           registeredInfoRef.current.userId === userId
         ) {
+          console.log('✅ Token already registered for this user');
           return;
         }
+        
         const userToken = await AsyncStorage.getItem('token');
         if (!userToken) {
+          console.warn('⚠️ User token not found in AsyncStorage, skipping registration');
           return;
         }
+        console.log('🔐 User token found');
 
         registeredInfoRef.current = { token: expoToken, userId };
 
+        console.log('📤 Registering token with backend...');
+        console.log('🌐 Endpoint:', API_ENDPOINTS.notifications.register);
+        
         const registerResponse = await fetch(API_ENDPOINTS.notifications.register, {
           method: 'POST',
           headers: {
@@ -126,13 +154,17 @@ const PushRegistrationManager = () => {
           }),
         });
 
+        console.log('📥 Backend response status:', registerResponse.status);
+        
         if (!registerResponse.ok) {
-          console.warn('⚠️ Failed to register push token with backend');
+          const errorText = await registerResponse.text();
+          console.warn('⚠️ Failed to register push token with backend:', errorText);
         } else {
-          console.log('✅ Push token registered successfully');
+          const responseData = await registerResponse.json();
+          console.log('✅ Push token registered successfully:', responseData);
         }
       } catch (error) {
-        console.warn('Push registration failed', error);
+        console.error('❌ Push registration failed:', error);
       }
     };
 
