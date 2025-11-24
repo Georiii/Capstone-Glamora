@@ -71,11 +71,16 @@ const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     loadUser();
   }, []);
 
-  // Save user to AsyncStorage whenever it changes
+  // Save user to AsyncStorage whenever it changes, or clear if user is null
   useEffect(() => {
     if (user) {
       AsyncStorage.setItem('user', JSON.stringify(user)).catch(error => {
         console.error('Error saving user to storage:', error);
+      });
+    } else {
+      // Clear AsyncStorage when user is set to null
+      AsyncStorage.removeItem('user').catch(error => {
+        console.error('Error clearing user from storage:', error);
       });
     }
   }, [user]);

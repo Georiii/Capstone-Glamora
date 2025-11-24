@@ -5,10 +5,12 @@ import React, { useEffect, useState } from 'react';
 import { Alert, ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing, ScrollView } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useTheme } from './contexts/ThemeContext';
+import { useUser } from './contexts/UserContext';
 
 export default function Security() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { user } = useUser();
   const [username, setUsername] = useState('Glamora');
   const [email, setEmail] = useState('Glamora@gmail.com');
   const [originalEmail, setOriginalEmail] = useState('');
@@ -36,9 +38,17 @@ export default function Security() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 
+  // Load user info from UserContext when user changes
   useEffect(() => {
-    loadUserInfo();
-  }, []);
+    if (user) {
+      setUsername(user.name || 'Glamora');
+      setEmail(user.email || 'Glamora@gmail.com');
+      setOriginalEmail(user.email || 'Glamora@gmail.com');
+    } else {
+      // Fallback to AsyncStorage if UserContext doesn't have user yet
+      loadUserInfo();
+    }
+  }, [user]);
 
   // Evaluate password strength
   const evaluatePassword = (pwd: string) => {

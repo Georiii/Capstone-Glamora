@@ -177,16 +177,30 @@ router.get('/user/:email', async (req, res) => {
 router.put('/profile/measurements', async (req, res) => {
   try {
     const { email, bodyMeasurements, stylePreferences, profileSettings } = req.body;
-    
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required.' });
+
+    // Prefer JWT from Authorization header; fall back to email for backward compatibility
+    let user = null;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET);
+        user = await User.findById(decoded.userId);
+      } catch (e) {
+        // Silently fall back to email-based lookup
+        console.warn('JWT decode failed for measurements update, falling back to email:', e.message);
+      }
     }
-    
-    const user = await User.findOne({ email });
+
+    if (!user && email) {
+      user = await User.findOne({ email });
+    }
+
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
-    
+
     // Ensure profileSettings exists so we can safely mutate measurement metadata or merge new settings
     if (!user.profileSettings) {
       user.profileSettings = {};
@@ -197,7 +211,7 @@ router.put('/profile/measurements', async (req, res) => {
       user.bodyMeasurements = { ...user.bodyMeasurements, ...bodyMeasurements };
       user.profileSettings.measurementLastUpdated = new Date();
     }
-    
+
     // Update style preferences if provided
     if (stylePreferences) {
       user.stylePreferences = { ...user.stylePreferences, ...stylePreferences };
@@ -210,11 +224,11 @@ router.put('/profile/measurements', async (req, res) => {
         ...profileSettings,
       };
     }
-    
+
     await user.save();
-    
-    res.json({ 
-      message: 'Profile updated successfully.', 
+
+    res.json({
+      message: 'Profile updated successfully.',
       user: {
         _id: user._id,
         name: user.name,

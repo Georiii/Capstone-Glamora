@@ -61,7 +61,7 @@ interface StylePreferences {
 export default function BodyMeasurements() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { updateUser } = useUser();
+  const { user, updateUser } = useUser();
   const windowDimensions = useWindowDimensions();
   const screenWidth = windowDimensions?.width || 375;
   const screenHeight = windowDimensions?.height || 667;
@@ -103,6 +103,23 @@ export default function BodyMeasurements() {
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // Prefer UserContext immediately for new accounts; fall back to AsyncStorage loader above
+  useEffect(() => {
+    if (user) {
+      setCurrentUser((prev: any) => {
+        // Keep any local edits but refresh identity fields from context
+        const merged = { ...(prev || {}), ...user };
+        return merged;
+      });
+      if (
+        user.profileSettings &&
+        typeof user.profileSettings.allowPersonalizedRecommendations === 'boolean'
+      ) {
+        setAllowRecommendations(user.profileSettings.allowPersonalizedRecommendations);
+      }
+    }
+  }, [user]);
 
   // Scroll to top when bottoms chart modal opens
   useEffect(() => {
@@ -166,21 +183,28 @@ export default function BodyMeasurements() {
   };
 
   const handleSave = async () => {
-    if (!currentUser?.email) {
-      Alert.alert('Error', 'User not found. Please login again.');
+    // Use email from UserContext first, then fall back to AsyncStorage-loaded user
+    const emailToUse = user?.email || currentUser?.email;
+    if (!emailToUse) {
+      Alert.alert('Please wait', 'Preparing your account... Try again in a moment.');
       return;
     }
 
     try {
       setSaving(true);
+      const token = await AsyncStorage.getItem('token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
       
       const response = await fetch(`${API_ENDPOINTS.baseUrl}/api/auth/profile/measurements`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
-          email: currentUser.email,
+          email: emailToUse,
           bodyMeasurements: measurements,
           stylePreferences: stylePreferences,
           profileSettings: {
@@ -282,7 +306,11 @@ export default function BodyMeasurements() {
           <Ionicons name="arrow-back" size={24} color={theme.colors.icon} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.headerText }]}>Body Measurements</Text>
-        <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.buttonBackground }]} onPress={handleSave} disabled={saving}>
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: theme.colors.buttonBackground }, (!user?.email && !currentUser?.email) && { opacity: 0.6 }]}
+          onPress={handleSave}
+          disabled={saving || (!user?.email && !currentUser?.email)}
+        >
           {saving ? (
             <ActivityIndicator size="small" color={theme.colors.buttonText} />
           ) : (

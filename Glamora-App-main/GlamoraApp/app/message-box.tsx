@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -49,6 +49,7 @@ export default function MessageBox() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const conversationsRequestRef = useRef(false);
   
   // Socket.IO context
   const { socket, isConnected } = useSocket();
@@ -117,6 +118,12 @@ export default function MessageBox() {
   };
 
   const loadConversations = async (isRefresh = false) => {
+    if (conversationsRequestRef.current) {
+      console.log('⏳ Skipping conversation fetch; request already in flight.');
+      return;
+    }
+
+    conversationsRequestRef.current = true;
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -213,6 +220,7 @@ export default function MessageBox() {
       }
       setConversations([]);
     } finally {
+      conversationsRequestRef.current = false;
       if (isRefresh) {
         setRefreshing(false);
       } else {
@@ -245,6 +253,7 @@ export default function MessageBox() {
       params: {
         sellerId: conversation.user._id,
         sellerEmail: conversation.user.email,
+        sellerName: conversation.user.name || 'Conversation',
         productName: conversation.context?.productName || 'Conversation',
         productImage: conversation.context?.productImage || null,
         sellerProfilePicture: conversation.user?.profilePicture?.url || null,

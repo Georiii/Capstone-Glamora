@@ -6,6 +6,7 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react
 import RateUsModal from './components/RateUsModal';
 import { useSocket } from './contexts/SocketContext';
 import { useTheme } from './contexts/ThemeContext';
+import { useUser } from './contexts/UserContext';
 import { API_ENDPOINTS } from '../config/api';
 
 export default function Settings() {
@@ -13,6 +14,7 @@ export default function Settings() {
   const [showRateUsModal, setShowRateUsModal] = useState(false);
   const { disconnectSocket } = useSocket();
   const { theme } = useTheme();
+  const { setUser } = useUser();
 
   const handleLogout = async () => {
     console.log('🔌 Logout button clicked');
@@ -28,7 +30,11 @@ export default function Settings() {
         console.log('🔌 Socket disconnect failed (continuing anyway):', socketError);
       }
       
-      // Clear authentication data
+      // Clear UserContext state first
+      setUser(null);
+      console.log('🔌 UserContext cleared');
+      
+      // Clear authentication data from AsyncStorage
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
       console.log('🔌 AsyncStorage cleared');

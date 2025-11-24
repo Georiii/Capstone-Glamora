@@ -153,11 +153,28 @@ const uploadEvidencePhoto = async (uri: string | any) => {
 export default function MessageUser() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { sellerId, sellerEmail, sellerProfilePicture, productName, productImage, itemId } = useLocalSearchParams();
+  const { sellerId, sellerEmail, sellerName, sellerProfilePicture, productName, productImage, itemId } = useLocalSearchParams();
+  const sellerIdParam = normalizeParam(sellerId);
+  const sellerEmailParam = normalizeParam(sellerEmail);
+  const sellerNameParam = normalizeParam(sellerName);
+  const sellerProfilePictureParam = normalizeParam(sellerProfilePicture);
+  const normalizedProductName = normalizeParam(productName);
+  const normalizedProductImage = normalizeParam(productImage);
+  const normalizedProductId = normalizeParam(itemId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [otherUser, setOtherUser] = useState<any>(null);
+  const [otherUser, setOtherUser] = useState<any>(() => {
+    if (sellerIdParam || sellerNameParam || sellerEmailParam || sellerProfilePictureParam) {
+      return {
+        _id: sellerIdParam || undefined,
+        name: sellerNameParam || undefined,
+        email: sellerEmailParam || undefined,
+        profilePicture: sellerProfilePictureParam ? { url: sellerProfilePictureParam } : undefined,
+      };
+    }
+    return null;
+  });
   const [showReportModal, setShowReportModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedReportReason, setSelectedReportReason] = useState('');
@@ -165,22 +182,78 @@ export default function MessageUser() {
   const [evidencePhotos, setEvidencePhotos] = useState<string[]>([]);
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
-  const [otherUserId, setOtherUserId] = useState<string | null>(null);
+  const [otherUserId, setOtherUserId] = useState<string | null>(sellerIdParam || null);
   const scrollViewRef = useRef<ScrollView>(null);
   const typingTimeoutRef = useRef<any>(null);
+  const messagesRequestRef = useRef(false);
   
   // Socket.IO context
   const { socket, sendMessage: sendSocketMessage, joinChat, leaveChat, sendTyping } = useSocket();
 
-  const normalizedProductName = normalizeParam(productName);
-  const normalizedProductImage = normalizeParam(productImage);
-  const normalizedProductId = normalizeParam(itemId);
   const [contextProductName, setContextProductName] = useState<string | null>(normalizedProductName || null);
   const [contextProductImage, setContextProductImage] = useState<string | null>(normalizedProductImage || null);
   const [contextProductId, setContextProductId] = useState<string | null>(normalizedProductId || null);
   const defaultProductImage = 'https://via.placeholder.com/120?text=Item';
 
   const isAdminConversation = !!otherUser && otherUser.role === 'admin';
+  const otherUserLoaded = !!otherUser;
+  const headerAvatarUri = otherUser?.profilePicture?.url || sellerProfilePictureParam || undefined;
+  const headerDisplayName = otherUser?.name || sellerNameParam || otherUser?.email?.split('@')[0] || sellerEmailParam || 'User';
+
+  const fetchSellerDetails = useCallback(async (token: string | null, email?: string | null) => {
+    if (!token || !email) {
+      return null;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(API_ENDPOINTS.getUser(email), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const sellerData = await response.json();
+        return sellerData;
+      }
+
+      console.warn('Failed to fetch seller data:', response.status);
+      return null;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if ((error as any)?.name === 'AbortError') {
+        console.warn('Seller lookup timed out');
+        return null;
+      }
+      console.error('Error fetching seller data:', error);
+      return null;
+    }
+  }, []);
+
+  const ensureOtherUserId = useCallback(async () => {
+    if (otherUserId) {
+      return otherUserId;
+    }
+
+    if (sellerIdParam) {
+      setOtherUserId(sellerIdParam);
+      return sellerIdParam;
+    }
+
+    const token = await AsyncStorage.getItem('token');
+    const sellerDetails = await fetchSellerDetails(token, sellerEmailParam);
+    if (sellerDetails?.user?._id) {
+      setOtherUserId(sellerDetails.user._id);
+      setOtherUser(sellerDetails.user);
+      return sellerDetails.user._id;
+    }
+
+    return null;
+  }, [otherUserId, sellerIdParam, sellerEmailParam, fetchSellerDetails]);
 
   const loadCurrentUser = async () => {
     try {
@@ -194,137 +267,135 @@ export default function MessageUser() {
   };
 
   const loadMessages = useCallback(async () => {
+    if (messagesRequestRef.current) {
+      console.log('⏳ Skipping message fetch; request already running.');
+      return;
+    }
+
+    messagesRequestRef.current = true;
     try {
       const token = await AsyncStorage.getItem('token');
       const userData = await AsyncStorage.getItem('user');
-      const currentUser = userData ? JSON.parse(userData) : null;
+      const parsedUser = userData ? JSON.parse(userData) : null;
 
-      if (!currentUser) {
+      if (!parsedUser) {
         console.error('No current user found');
         return;
       }
 
-      // Find the seller user by email
-      const sellerEmailStr = Array.isArray(sellerEmail) ? sellerEmail[0] : sellerEmail;
-      const userController = new AbortController();
-      const userTimeoutId = setTimeout(() => userController.abort(), 10000); // 10 second timeout
-      
-      const response = await fetch(API_ENDPOINTS.getUser(sellerEmailStr), {
+      setCurrentUser(parsedUser);
+
+      let resolvedUserId = otherUserId || sellerIdParam || null;
+      let sellerDetailsPromise: Promise<any | null> | null = null;
+
+      if (!resolvedUserId) {
+        sellerDetailsPromise = fetchSellerDetails(token, sellerEmailParam);
+        const sellerDetails = await sellerDetailsPromise;
+        resolvedUserId = sellerDetails?.user?._id || null;
+        if (!resolvedUserId) {
+          console.error('Unable to resolve seller user ID');
+          setMessages([]);
+          return;
+        }
+        setOtherUserId(resolvedUserId);
+        if (sellerDetails?.user) {
+          setOtherUser(sellerDetails.user);
+        }
+      } else if (sellerEmailParam && (!otherUserLoaded || otherUserId !== resolvedUserId)) {
+        sellerDetailsPromise = fetchSellerDetails(token, sellerEmailParam);
+      }
+
+      const chatController = new AbortController();
+      const chatTimeoutId = setTimeout(() => chatController.abort(), 12000);
+      const chatResponse = await fetch(API_ENDPOINTS.chatMessages(resolvedUserId), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
-        signal: userController.signal,
+        signal: chatController.signal,
       });
-      
-      clearTimeout(userTimeoutId);
+      clearTimeout(chatTimeoutId);
 
-      if (response.ok) {
-        const sellerData = await response.json();
-        const sellerUserId = sellerData.user._id;
-        
-        // Set the other user information
-        setOtherUserId(sellerUserId);
-        setOtherUser(sellerData.user);
-
-        // Now get chat messages with the seller
-        const chatController = new AbortController();
-        const chatTimeoutId = setTimeout(() => chatController.abort(), 10000); // 10 second timeout
-        
-        const chatResponse = await fetch(API_ENDPOINTS.chatMessages(sellerUserId), {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          signal: chatController.signal,
+      const sellerDetails = sellerDetailsPromise ? await sellerDetailsPromise : null;
+      if (sellerDetails?.user) {
+        setOtherUser(sellerDetails.user);
+        setOtherUserId(sellerDetails.user._id);
+      } else if (!otherUserLoaded && (sellerNameParam || sellerEmailParam || sellerProfilePictureParam)) {
+        setOtherUser((prev: any) => prev || {
+          _id: resolvedUserId,
+          name: sellerNameParam || undefined,
+          email: sellerEmailParam || undefined,
+          profilePicture: sellerProfilePictureParam ? { url: sellerProfilePictureParam } : undefined,
         });
-        
-        clearTimeout(chatTimeoutId);
+      }
 
-        if (chatResponse.ok) {
-          const data = await chatResponse.json();
-          console.log('Loaded messages from API:', data.messages);
+      if (chatResponse.ok) {
+        const data = await chatResponse.json();
+        const transformedMessages = (data.messages || []).map((msg: any) => {
+          const msgSenderId = msg.senderId?._id || msg.senderId;
+          const isFromMe = msgSenderId === parsedUser.id ||
+            msgSenderId === parsedUser._id ||
+            (msg.senderId && msg.senderId._id === parsedUser.id) ||
+            (msg.senderId && msg.senderId._id === parsedUser._id);
 
-          // Transform the messages to match our Message interface
-          const transformedMessages = (data.messages || []).map((msg: any) => {
-            const msgSenderId = msg.senderId._id || msg.senderId;
-            // More robust user ID comparison
-            const isFromMe = msgSenderId === currentUser.id || 
-                           msgSenderId === currentUser._id ||
-                           (msg.senderId && msg.senderId._id === currentUser.id) ||
-                           (msg.senderId && msg.senderId._id === currentUser._id);
-            
-            // Get profile picture from populated senderId or fallback
-            const senderProfilePicture = msg.senderId?.profilePicture?.url || 
-                                        (isFromMe ? currentUser?.profilePicture?.url : sellerData.user?.profilePicture?.url);
-            
-            console.log('🔍 Message transformation:', {
-              msgSenderId,
-              currentUserId: currentUser.id,
-              currentUser_id: currentUser._id,
-              isFromMe,
-              messageText: msg.text,
-              senderProfilePicture: senderProfilePicture ? 'Found' : 'Not found'
-            });
-            
-            return {
-              id: msg._id,
-              text: msg.text,
-              senderId: msgSenderId,
-              senderName: isFromMe ? 
-                (currentUser.name || 'You') : 
-                (msg.senderId?.name || sellerData.user.name || sellerData.user.email?.split('@')[0] || 'Other User'),
-              senderAvatar: senderProfilePicture 
-                ? { uri: senderProfilePicture }
-                : require('../assets/avatar.png'),
-              timestamp: new Date(msg.timestamp),
-              isFromCurrentUser: isFromMe
-            };
-          });
-          setMessages(transformedMessages);
-        } else {
-          console.log('No messages found, setting default message');
-          // If no messages exist, create initial message
-          setMessages([{
-            id: '1',
-            text: 'Hello',
-            senderId: sellerUserId,
-            senderName: sellerId as string,
-            senderAvatar: require('../assets/avatar.png'),
-            timestamp: new Date(),
-            isFromCurrentUser: false
-          }]);
-        }
+          const senderProfilePicture =
+            msg.senderId?.profilePicture?.url ||
+            (isFromMe ? parsedUser?.profilePicture?.url : sellerDetails?.user?.profilePicture?.url || sellerProfilePictureParam);
+
+          return {
+            id: msg._id,
+            text: msg.text,
+            senderId: msgSenderId,
+            senderName: isFromMe
+              ? (parsedUser.name || 'You')
+              : (msg.senderId?.name || sellerDetails?.user?.name || sellerEmailParam || 'Other User'),
+            senderAvatar: senderProfilePicture
+              ? { uri: senderProfilePicture }
+              : require('../assets/avatar.png'),
+            timestamp: new Date(msg.timestamp),
+            isFromCurrentUser: isFromMe,
+          };
+        });
+        setMessages(transformedMessages);
       } else {
-        console.log('Failed to find seller, setting default message');
-        // Set default message if API fails
+        console.log('No messages found, setting default message');
         setMessages([{
           id: '1',
           text: 'Hello',
-          senderId: sellerId as string,
-          senderName: sellerId as string,
+          senderId: resolvedUserId || 'unknown',
+          senderName: sellerNameParam || sellerEmailParam || 'Conversation',
           senderAvatar: require('../assets/avatar.png'),
           timestamp: new Date(),
-          isFromCurrentUser: false
+          isFromCurrentUser: false,
         }]);
       }
     } catch (error: any) {
       console.error('Error loading messages:', error);
-      
+
       if (error?.name === 'AbortError') {
         Alert.alert('Timeout', 'Request timed out. Please check your connection and try again.');
       }
-      
-      // Set default message if API fails
+
       setMessages([{
         id: '1',
         text: 'Hello',
-        senderId: sellerId as string,
-        senderName: sellerId as string,
+        senderId: otherUserId || sellerIdParam || 'unknown',
+        senderName: sellerNameParam || sellerEmailParam || 'Conversation',
         senderAvatar: require('../assets/avatar.png'),
         timestamp: new Date(),
-        isFromCurrentUser: false
+        isFromCurrentUser: false,
       }]);
+    } finally {
+      messagesRequestRef.current = false;
     }
-  }, [sellerEmail, sellerId]);
+  }, [
+    otherUserLoaded,
+    otherUserId,
+    sellerIdParam,
+    sellerEmailParam,
+    sellerNameParam,
+    sellerProfilePictureParam,
+    fetchSellerDetails,
+  ]);
 
   const fetchConversationContext = async (targetId: string) => {
     try {
@@ -559,56 +630,43 @@ export default function MessageUser() {
 
     try {
       const token = await AsyncStorage.getItem('token');
-      
-      console.log('🔍 Looking up seller by email:', sellerEmail);
-      
-      // Find the seller user by email
-      const sellerEmailStr = Array.isArray(sellerEmail) ? sellerEmail[0] : sellerEmail;
-      const userResponse = await fetch(API_ENDPOINTS.getUser(sellerEmailStr), {
+      if (!token) {
+        Alert.alert('Error', 'Please log in to send messages.');
+        return;
+      }
+
+      const receiverId = await ensureOtherUserId();
+      if (!receiverId) {
+        Alert.alert('Error', 'Unable to find the recipient. Please try again.');
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.chatSend, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
+        body: JSON.stringify({
+          receiverId,
+          text: messageText,
+          productId: contextProductId,
+          productName: contextProductName,
+          productImage: contextProductImage,
+        }),
       });
 
-      if (userResponse.ok) {
-        const sellerData = await userResponse.json();
-        const sellerUserId = sellerData.user._id;
-        
-        console.log('✅ Found seller user:', sellerData.user.email);
-        console.log('📤 Sending message to seller ID:', sellerUserId);
-        
-        // Send message to the seller
-        const response = await fetch(API_ENDPOINTS.chatSend, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            receiverId: sellerUserId,
-            text: messageText,
-            productId: contextProductId,
-            productName: contextProductName,
-            productImage: contextProductImage,
-          }),
-        });
-
-        if (response.ok) {
-          console.log('✅ Message sent successfully via HTTP');
-          
-          // Mark messages as read
-          await fetch(API_ENDPOINTS.chatMarkRead(sellerUserId), {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-        } else {
-          console.error('❌ Failed to send message via HTTP:', response.status);
-        }
-      } else {
-        console.error('❌ Failed to find seller user');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ HTTP send failed:', response.status, errorText);
+        Alert.alert('Error', 'Failed to send message. Please try again.');
+        return;
       }
+
+      console.log('✅ Message sent via HTTP fallback');
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     } catch (error) {
       console.error('❌ Error sending message:', error);
     }
@@ -913,16 +971,11 @@ export default function MessageUser() {
         
         <View style={styles.headerCenter}>
           <Image
-            source={
-              (sellerProfilePicture && (Array.isArray(sellerProfilePicture) ? sellerProfilePicture[0] : sellerProfilePicture)) || 
-              otherUser?.profilePicture?.url
-                ? { uri: (sellerProfilePicture && (Array.isArray(sellerProfilePicture) ? sellerProfilePicture[0] : sellerProfilePicture)) || otherUser?.profilePicture?.url }
-                : require('../assets/avatar.png')
-            }
+            source={headerAvatarUri ? { uri: headerAvatarUri } : require('../assets/avatar.png')}
             style={styles.headerAvatar}
           />
           <Text style={[styles.headerName, { color: theme.colors.headerText }]}>
-            {otherUser?.name || otherUser?.email?.split('@')[0] || 'User'}
+            {headerDisplayName}
           </Text>
         </View>
         

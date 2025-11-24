@@ -1,7 +1,7 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, usePathname } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { API_ENDPOINTS } from '../config/api';
 import { useUser } from './contexts/UserContext';
@@ -30,18 +30,88 @@ interface Outfit {
 export default function Profile() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useUser();
+  const { user, isLoading: isUserLoading } = useUser();
   const { theme } = useTheme();
   const [name, setName] = useState('Name');
   const [email, setEmail] = useState('Email');
   const [measurements, setMeasurements] = useState<any>(null);
   const [recentOutfits, setRecentOutfits] = useState<Outfit[]>([]);
-  const measurementsLoadedRef = useRef(false);
+  const measurementsHashRef = useRef<string | null>(null);
+  const measurementsOwnerRef = useRef<string | null>(null);
+  const profileFetchAttemptedRef = useRef<string | null>(null);
   // Get profile image from user context or use default
   const profileImage = user?.profilePicture?.url || require('../assets/avatar.png');
 
+  const applyMeasurements = useCallback((nextMeasurements: any, ownerEmail?: string | null) => {
+    if (!nextMeasurements) {
+      return;
+    }
+
+    let nextHash: string;
+    try {
+      nextHash = JSON.stringify(nextMeasurements);
+    } catch (error) {
+      nextHash = `${Date.now()}`;
+    }
+
+    const ownerChanged = ownerEmail && measurementsOwnerRef.current !== ownerEmail;
+    if (!ownerChanged && measurementsHashRef.current === nextHash) {
+      return;
+    }
+
+    measurementsHashRef.current = nextHash;
+    if (ownerEmail) {
+      measurementsOwnerRef.current = ownerEmail;
+    }
+    setMeasurements(nextMeasurements);
+  }, []);
+
+  const hydrateMeasurementsFromStorage = useCallback(
+    async (expectedEmail?: string | null) => {
+      try {
+        const storedUserStr = await AsyncStorage.getItem('user');
+        if (!storedUserStr) {
+          return;
+        }
+        const storedUser = JSON.parse(storedUserStr);
+        if (!storedUser?.bodyMeasurements) {
+          return;
+        }
+        if (expectedEmail && storedUser.email !== expectedEmail) {
+          return;
+        }
+        applyMeasurements(storedUser.bodyMeasurements, storedUser.email);
+      } catch (error) {
+        console.error('Error loading cached measurements:', error);
+      }
+    },
+    [applyMeasurements]
+  );
+
+  useEffect(() => {
+    hydrateMeasurementsFromStorage();
+  }, [hydrateMeasurementsFromStorage]);
+
+  useEffect(() => {
+    if (!user?.email) {
+      return;
+    }
+
+    if (measurementsOwnerRef.current === user.email) {
+      return;
+    }
+
+    hydrateMeasurementsFromStorage(user.email);
+  }, [user?.email, hydrateMeasurementsFromStorage]);
+
   useEffect(() => {
     if (!user) {
+      if (!isUserLoading) {
+        setMeasurements(null);
+        measurementsHashRef.current = null;
+        measurementsOwnerRef.current = null;
+        profileFetchAttemptedRef.current = null;
+      }
       return;
     }
 
@@ -51,33 +121,34 @@ export default function Profile() {
     const userMeasurements = user.bodyMeasurements;
 
     if (userMeasurements) {
-      const currentSerialized = measurements ? JSON.stringify(measurements) : null;
-      const nextSerialized = JSON.stringify(userMeasurements);
-      if (currentSerialized !== nextSerialized) {
-        setMeasurements(userMeasurements);
-        measurementsLoadedRef.current = true;
-      }
-    } else if (!measurementsLoadedRef.current && user.email) {
+      applyMeasurements(userMeasurements, user.email);
+      profileFetchAttemptedRef.current = user.email;
+    } else if (user.email && profileFetchAttemptedRef.current !== user.email) {
+      profileFetchAttemptedRef.current = user.email;
       loadUserProfile(user.email);
     }
 
     loadRecentOutfits();
-  }, [user]);
+  }, [user, isUserLoading, applyMeasurements, loadUserProfile]);
 
-  const loadUserProfile = async (userEmail: string) => {
+  const loadUserProfile = useCallback(async (userEmail: string) => {
     try {
       const response = await fetch(`${API_ENDPOINTS.baseUrl}/api/auth/profile/${userEmail}`);
       if (response.ok) {
         const data = await response.json();
         if (data.user.bodyMeasurements) {
-          setMeasurements(data.user.bodyMeasurements);
-          measurementsLoadedRef.current = true;
+          applyMeasurements(data.user.bodyMeasurements, userEmail);
         }
+      } else if (profileFetchAttemptedRef.current === userEmail) {
+        profileFetchAttemptedRef.current = null;
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
+      if (profileFetchAttemptedRef.current === userEmail) {
+        profileFetchAttemptedRef.current = null;
+      }
     }
-  };
+  }, [applyMeasurements]);
 
   const loadRecentOutfits = async () => {
     try {

@@ -5,6 +5,7 @@ import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView,
 import { Ionicons } from '@expo/vector-icons';
 import { API_ENDPOINTS, getApiBaseUrl } from '../config/api';
 import { useTheme } from './contexts/ThemeContext';
+import { useUser } from './contexts/UserContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -13,6 +14,7 @@ const { width, height } = Dimensions.get('window');
 export default function Login() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { setUser } = useUser();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -117,12 +119,27 @@ Technical details: ${healthError.message}`);
       }
       
       console.log('Login successful, data:', data);
-      await AsyncStorage.setItem('token', data.token);
-      await AsyncStorage.setItem('user', JSON.stringify({ 
+      const userData = { 
         _id: data.user.id,
         name: data.user.name, 
-        email: data.user.email 
-      }));
+        email: data.user.email,
+        role: data.user.role || 'user',
+        profilePicture: data.user.profilePicture,
+        bodyMeasurements: data.user.bodyMeasurements,
+        stylePreferences: data.user.stylePreferences,
+        profileSettings: data.user.profileSettings,
+        subscription: data.user.subscription,
+      };
+      
+      // Update UserContext immediately
+      setUser(userData);
+      console.log('✅ UserContext updated with new user data');
+      
+      // Save to AsyncStorage
+      await AsyncStorage.setItem('token', data.token);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      console.log('✅ User data saved to AsyncStorage');
+      
       router.push('/wardrobe');
     } catch (error: any) {
       console.error('Login error details:', error);
