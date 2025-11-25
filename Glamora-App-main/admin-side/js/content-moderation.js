@@ -747,13 +747,32 @@ class ContentModerationManager {
         `;
         document.body.appendChild(photoModal);
 
-        // Close modal functionality
-        photoModal.querySelector('.close-photo').onclick = () => {
-            document.body.removeChild(photoModal);
+        // Lock background scroll
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        // Close helpers
+        const cleanup = () => {
+            if (photoModal && photoModal.parentNode) {
+                photoModal.parentNode.removeChild(photoModal);
+            }
+            // Restore scroll
+            document.body.style.overflow = originalOverflow || '';
+            document.removeEventListener('keydown', onKeyDown);
         };
+
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                cleanup();
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+
+        // Close modal functionality
+        photoModal.querySelector('.close-photo').onclick = cleanup;
         photoModal.onclick = (e) => {
             if (e.target === photoModal) {
-                document.body.removeChild(photoModal);
+                cleanup();
             }
         };
     }

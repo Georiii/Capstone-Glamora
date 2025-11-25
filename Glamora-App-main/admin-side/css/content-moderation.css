@@ -1102,6 +1102,52 @@
     color: #666;
 }
 
+/* Evidence Photo Preview (Centered Modal) */
+.photo-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    padding: 24px;
+}
+
+.photo-modal-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+.full-size-photo {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    background: #111;
+}
+
+.close-photo {
+    position: absolute;
+    top: 8px;
+    right: 14px;
+    color: #fff;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    user-select: none;
+}
+
 .admin-actions-section {
     display: flex;
     justify-content: flex-end;
